@@ -4,7 +4,7 @@ metadata:
   name: caddy-ingress
   namespace: caddy-test
   annotations:
-    kubernetes.io/ingress.class: "cloudflare" # 使用するIngressコントローラーに応じて変更
+    kubernetes.io/ingress.class: "cloudflare-tunnel" # 使用するIngressコントローラーに応じて変更
 spec:
   rules:
   - host: caddy.akatuki-host.com
