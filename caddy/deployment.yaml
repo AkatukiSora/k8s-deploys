@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: caddy-deployment
+  labels:
+    app: caddy
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: caddy
+  template:
+    metadata:
+      labels:
+        app: caddy
+    spec:
+      containers:
+      - name: caddy
+        image: caddy:latest
+        ports:
+        - containerPort: 80
+        - containerPort: 443
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+          requests:
+            memory: "64Mi"
+            cpu: "250m"
