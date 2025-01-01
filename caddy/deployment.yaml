@@ -5,6 +5,7 @@ metadata:
   labels:
     app: caddy
 spec:
+  namespace: caddy-test
   replicas: 5
   selector:
     matchLabels:

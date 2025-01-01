@@ -5,6 +5,7 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: "nginx" # 使用するIngressコントローラーに応じて変更
 spec:
+  namespace: caddy-test
   rules:
   - host: 
     http:
