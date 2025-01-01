@@ -7,7 +7,7 @@ metadata:
     kubernetes.io/ingress.class: "nginx" # 使用するIngressコントローラーに応じて変更
 spec:
   rules:
-  - host: 
+  - host: caddy.akatuki-host.com
     http:
       paths:
       - path: /
