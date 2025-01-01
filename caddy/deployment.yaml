@@ -2,10 +2,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: caddy-deployment
+  namespace: caddy-test
   labels:
     app: caddy
 spec:
-  namespace: caddy-test
   replicas: 5
   selector:
     matchLabels:
