@@ -1,0 +1,258 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: /snap/kompose/19/kompose-linux-amd64 convert -f docker-compose.yaml
+      -d --volumes persistentVolumeClaim --controller deployments
+    kompose.version: 1.21.0 (992df58d8)
+  labels:
+    io.kompose.service: broker
+  name: broker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: broker
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: /snap/kompose/19/kompose-linux-amd64 convert -f docker-compose.yaml
+          -d --volumes persistentVolumeClaim --controller deployments
+        kompose.version: 1.21.0 (992df58d8)
+      labels:
+        io.kompose.service: broker
+    spec:
+      containers:
+      - image: docker.io/library/redis:7
+        imagePullPolicy: "IfNotPresent"
+        name: broker
+        resources: 
+          limits:
+            cpu: "4"
+            memory: 500Mi
+          requests:
+            cpu: "2"
+            memory: 300Mi
+        volumeMounts:
+        - mountPath: /data
+          name: redisdata
+      restartPolicy: Always
+      serviceAccountName: ""
+      volumes:
+      - name: redisdata
+        persistentVolumeClaim:
+          claimName: redisdata
+status: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: /snap/kompose/19/kompose-linux-amd64 convert -f docker-compose.yaml
+      -d --volumes persistentVolumeClaim --controller deployments
+    kompose.version: 1.21.0 (992df58d8)
+  labels:
+    io.kompose.service: db
+  name: db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: db
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: /snap/kompose/19/kompose-linux-amd64 convert -f docker-compose.yaml
+          -d --volumes persistentVolumeClaim --controller deployments
+        kompose.version: 1.21.0 (992df58d8)
+      labels:
+        io.kompose.service: db
+    spec:
+      containers:
+      - env:
+        - name: POSTGRES_DB
+          value: paperless
+        - name: POSTGRES_PASSWORD
+          value: paperless
+        - name: POSTGRES_USER
+          value: paperless
+        image: docker.io/library/postgres:16
+        imagePullPolicy: "IfNotPresent"
+        name: db
+        resources: 
+          limits:
+            cpu: "4"
+            memory: 500Mi
+          requests:
+            cpu: "2"
+            memory: 300Mi
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: pgdata
+      restartPolicy: Always
+      serviceAccountName: ""
+      volumes:
+      - name: pgdata
+        persistentVolumeClaim:
+          claimName: pgdata
+status: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: /snap/kompose/19/kompose-linux-amd64 convert -f docker-compose.yaml
+      -d --volumes persistentVolumeClaim --controller deployments
+    kompose.version: 1.21.0 (992df58d8)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: gotenberg
+  name: gotenberg
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: gotenberg
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: /snap/kompose/19/kompose-linux-amd64 convert -f docker-compose.yaml
+          -d --volumes persistentVolumeClaim --controller deployments
+        kompose.version: 1.21.0 (992df58d8)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: gotenberg
+    spec:
+      containers:
+      - args:
+        - gotenberg
+        - --chromium-disable-javascript=true
+        - --chromium-allow-list=file:///tmp/.*
+        image: docker.io/gotenberg/gotenberg:8.7
+        imagePullPolicy: ""
+        name: gotenberg
+        resources: {} # TODO: 使用量を確認して設定
+      restartPolicy: Always
+      serviceAccountName: ""
+      volumes: null
+status: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: /snap/kompose/19/kompose-linux-amd64 convert -f docker-compose.yaml
+      -d --volumes persistentVolumeClaim --controller deployments
+    kompose.version: 1.21.0 (992df58d8)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: tika
+  name: tika
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: tika
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: /snap/kompose/19/kompose-linux-amd64 convert -f docker-compose.yaml
+          -d --volumes persistentVolumeClaim --controller deployments
+        kompose.version: 1.21.0 (992df58d8)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: tika
+    spec:
+      containers:
+      - image: docker.io/apache/tika:latest
+        imagePullPolicy: ""
+        name: tika
+        resources: {} # TODO: 使用量を確認して設定
+      restartPolicy: Always
+      serviceAccountName: ""
+      volumes: null
+status: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: /snap/kompose/19/kompose-linux-amd64 convert -f docker-compose.yaml
+      -d --volumes persistentVolumeClaim --controller deployments
+    kompose.version: 1.21.0 (992df58d8)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: webserver
+  name: webserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: webserver
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: /snap/kompose/19/kompose-linux-amd64 convert -f docker-compose.yaml
+          -d --volumes persistentVolumeClaim --controller deployments
+        kompose.version: 1.21.0 (992df58d8)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: webserver
+    spec:
+      containers:
+      - env:
+        - name: PAPERLESS_DBHOST
+          value: db
+        - name: PAPERLESS_OCR_LANGUAGE
+          valueFrom:
+            configMapKeyRef:
+              key: PAPERLESS_OCR_LANGUAGE
+              name: webserver-env
+        - name: PAPERLESS_REDIS
+          value: redis://broker:6379
+        - name: PAPERLESS_TIKA_ENABLED
+          value: "1"
+        - name: PAPERLESS_TIKA_ENDPOINT
+          value: http://tika:9998
+        - name: PAPERLESS_TIKA_GOTENBERG_ENDPOINT
+          value: http://gotenberg:3000
+        - name: PAPERLESS_TIME_ZONE
+          valueFrom:
+            configMapKeyRef:
+              key: PAPERLESS_TIME_ZONE
+              name: webserver-env
+        - name: PAPERLESS_URL
+          valueFrom:
+            configMapKeyRef:
+              key: PAPERLESS_URL
+              name: webserver-env
+        image: ghcr.io/paperless-ngx/paperless-ngx:latest
+        imagePullPolicy: ""
+        name: webserver
+        ports:
+        - containerPort: 8000
+        resources: {} # TODO: 使用量を確認して設定
+        volumeMounts:
+        - mountPath: /usr/src/paperless/data
+          name: data
+        - mountPath: /usr/src/paperless/media
+          name: media
+      restartPolicy: Always
+      serviceAccountName: ""
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: data
+      - name: media
+        persistentVolumeClaim:
+          claimName: media
+status: {}
+---
