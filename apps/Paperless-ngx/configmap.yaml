@@ -3,7 +3,7 @@ data:
   PAPERLESS_OCR_LANGUAGE: eng+jpn
   PARERLESS_OCR_LANGUAGES: jpn
   PAPERLESS_TIME_ZONE: Asia/Tokyo
-  PAPERLESS_URL: https://paperless.akatuki-host.com
+  PAPERLESS_URL: https://docmgr.akatuki-host.com
 kind: ConfigMap
 metadata:
   labels:
