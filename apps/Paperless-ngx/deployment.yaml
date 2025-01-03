@@ -221,6 +221,11 @@ spec:
             configMapKeyRef:
               key: PAPERLESS_OCR_LANGUAGE
               name: webserver-env
+        - name: PAPERLESS_OCR_LANGUAGES
+          valueFrom:
+            configMapKeyRef:
+              key: PARERLESS_OCR_LANGUAGES
+              name: webserver-env
         - name: PAPERLESS_REDIS
           value: redis://broker.paperless-ngx.svc.cluster.local:6379
         - name: PAPERLESS_TIKA_ENABLED
