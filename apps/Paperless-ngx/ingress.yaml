@@ -7,7 +7,7 @@ metadata:
     kubernetes.io/ingress.class: "cloudflare-tunnel" # 使用するIngressコントローラーに応じて変更
 spec:
   rules:
-  - host: docmgr.akatuki-host.com.com
+  - host: docmgr.akatuki-host.com
     http:
       paths:
       - path: /
