@@ -6,11 +6,12 @@ metadata:
     io.kompose.service: data
   name: data
 spec:
+  storageClassName: nfs-client
   accessModes:
-  - ReadWriteOnce
+  - ReadWriteMany
   resources:
     requests:
-      storage: 100Mi
+      storage: 5Gi
 status: {}
 ---
 apiVersion: v1
@@ -21,11 +22,12 @@ metadata:
     io.kompose.service: media
   name: media
 spec:
+  storageClassName: nfs-client
   accessModes:
-  - ReadWriteOnce
+  - ReadWriteMany
   resources:
     requests:
-      storage: 100Mi
+      storage: 80Gi
 status: {}
 ---
 apiVersion: v1
@@ -36,10 +38,11 @@ metadata:
     io.kompose.service: redisdata
   name: redisdata
 spec:
+  storageClassName: nfs-client
   accessModes:
-  - ReadWriteOnce
+  - ReadWriteMany
   resources:
     requests:
-      storage: 100Mi
+      storage: 5Gi
 status: {}
 ---
