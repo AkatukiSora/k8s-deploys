@@ -8,6 +8,7 @@ metadata:
   labels:
     io.kompose.service: broker
   name: broker
+  namespace: paperless-ngx
 spec:
   replicas: 1
   selector:
@@ -56,6 +57,7 @@ metadata:
   labels:
     io.kompose.service: db
   name: db
+  namespace: paperless-ngx
 spec:
   replicas: 1
   selector:
@@ -112,6 +114,7 @@ metadata:
   labels:
     io.kompose.service: gotenberg
   name: gotenberg
+  namespace: paperless-ngx
 spec:
   replicas: 1
   selector:
@@ -153,6 +156,7 @@ metadata:
   labels:
     io.kompose.service: tika
   name: tika
+  namespace: paperless-ngx
 spec:
   replicas: 1
   selector:
@@ -190,6 +194,7 @@ metadata:
   labels:
     io.kompose.service: webserver
   name: webserver
+  namespace: paperless-ngx
 spec:
   replicas: 1
   selector:
@@ -210,20 +215,20 @@ spec:
       containers:
       - env:
         - name: PAPERLESS_DBHOST
-          value: db
+          value: db.paperless-ngx.svc.cluster.local
         - name: PAPERLESS_OCR_LANGUAGE
           valueFrom:
             configMapKeyRef:
               key: PAPERLESS_OCR_LANGUAGE
               name: webserver-env
         - name: PAPERLESS_REDIS
-          value: redis://broker:6379
+          value: redis://broker.paperless-ngx.svc.cluster.local:6379
         - name: PAPERLESS_TIKA_ENABLED
           value: "1"
         - name: PAPERLESS_TIKA_ENDPOINT
-          value: http://tika:9998
+          value: http://tika.paperless-ngx.svc.cluster.local:9998
         - name: PAPERLESS_TIKA_GOTENBERG_ENDPOINT
-          value: http://gotenberg:3000
+          value: http://gotenberg.paperless-ngx.svc.cluster.local:3000
         - name: PAPERLESS_TIME_ZONE
           valueFrom:
             configMapKeyRef:
