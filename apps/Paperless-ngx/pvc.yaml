@@ -50,6 +50,7 @@ metadata:
     io.kompose.service: pgdata
   name: pgdata
 spec:
+  storageClassName: nfs-client
   accessModes:
   - ReadWriteMany
   resources:
