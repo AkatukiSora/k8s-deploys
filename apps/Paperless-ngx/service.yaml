@@ -10,7 +10,6 @@ metadata:
   name: webserver
   namespace: paperless-ngx
 spec:
-  serviceType: ClusterIP
   ports:
   - name: "8000"
     port: 8000
@@ -26,7 +25,6 @@ metadata:
   name: tika
   namespace: paperless-ngx
 spec:
-  serviceType: ClusterIP
   selector:
     io.kompose.service: tika
   ports:
@@ -40,7 +38,6 @@ metadata:
   name: db
   namespace: paperless-ngx
 spec:
-  serviceType: ClusterIP
   selector:
     io.kompose.service: db
   ports:
@@ -54,7 +51,6 @@ metadata:
   name: broker
   namespace: paperless-ngx
 spec:
-  serviceType: ClusterIP
   selector:
     io.kompose.service: broker
   ports:
@@ -67,7 +63,6 @@ metadata:
   name: gotenberg
   namespace: paperless-ngx
 spec:
-  serviceType: ClusterIP
   selector:
     io.kompose.service: gotenberg
   ports:
