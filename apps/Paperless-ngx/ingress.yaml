@@ -3,9 +3,8 @@ kind: Ingress
 metadata:
   name: paperless-ngx-ingress
   namespace: paperless-ngx
-  annotations:
-    kubernetes.io/ingress.class: "cloudflare-tunnel" # 使用するIngressコントローラーに応じて変更
 spec:
+  ingressClassName: cloudflare-tunnel
   rules:
   - host: docmgr.akatuki-host.com
     http:

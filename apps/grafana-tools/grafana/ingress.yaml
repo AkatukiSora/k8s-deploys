@@ -1,11 +1,10 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  annotations:
-    kubernetes.io/ingress.class: cloudflare-tunnel
   name: grafana-ingress
 
 spec:
+  ingressClassName: cloudflare-tunnel
   rules:
   - host: "grafana.akatuki-host.com"
     http:
