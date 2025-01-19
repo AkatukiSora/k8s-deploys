@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana-loki
+  finalizers: []
+spec:
+  destination:
+    name: ''
+    namespace: grafana
+    server: https://kubernetes.default.svc
+  sources:
+    - repoURL: https://grafana.github.io/helm-charts
+      targetRevision: 6.25.0
+      chart: loki
+      helm:
+        valueFiles:
+          - $repo/apps/grafana-tools/loki/values.yaml
+    - repoURL: git@github.com:AkatukiSora/k8s-deploys.git
+      targetRevision: master
+      ref: repo
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

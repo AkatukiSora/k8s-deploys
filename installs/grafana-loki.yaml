@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana-loki
+  namespace: argocd
+spec:
+  destination:
+    name: 'grafana-loki'
+    namespace: grafana
+    server: https://kubernetes.default.svc
+  source:
+    path: 'app/grafana-tools/loki'
+    repoURL: git@github.com:AkatukiSora/k8s-deploys.git
+    targetRevision: 'master'
+  sources: []
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
