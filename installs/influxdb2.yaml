@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: influx-db
+spec:
+  destination:
+    namespace: influxdb
+    server: https://kubernetes.default.svc
+  sources:
+    - repoURL: https://helm.influxdata.com/
+      targetRevision: 2.1.2
+      chart: influxdb2
+      helm:
+        valueFiles:
+          - $repo/apps/influxdb2/values.yaml
+    - repoURL: git@github.com:AkatukiSora/k8s-deploys.git
+      targetRevision: master
+      ref: repo
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
