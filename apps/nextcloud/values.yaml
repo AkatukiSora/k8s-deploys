@@ -1,5 +1,5 @@
 ingress:
-  enables: true
+  enabled: true
   tls: []
 nextcloud:
   host: nextcloud.akatuki-host.com
@@ -48,5 +48,4 @@ nextcloud:
         'default_language' => 'ja_JP',
         'default_locale' => 'ja_JP',
         'defaulttimezone' => 'Asia/Tokyo',
-        
       );
