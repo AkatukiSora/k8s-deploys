@@ -1,6 +1,10 @@
 ingress:
   enabled: true
   tls: []
+persistence:
+  nextcloudData:
+    enabled: true
+    size: "128Gi"
 nextcloud:
   host: nextcloud.akatuki-host.com
   configs:
