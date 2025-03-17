@@ -10,7 +10,7 @@ spec:
   project: default
   source:
     path: apps/Paperless-ngx
-    repoURL: git@github.com:AkatukiSora/k8s-deploys.git
+    repoURL: https://github.com/AkatukiSora/k8s-deploys.git
     targetRevision: master
   syncPolicy:
     automated:

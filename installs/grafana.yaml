@@ -9,7 +9,7 @@ spec:
     server: https://kubernetes.default.svc
   source:
     path: 'apps/grafana-tools/grafana'
-    repoURL: git@github.com:AkatukiSora/k8s-deploys.git
+    repoURL: https://github.com/AkatukiSora/k8s-deploys.git
     targetRevision: 'master'
   sources: []
   project: default

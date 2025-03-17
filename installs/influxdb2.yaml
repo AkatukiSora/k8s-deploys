@@ -13,7 +13,7 @@ spec:
       helm:
         valueFiles:
           - $repo/apps/influxdb2/values.yaml
-    - repoURL: git@github.com:AkatukiSora/k8s-deploys.git
+    - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
       targetRevision: master
       ref: repo
   project: default
