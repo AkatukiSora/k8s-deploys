@@ -15,6 +15,7 @@ spec:
         valueFiles:
           - $repo/apps/grafana-tools/loki/values.yaml
     - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
+      targetRevision: master
       ref: repo
   project: default
   syncPolicy:
