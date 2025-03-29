@@ -6,6 +6,7 @@ metadata:
 spec:
   destination:
     server: https://kubernetes.default.svc
+    namespace: caddy-test
   project: default
   source:
     path: apps/caddy
