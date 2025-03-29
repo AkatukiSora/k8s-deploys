@@ -8,10 +8,12 @@ spec:
     server: https://kubernetes.default.svc
   project: default
   source:
-    path: apps/caddy
+    path: apps/argocd
     repoURL: https://github.com/AkatukiSora/k8s-deploys.git
     targetRevision: master
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
