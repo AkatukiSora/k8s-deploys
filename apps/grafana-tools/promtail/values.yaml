@@ -1,7 +1,0 @@
-global:
-  dnsService: coredns
-
-config:
-  clients:
-    - url: http://grafana-loki-gateway/loki/api/v1/push
-      tenant_id: 1
