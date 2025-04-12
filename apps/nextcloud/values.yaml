@@ -1,7 +1,9 @@
 redis:
   enabled: true
+
 mariadb:
   enabled: true
+  mariadb.primary.persistence.enabled: true
 persistence:
   enabled: true
   accessModes:
@@ -15,6 +17,8 @@ ingress:
   enabled: true
 nextcloud:
   host: "nextcloud.akatuki-host.com"
+  trustedDomains:
+    - "nextcloud.akatuki-host.com"
   configs:
     trusted_proxy: |
       <?php
