@@ -1,6 +1,7 @@
 redis:
   enabled: true
-
+internalDatabase:
+  enabled: false
 mariadb:
   enabled: true
   primary:
