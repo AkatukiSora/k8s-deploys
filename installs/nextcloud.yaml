@@ -13,9 +13,10 @@ spec:
       chart: nextcloud
       helm:
         valueFiles:
-          - $repo/apps/nextcloud/values.yaml
+          - $repo/values.yaml
     - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
       targetRevision: master
+      path: apps/nextcloud
       ref: repo
   project: default
   syncPolicy:
