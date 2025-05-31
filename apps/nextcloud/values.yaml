@@ -1,9 +1,12 @@
 redis:
   enabled: true
-
+internalDatabase:
+  enabled: false
 mariadb:
   enabled: true
-  mariadb.primary.persistence.enabled: true
+  primary:
+    persistence:
+      enabled: true
 persistence:
   enabled: true
   accessModes:
@@ -49,5 +52,5 @@ nextcloud:
         ],
         'overwriteprotocol' => 'https',
         'overwritewebroot'  => '/domain.tld/nextcloud',
-        'overwrite.cli.url' => 'https://nextcloud.akatuki-host.com/,
+        'overwrite.cli.url' => 'https://nextcloud.akatuki-host.com/',
       );
