@@ -15,7 +15,7 @@ spec:
       values: |-
         nfs:
           path: "/export/k8s"
-          server: "10.1.0.6"
+          server: "10.1.0.254"
         storageClass:
           defaultClass: true
   sources: []
