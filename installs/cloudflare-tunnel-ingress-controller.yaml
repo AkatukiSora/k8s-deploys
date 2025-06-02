@@ -12,15 +12,14 @@ spec:
     targetRevision: 0.0.18
     chart: cloudflare-tunnel-ingress-controller
     helm:
-      values: |-
-        cloudflare:
-          accountId: "dac1cf154520a028d48ef279669ccf87"
-          apiToken: ""
-          tunnelName: "k8s-ingress"
-        ingressClass:
-          isDefaultClass: true
-          
-  sources: []
+      valueFiles:
+        - $repo/apps/cloudflare-tunnel-ingress-controller/values.yaml
+
+  sources:
+    - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
+      targetRevision: master
+      ref: repo
+
   project: default
   syncPolicy:
     automated:

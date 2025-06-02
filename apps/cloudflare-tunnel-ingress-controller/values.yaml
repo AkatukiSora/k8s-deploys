@@ -1,0 +1,4 @@
+cloudflare:
+  tunnelName: "k8s-ingress"
+ingressClass:
+  isDefaultClass: true
