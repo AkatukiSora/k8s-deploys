@@ -6,19 +6,17 @@ spec:
   destination:
     namespace: cloudflare-tunnel-ingress-controller
     server: https://kubernetes.default.svc
-  source:
-    path: ''
-    repoURL: https://helm.strrl.dev
-    targetRevision: 0.0.21
-    chart: cloudflare-tunnel-ingress-controller
-    helm:
-      valueFiles:
-        - $repo/apps/cloudflare-tunnel-ingress-controller/values.yaml
-
   sources:
+    - repoURL: https://helm.strrl.dev
+      targetRevision: 0.0.21
+      chart: cloudflare-tunnel-ingress-controller
+      helm:
+        valueFiles:
+          - $repo/apps/cloudflare-tunnel-ingress-controller/values.yaml
     - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
       targetRevision: master
       ref: repo
+      path: apps/cloudflare-tunnel-ingress-controller
 
   project: default
   syncPolicy:
