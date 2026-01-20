@@ -9,7 +9,7 @@ spec:
   source:
     path: ''
     repoURL: https://helm.strrl.dev
-    targetRevision: 0.0.18
+    targetRevision: 0.0.21
     chart: cloudflare-tunnel-ingress-controller
     helm:
       valueFiles:
