@@ -8,7 +8,7 @@ spec:
   sources:
     - repoURL: https://ceph.github.io/csi-charts
       chart: ceph-csi-rbd
-      targetRevision: <CHART_VERSION>
+      targetRevision: 3.16.0
       helm:
         valueFiles:
           - $repo/apps/ceph-csi-rbd/values.yaml
