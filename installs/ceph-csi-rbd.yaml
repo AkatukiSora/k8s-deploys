@@ -21,7 +21,7 @@ spec:
     - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
       targetRevision: master
       ref: repo
-      path: apps/ceph-csi-rbd
+      path: apps/ceph-csi
   destination:
     server: https://kubernetes.default.svc
     namespace: ceph-csi
