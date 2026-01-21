@@ -7,11 +7,17 @@ spec:
   destination:
     namespace: grafana
     server: https://kubernetes.default.svc
-  source:
-    path: 'apps/grafana-tools/grafana'
-    repoURL: https://github.com/AkatukiSora/k8s-deploys.git
-    targetRevision: 'master'
-  sources: []
+  sources:
+    - path: apps/grafana-tools/grafana
+      repoURL: https://github.com/AkatukiSora/k8s-deploys.git
+      targetRevision: 'master'
+      ref: repo
+    - repoURL: https://grafana.github.io/helm-charts
+      chart: grafana
+      targetRevision: 10.5.8
+      helm:
+        valueFiles:
+          - $repo/apps/grafana-tools/grafana/values.yaml
   project: default
   syncPolicy:
     automated:
