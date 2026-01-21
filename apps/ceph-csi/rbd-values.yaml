@@ -369,7 +369,7 @@ topology:
 storageClass:
   # Specifies whether the storageclass should be created
   create: true
-  name: csi-rbd-sc
+  name: ceph-rbd
 
   # Annotations for the storage class
   # Example:

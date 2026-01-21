@@ -339,7 +339,7 @@ selinuxMount: true
 storageClass:
   # Specifies whether the Storage class should be created
   create: true
-  name: csi-cephfs-sc
+  name: ceph-cephfs
   # Annotations for the storage class
   # Example:
   # annotations:
@@ -358,7 +358,7 @@ storageClass:
   # pool: <cephfs-data-pool>
   # For eg:
   # pool: "replicapool"
-  pool: ""
+  pool: "k8s-cephfs-data"
   # (optional) Comma separated string of Ceph-fuse mount options.
   # For eg:
   # fuseMountOptions: debug
