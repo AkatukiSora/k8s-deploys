@@ -12,6 +12,9 @@ spec:
       repoURL: https://github.com/AkatukiSora/k8s-deploys.git
       targetRevision: 'master'
       ref: repo
+      directory:
+        exclude: '{values.yaml,**/values.yaml,**/*values*.yaml}'
+
     - repoURL: https://grafana.github.io/helm-charts
       chart: grafana
       targetRevision: 10.5.8
