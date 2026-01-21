@@ -11,7 +11,13 @@ spec:
       targetRevision: 3.16.0
       helm:
         valueFiles:
-          - $repo/apps/ceph-csi-rbd/values.yaml
+          - $repo/apps/ceph-csi/rbd-values.yaml
+    - repoURL: https://ceph.github.io/csi-charts
+      chart: ceph-csi-cephfs
+      targetRevision: 3.16.0
+      helm:
+        valueFiles:
+          - $repo/apps/ceph-csi/cephfs-values.yaml
     - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
       targetRevision: master
       ref: repo
