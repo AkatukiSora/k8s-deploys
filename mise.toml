@@ -1,3 +1,4 @@
 [tools]
+argocd = "latest"
 helm = "latest"
 kubectl = "latest"
