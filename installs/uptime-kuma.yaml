@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: uptime-kuma
+  namespace: argocd
+spec:
+  destination:
+    namespace: uptime-kuma
+    server: https://kubernetes.default.svc
+  sources:
+    - path: $repo/apps/uptime-kuma
+      repoURL: https://github.com/AkatukiSora/k8s-deploys.git
+      targetRevision: 'master'
+      ref: repo
+      directory:
+        exclude: '{values.yaml,**/values.yaml,**/*values*.yaml}'
+
+    - repoURL: https://helm.irsigler.cloud
+      chart: uptime-kuma  
+      targetRevision: 2.24.0
+      helm:
+        valueFiles:
+          - $repo/apps/uptime-kuma/values.yaml
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions: 
+    - CreateNamespace=true
