@@ -368,7 +368,7 @@ topology:
 
 storageClass:
   # Specifies whether the storageclass should be created
-  create: true
+  create: false
   name: ceph-rbd
 
   # Annotations for the storage class

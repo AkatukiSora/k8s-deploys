@@ -338,7 +338,7 @@ selinuxMount: true
 
 storageClass:
   # Specifies whether the Storage class should be created
-  create: true
+  create: false
   name: ceph-cephfs
   # Annotations for the storage class
   # Example:
