@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: srs-server
+  namespace: argocd
+spec:
+  destination:
+    namespace: srs-server
+    server: https://kubernetes.default.svc
+  sources:
+    - # path: apps/srs-server
+      repoURL: https://github.com/AkatukiSora/k8s-deploys.git
+      targetRevision: 'master'
+      ref: repo
+      directory:
+        exclude: '{values.yaml,**/values.yaml,**/*values*.yaml}'
+
+    - repoURL: http://helm.ossrs.io/stable
+      chart: srs-server
+      targetRevision: 1.0.5
+      helm:
+        valueFiles:
+          - $repo/apps/srs-server/values.yaml
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions: 
+    - CreateNamespace=true
