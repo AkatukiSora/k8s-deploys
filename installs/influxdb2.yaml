@@ -8,8 +8,8 @@ spec:
     server: https://kubernetes.default.svc
   sources:
     - repoURL: https://helm.influxdata.com/
-      targetRevision: 4.12.5
-      chart: influxdb
+      targetRevision: 2.7.4
+      chart: influxdb2
       helm:
         valueFiles:
           - $repo/apps/influxdb/values.yaml
