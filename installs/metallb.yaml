@@ -2,9 +2,10 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: MetalLB
+  namespace: argocd
 spec:
   destination:
-    namespace: MetalLB
+    namespace: metallb
     server: https://kubernetes.default.svc
   sources:
     - repoURL: https://metallb.github.io/metallb

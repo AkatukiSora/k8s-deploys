@@ -2,7 +2,9 @@ apiVersion: metallb.io/v1beta1
 kind: BGPAdvertisement
 metadata:
   name: bgp-advertisement
-  namespace: MetalLB
+  namespace: metallb
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
   labels:
     app.kubernetes.io/name: metallb
     app.kubernetes.io/component: bgp-advertisement

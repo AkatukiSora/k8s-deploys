@@ -2,7 +2,9 @@ apiVersion: metallb.io/v1beta2
 kind: BGPPeer
 metadata:
   name: udm-pro
-  namespace: MetalLB
+  namespace: metallb
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
   labels:
     app.kubernetes.io/name: metallb
     app.kubernetes.io/component: bgp-peer
