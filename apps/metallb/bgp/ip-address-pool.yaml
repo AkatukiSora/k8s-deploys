@@ -1,0 +1,15 @@
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: bgp-pool
+  namespace: MetalLB
+  labels:
+    app.kubernetes.io/name: metallb
+    app.kubernetes.io/component: bgp-pool
+spec:
+  addresses:
+    - 192.168.10.10-192.168.10.254
+  # autoAssign: false にすると、ServiceのannotationでPool名を指定した場合のみ割り当て
+  # true にすると type: LoadBalancer のServiceに自動割り当て
+  autoAssign: true
+  

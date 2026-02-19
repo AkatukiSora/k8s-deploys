@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: MetalLB
+spec:
+  destination:
+    namespace: MetalLB
+    server: https://kubernetes.default.svc
+  sources:
+    - repoURL: https://metallb.github.io/metallb
+      targetRevision: 0.15.3
+      chart: metallb
+      helm:
+        valueFiles:
+          - $repo/apps/metallb/values.yaml
+    - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
+      targetRevision: master
+      ref: repo
+      path: apps/metallb/bgp
+
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

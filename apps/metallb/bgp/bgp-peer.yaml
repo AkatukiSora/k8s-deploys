@@ -1,0 +1,24 @@
+apiVersion: metallb.io/v1beta2
+kind: BGPPeer
+metadata:
+  name: udm-pro
+  namespace: MetalLB
+  labels:
+    app.kubernetes.io/name: metallb
+    app.kubernetes.io/component: bgp-peer
+spec:
+  # UDM Pro の IP アドレス (192.168.5.0/24 セグメント内)
+  peerAddress: 192.168.5.1
+  # UDM Pro の ASN
+  peerASN: 65000
+  # Kubernetes 側の ASN
+  myASN: 65010
+  # BGP セッションのソースアドレスを kubernetes セグメントに固定する場合は指定
+  # sourceAddress: ""
+  # BFD プロファイルを使う場合 (高速障害検知)
+  # bfdProfile: ""
+  # eBGP マルチホップ (同一セグメントなので不要)
+  ebgpMultiHop: false
+  # keepalive / hold time (秒)
+  keepaliveTime: 30s
+  holdTime: 90s
