@@ -1,5 +1,8 @@
 nameOverride: "kube-prometheus-stack"
 
+crds:
+  enabled: true
+
 grafana:
   enabled: true
   admin:
