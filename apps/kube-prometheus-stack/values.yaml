@@ -2,6 +2,17 @@ nameOverride: "kube-prometheus-stack"
 
 grafana:
   enabled: true
+  admin:
+    existingSecret: grafana-admin-user
+    userKey: admin-user
+    passwordKey: admin-password
+  ingress:
+    enabled: true
+    ingressClassName: cloudflare-tunnel
+    hosts:
+      - grafana.akatuki-host.com
+    path: /
+    pathType: Prefix
 
 prometheus:
   enabled: true
