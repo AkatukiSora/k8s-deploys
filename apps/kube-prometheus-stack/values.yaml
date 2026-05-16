@@ -75,11 +75,17 @@ alertmanager:
         discord_configs:
           - webhook_url_file: /etc/alertmanager/secrets/alertmanager-discord-webhooks/discord_webhook_critical
             send_resolved: true
+            title: '[{{ .Status | toUpper }}][critical] {{ .CommonLabels.alertname }}'
+            message: '{{ if .CommonAnnotations.summary }}{{ .CommonAnnotations.summary }}{{ else }}Alert fired{{ end }} | ns={{ if .CommonLabels.namespace }}{{ .CommonLabels.namespace }}{{ else }}n/a{{ end }}{{ if .CommonAnnotations.grafana_explore_url }} | explore={{ .CommonAnnotations.grafana_explore_url }}{{ else }} | explore=https://grafana.akatuki-host.com/explore?left=%7B%22datasource%22:%22Prometheus%22,%22queries%22:%5B%7B%22expr%22:%22ALERTS%7Balertname%3D%5C%22{{ .CommonLabels.alertname }}%5C%22,alertstate%3D%5C%22firing%5C%22%7D%22,%22refId%22:%22A%22%7D%5D,%22range%22:%7B%22from%22:%22now-6h%22,%22to%22:%22now%22%7D%7D{{ end }}{{ if .CommonAnnotations.dashboard_url }} | dashboard={{ .CommonAnnotations.dashboard_url }}{{ end }} | grafana=https://grafana.akatuki-host.com/alerting/list{{ if .CommonAnnotations.runbook_url }} | runbook={{ .CommonAnnotations.runbook_url }}{{ end }}'
       - name: discord-warning
         discord_configs:
           - webhook_url_file: /etc/alertmanager/secrets/alertmanager-discord-webhooks/discord_webhook_warning
             send_resolved: true
+            title: '[{{ .Status | toUpper }}][warning] {{ .CommonLabels.alertname }}'
+            message: '{{ if .CommonAnnotations.summary }}{{ .CommonAnnotations.summary }}{{ else }}Alert fired{{ end }} | ns={{ if .CommonLabels.namespace }}{{ .CommonLabels.namespace }}{{ else }}n/a{{ end }}{{ if .CommonAnnotations.grafana_explore_url }} | explore={{ .CommonAnnotations.grafana_explore_url }}{{ else }} | explore=https://grafana.akatuki-host.com/explore?left=%7B%22datasource%22:%22Prometheus%22,%22queries%22:%5B%7B%22expr%22:%22ALERTS%7Balertname%3D%5C%22{{ .CommonLabels.alertname }}%5C%22,alertstate%3D%5C%22firing%5C%22%7D%22,%22refId%22:%22A%22%7D%5D,%22range%22:%7B%22from%22:%22now-6h%22,%22to%22:%22now%22%7D%7D{{ end }}{{ if .CommonAnnotations.dashboard_url }} | dashboard={{ .CommonAnnotations.dashboard_url }}{{ end }} | grafana=https://grafana.akatuki-host.com/alerting/list{{ if .CommonAnnotations.runbook_url }} | runbook={{ .CommonAnnotations.runbook_url }}{{ end }}'
       - name: discord-info
         discord_configs:
           - webhook_url_file: /etc/alertmanager/secrets/alertmanager-discord-webhooks/discord_webhook_info
             send_resolved: true
+            title: '[{{ .Status | toUpper }}][info] {{ .CommonLabels.alertname }}'
+            message: '{{ if .CommonAnnotations.summary }}{{ .CommonAnnotations.summary }}{{ else }}Alert fired{{ end }} | ns={{ if .CommonLabels.namespace }}{{ .CommonLabels.namespace }}{{ else }}n/a{{ end }}{{ if .CommonAnnotations.grafana_explore_url }} | explore={{ .CommonAnnotations.grafana_explore_url }}{{ else }} | explore=https://grafana.akatuki-host.com/explore?left=%7B%22datasource%22:%22Prometheus%22,%22queries%22:%5B%7B%22expr%22:%22ALERTS%7Balertname%3D%5C%22{{ .CommonLabels.alertname }}%5C%22,alertstate%3D%5C%22firing%5C%22%7D%22,%22refId%22:%22A%22%7D%5D,%22range%22:%7B%22from%22:%22now-6h%22,%22to%22:%22now%22%7D%7D{{ end }}{{ if .CommonAnnotations.dashboard_url }} | dashboard={{ .CommonAnnotations.dashboard_url }}{{ end }} | grafana=https://grafana.akatuki-host.com/alerting/list{{ if .CommonAnnotations.runbook_url }} | runbook={{ .CommonAnnotations.runbook_url }}{{ end }}'
