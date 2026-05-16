@@ -36,7 +36,9 @@ serviceAccounts:
 csiConfig:
   - clusterID: "5bef1c02-f871-4b70-ba18-c6cce8221916"
     monitors:
+      - "192.168.5.101:3300"
       - "192.168.5.101:6789"
+      - "192.168.5.102:3300"
       - "192.168.5.102:6789"
     rbd:
       netNamespaceFilePath: "{{ .kubeletDir }}/plugins/{{ .driverName }}/net"
@@ -679,4 +681,3 @@ kmsConfigMapName: ceph-csi-encryption-kms-config
 # Unique ID distinguishing this instance of Ceph CSI among other instances,
 # when sharing Ceph clusters across CSI instances for provisioning
 # instanceID: default
-

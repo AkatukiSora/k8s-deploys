@@ -35,7 +35,9 @@ serviceAccounts:
 csiConfig:
   - clusterID: "5bef1c02-f871-4b70-ba18-c6cce8221916"
     monitors:
+      - "192.168.5.101:3300"
       - "192.168.5.101:6789"
+      - "192.168.5.102:3300"
       - "192.168.5.102:6789"
     cephFS:
       subvolumeGroup: "csi"
@@ -353,7 +355,7 @@ storageClass:
   clusterID: 5bef1c02-f871-4b70-ba18-c6cce8221916
   # (required) CephFS filesystem name into which the volume shall be created
   # eg: fsName: myfs
-  fsName: myfs
+  fsName: k8sfs
   # (optional) Ceph pool into which volume data shall be stored
   # pool: <cephfs-data-pool>
   # For eg:
@@ -465,7 +467,7 @@ volumeGroupSnapshotClass:
   clusterID: <cluster-id>
 
   # eg: fsName: myfs
-  fsName: myfs
+  fsName: k8sfs
 
   # (optional) Prefix to use for naming RBD groups.
   # If omitted, defaults to "csi-vol-group-".
@@ -528,7 +530,7 @@ configMapName: ceph-csi-config
 # Key to use in the Configmap if not config.json
 # configMapKey:
 # Use an externally provided configmap
-externallyManagedConfigmap: false
+externallyManagedConfigmap: true
 # Name of the configmap used for ceph.conf
 cephConfConfigMapName: ceph-config
 # Name of the configmap used for encryption kms configuration
@@ -538,4 +540,3 @@ kmsConfigMapName: ceph-csi-encryption-kms-config
 # Unique ID distinguishing this instance of Ceph CSI among other instances,
 # when sharing Ceph clusters across CSI instances for provisioning
 # instanceID: default
-
