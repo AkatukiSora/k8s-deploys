@@ -63,16 +63,23 @@ alertmanager:
         equal:
           - alertname
           - namespace
+      - source_matchers:
+          - severity="critical"
+        target_matchers:
+          - severity="info"
+        equal:
+          - alertname
+          - namespace
     receivers:
       - name: discord-critical
-        webhook_configs:
-          - url_file: /etc/alertmanager/secrets/alertmanager-discord-webhooks/discord_webhook_critical
+        discord_configs:
+          - webhook_url_file: /etc/alertmanager/secrets/alertmanager-discord-webhooks/discord_webhook_critical
             send_resolved: true
       - name: discord-warning
-        webhook_configs:
-          - url_file: /etc/alertmanager/secrets/alertmanager-discord-webhooks/discord_webhook_warning
+        discord_configs:
+          - webhook_url_file: /etc/alertmanager/secrets/alertmanager-discord-webhooks/discord_webhook_warning
             send_resolved: true
       - name: discord-info
-        webhook_configs:
-          - url_file: /etc/alertmanager/secrets/alertmanager-discord-webhooks/discord_webhook_info
+        discord_configs:
+          - webhook_url_file: /etc/alertmanager/secrets/alertmanager-discord-webhooks/discord_webhook_info
             send_resolved: true
