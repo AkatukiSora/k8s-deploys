@@ -22,6 +22,12 @@ spec:
         valueFiles:
           - $repo/apps/uptime-kuma/values.yaml
   project: default
+  ignoreDifferences:
+    - kind: Secret
+      name: uptime-kuma-mariadb
+      namespace: uptime-kuma
+      jsonPointers:
+        - /data
   syncPolicy:
     automated:
       prune: true
