@@ -673,7 +673,7 @@ configMapName: ceph-csi-config
 # Key to use in the Configmap if not config.json
 # configMapKey:
 # Use an externally provided configmap
-externallyManagedConfigmap: false
+externallyManagedConfigmap: true
 # Name of the configmap used for ceph.conf
 cephConfConfigMapName: ceph-config
 # Name of the configmap used for encryption kms configuration
