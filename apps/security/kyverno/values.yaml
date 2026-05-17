@@ -28,15 +28,4 @@ grafana:
 features:
   policyReports:
     enabled: true
-
-webhooksCleanup:
-  image:
-    registry: registry.k8s.io
-    repository: kubectl
-    tag: v1.30.2
-
-policyReportsCleanup:
-  image:
-    registry: registry.k8s.io
-    repository: kubectl
-    tag: v1.30.2
+  
