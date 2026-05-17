@@ -1,16 +1,19 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: security-dashboards
+  name: security-observability
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "15"
 spec:
   project: default
-  source:
-    repoURL: https://github.com/AkatukiSora/k8s-deploys.git
-    targetRevision: master
-    path: apps/security/dashboards
+  sources:
+    - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
+      targetRevision: master
+      path: apps/security/prometheus-rules
+    - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
+      targetRevision: master
+      path: apps/security/dashboards
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
@@ -20,3 +23,4 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - ServerSideApply=true

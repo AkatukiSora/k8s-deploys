@@ -17,6 +17,9 @@ spec:
     - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
       targetRevision: master
       ref: repo
+    - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
+      targetRevision: master
+      path: apps/security/kyverno-policies
   destination:
     server: https://kubernetes.default.svc
     namespace: kyverno
@@ -26,3 +29,4 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - ServerSideApply=true
