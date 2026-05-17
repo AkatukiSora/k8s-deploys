@@ -1,19 +1,26 @@
 admissionController:
   replicas: 2
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: kube-prometheus-stack
 
 backgroundController:
   replicas: 1
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: kube-prometheus-stack
 
 cleanupController:
   enabled: false
 
 reportsController:
   replicas: 1
-
-serviceMonitor:
-  enabled: true
-  additionalLabels:
-    release: kube-prometheus-stack
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: kube-prometheus-stack
 
 grafana:
   enabled: false
