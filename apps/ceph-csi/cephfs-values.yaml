@@ -41,7 +41,6 @@ csiConfig:
       - "192.168.5.102:6789"
     cephFS:
       subvolumeGroup: "csi"
-      netNamespaceFilePath: /var/lib/kubelet/plugins/cephfs.csi.ceph.com/net
       radosNamespace: "csi"
 
 # Configuration for the encryption KMS

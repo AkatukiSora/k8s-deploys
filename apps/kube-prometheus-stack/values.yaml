@@ -3,6 +3,9 @@ nameOverride: "kube-prometheus-stack"
 crds:
   enabled: true
 
+kubeProxy:
+  enabled: false
+
 grafana:
   enabled: true
   admin:

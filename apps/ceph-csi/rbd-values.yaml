@@ -41,7 +41,6 @@ csiConfig:
       - "192.168.5.102:3300"
       - "192.168.5.102:6789"
     rbd:
-      netNamespaceFilePath: /var/lib/kubelet/plugins/rbd.csi.ceph.com/net
       mirrorDaemonCount: 1
     readAffinity:
       enabled: false

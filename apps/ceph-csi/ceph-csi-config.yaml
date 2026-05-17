@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ceph-csi-config
+  namespace: ceph-csi
+data:
+  config.json: |
+    [
+      {
+        "clusterID": "5bef1c02-f871-4b70-ba18-c6cce8221916",
+        "monitors": [
+          "192.168.5.101:3300",
+          "192.168.5.101:6789",
+          "192.168.5.102:3300",
+          "192.168.5.102:6789"
+        ],
+        "cephFS": {
+          "subvolumeGroup": "csi",
+          "radosNamespace": "csi"
+        },
+        "rbd": {
+          "mirrorDaemonCount": 1
+        },
+        "readAffinity": {
+          "enabled": false,
+          "crushLocationLabels": []
+        }
+      }
+    ]
+  cluster-mapping.json: |
+    []
