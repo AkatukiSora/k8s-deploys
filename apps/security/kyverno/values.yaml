@@ -1,3 +1,4 @@
+---
 admissionController:
   replicas: 2
   serviceMonitor:
@@ -28,4 +29,3 @@ grafana:
 features:
   policyReports:
     enabled: true
-  
