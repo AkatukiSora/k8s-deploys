@@ -10,7 +10,7 @@ spec:
   sources:
     - repoURL: https://kyverno.github.io/policy-reporter
       chart: policy-reporter
-      targetRevision: 2.27.0
+      targetRevision: 3.7.4
       helm:
         valueFiles:
           - $repo/apps/security/policy-reporter/values.yaml
