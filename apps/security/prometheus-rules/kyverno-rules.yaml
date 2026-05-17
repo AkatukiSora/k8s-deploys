@@ -1,0 +1,27 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: security-kyverno-rules
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: security.kyverno
+      rules:
+        - alert: KyvernoDown
+          expr: sum(up{namespace="kyverno",pod=~"kyverno-admission-controller.*"}) < 1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Kyverno admission controller is down
+            runbook_url: https://kyverno.io/docs/monitoring/
+        - alert: KyvernoPolicyViolationsDetected
+          expr: sum(rate(kyverno_policy_results_total{result="fail"}[10m])) > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Kyverno policy violations detected
+            runbook_url: https://kyverno.io/docs/policy-reports/

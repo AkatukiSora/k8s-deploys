@@ -1,0 +1,26 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: audit-require-drop-capabilities
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+    - name: drop-capabilities
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+      exclude:
+        any:
+          - resources:
+              namespaces: [kube-system, kube-public, kube-node-lease, argocd, monitoring, kyverno, trivy-system]
+      validate:
+        message: "Containers should drop ALL Linux capabilities."
+        pattern:
+          spec:
+            containers:
+              - securityContext:
+                  capabilities:
+                    drop:
+                      - ALL

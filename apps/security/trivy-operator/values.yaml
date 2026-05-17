@@ -1,0 +1,18 @@
+trivy:
+  severity: CRITICAL,HIGH,MEDIUM
+
+operator:
+  scanJobsConcurrentLimit: 5
+
+serviceMonitor:
+  enabled: true
+  labels:
+    release: kube-prometheus-stack
+
+metricsFindingsEnabled: true
+metricsVulnIdEnabled: false
+metricsConfigAuditInfo: true
+metricsExposedSecretInfo: true
+metricsRbacAssessmentInfo: true
+
+excludeNamespaces: kube-system,kube-public,kube-node-lease,argocd

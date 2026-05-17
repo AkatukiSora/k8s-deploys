@@ -1,0 +1,24 @@
+ui:
+  enabled: true
+  service:
+    type: ClusterIP
+
+plugins:
+  kyverno:
+    enabled: true
+  trivy:
+    enabled: true
+
+metrics:
+  enabled: true
+
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: kube-prometheus-stack
+
+global:
+  plugins:
+    kyverno: true

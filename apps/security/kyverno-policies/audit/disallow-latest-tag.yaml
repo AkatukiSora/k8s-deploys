@@ -1,0 +1,27 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: audit-disallow-latest-tag
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+    - name: no-latest-tag
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+      exclude:
+        any:
+          - resources:
+              namespaces: [kube-system, kube-public, kube-node-lease, argocd, monitoring, kyverno, trivy-system]
+      validate:
+        message: "Container images should not use latest tag."
+        foreach:
+          - list: "request.object.spec.containers"
+            deny:
+              conditions:
+                any:
+                  - key: "{{ regex_match('^.+:latest$', element.image) }}"
+                    operator: Equals
+                    value: true

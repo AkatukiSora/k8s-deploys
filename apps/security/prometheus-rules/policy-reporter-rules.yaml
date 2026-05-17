@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: security-policy-reporter-rules
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: security.policy-reporter
+      rules:
+        - alert: PolicyReporterDown
+          expr: sum(up{namespace="policy-reporter",pod=~"policy-reporter.*"}) < 1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Policy Reporter is down
+            runbook_url: https://kyverno.github.io/policy-reporter-docs/

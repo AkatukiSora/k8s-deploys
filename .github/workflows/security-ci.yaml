@@ -1,0 +1,45 @@
+---
+name: Security Manifests CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  validate-security-manifests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: Install kubeconform
+        run: |
+          curl -sSL "https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz" -o kubeconform.tar.gz
+          tar -xzf kubeconform.tar.gz kubeconform
+          sudo mv kubeconform /usr/local/bin/kubeconform
+
+      - name: Lint YAML
+        run: |
+          yamllint -d "{extends: default, rules: {line-length: disable, document-start: disable}}" \
+            installs/security-*.yaml \
+            apps/security \
+            .github/workflows/security-ci.yaml
+
+      - name: Validate Kubernetes manifests
+        run: |
+          shopt -s globstar nullglob
+          kubeconform -summary -strict -ignore-missing-schemas installs/security-*.yaml
+          kubeconform -summary -strict -ignore-missing-schemas \
+            apps/security/kyverno-policies/**/*.yaml \
+            apps/security/prometheus-rules/**/*.yaml \
+            apps/security/dashboards/**/*.yaml
