@@ -8,12 +8,15 @@ data:
     module.exports = {
       httpAddress: '0.0.0.0',
       httpPort: 3000,
+      maxUploadSize: 100 * 1024 * 1024,
       httpUnsafeOrigin: 'https://pad.akatuki-host.com',
       httpSafeOrigin: 'https://pad-sandbox.akatuki-host.com',
       websocketPort: 3003,
     };
   application_config.template.js: |
-    define(['/common/application_config_internal.js'], function (AppConfig) {
-      AppConfig.registeredOnlyTypes = AppConfig.availablePadTypes;
+    window.AppConfig = window.AppConfig || {};
+    var AppConfig = window.AppConfig;
+    define(['/common/application_config_internal.js'], function (InternalAppConfig) {
+      Object.assign(AppConfig, InternalAppConfig);
       return AppConfig;
     });
