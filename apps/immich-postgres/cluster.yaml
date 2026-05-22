@@ -20,7 +20,7 @@ spec:
     name: immich-postgres-superuser
   storage:
     size: 30Gi
-    storageClass: rook-ceph-block
+    storageClass: ceph-rbd
   resources:
     requests:
       cpu: 1

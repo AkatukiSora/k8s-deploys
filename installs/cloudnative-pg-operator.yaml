@@ -11,7 +11,7 @@ spec:
   sources:
     - repoURL: https://github.com/cloudnative-pg/charts.git
       path: charts/cloudnative-pg
-      targetRevision: cloudnative-pg-v0.24.0
+      targetRevision: cloudnative-pg-v0.26.1
       helm:
         releaseName: cloudnative-pg
         valueFiles:
@@ -25,3 +25,4 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - ServerSideApply=true
