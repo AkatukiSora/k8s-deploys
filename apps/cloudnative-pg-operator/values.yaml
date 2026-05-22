@@ -1,1 +1,2 @@
-# No chart overrides yet. Keep the values file so ArgoCD reads repo-managed chart settings here.
+crds:
+  create: true
