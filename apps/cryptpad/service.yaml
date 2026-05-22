@@ -9,10 +9,10 @@ spec:
   selector:
     app.kubernetes.io/name: cryptpad
   ports:
-    - name: main
+    - name: http
       port: 3000
-      targetPort: main
-    - name: sandbox
-      port: 3001
       targetPort: 3000
+    - name: websocket
+      port: 3003
+      targetPort: 3003
   type: ClusterIP

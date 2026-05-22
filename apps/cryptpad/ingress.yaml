@@ -11,13 +11,20 @@ spec:
     - host: pad.akatuki-host.com
       http:
         paths:
+          - path: /cryptpad_websocket
+            pathType: Prefix
+            backend:
+              service:
+                name: cryptpad
+                port:
+                  name: websocket
           - path: /
             pathType: Prefix
             backend:
               service:
                 name: cryptpad
                 port:
-                  name: main
+                  name: http
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -32,10 +39,17 @@ spec:
     - host: pad-sandbox.akatuki-host.com
       http:
         paths:
+          - path: /cryptpad_websocket
+            pathType: Prefix
+            backend:
+              service:
+                name: cryptpad
+                port:
+                  name: websocket
           - path: /
             pathType: Prefix
             backend:
               service:
                 name: cryptpad
                 port:
-                  name: main
+                  name: http

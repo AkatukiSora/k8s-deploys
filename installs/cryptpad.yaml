@@ -12,6 +12,13 @@ spec:
     path: apps/cryptpad
     repoURL: https://github.com/AkatukiSora/k8s-deploys.git
     targetRevision: master
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      name: cryptpad
+      namespace: cryptpad
+      jsonPointers:
+        - /spec/template/metadata/annotations
   syncPolicy:
     automated:
       prune: true

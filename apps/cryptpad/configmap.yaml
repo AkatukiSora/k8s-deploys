@@ -8,9 +8,11 @@ data:
     module.exports = {
       httpAddress: '0.0.0.0',
       httpPort: 3000,
-      httpSafePort: 3001,
       httpUnsafeOrigin: 'https://pad.akatuki-host.com',
       httpSafeOrigin: 'https://pad-sandbox.akatuki-host.com',
+      websocketPort: 3003,
     };
   application_config.template.js: |
+    window.AppConfig = window.AppConfig || {};
+    var AppConfig = window.AppConfig;
     AppConfig.registeredOnlyTypes = AppConfig.availablePadTypes;
