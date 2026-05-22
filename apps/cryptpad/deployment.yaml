@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cryptpad
+  namespace: cryptpad
+  labels:
+    app.kubernetes.io/name: cryptpad
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cryptpad
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cryptpad
+    spec:
+      initContainers:
+        - name: prepare-customize
+          image: cryptpad/cryptpad:2026.2.2
+          command:
+            - /bin/sh
+            - -ec
+            - |
+              set -eu
+              cp -a /cryptpad/customize.dist/. /work/customize/
+              cat /config/application_config.template.js > /work/customize/application_config.js
+              echo "AppConfig.loginSalt = '${LOGIN_SALT}';" >> /work/customize/application_config.js
+          env:
+            - name: LOGIN_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: cryptpad-secret
+                  key: loginSalt
+          volumeMounts:
+            - name: customize
+              mountPath: /work/customize
+            - name: cryptpad-config
+              mountPath: /config
+      containers:
+        - name: cryptpad
+          image: cryptpad/cryptpad:2026.2.2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+              name: main
+            - containerPort: 3001
+              name: sandbox
+          readinessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          livenessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 40
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 1
+              memory: 2Gi
+          volumeMounts:
+            - name: blob
+              mountPath: /cryptpad/blob
+            - name: block
+              mountPath: /cryptpad/block
+            - name: customize
+              mountPath: /cryptpad/customize
+            - name: data
+              mountPath: /cryptpad/data
+            - name: datastore
+              mountPath: /cryptpad/datastore
+            - name: cryptpad-config
+              mountPath: /cryptpad/config/config.js
+              subPath: config.js
+      volumes:
+        - name: blob
+          persistentVolumeClaim:
+            claimName: cryptpad-pvc
+        - name: block
+          persistentVolumeClaim:
+            claimName: cryptpad-pvc
+        - name: customize
+          emptyDir: {}
+        - name: data
+          persistentVolumeClaim:
+            claimName: cryptpad-pvc
+        - name: datastore
+          persistentVolumeClaim:
+            claimName: cryptpad-pvc
+        - name: cryptpad-config
+          configMap:
+            name: cryptpad-config

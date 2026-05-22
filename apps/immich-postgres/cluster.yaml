@@ -1,0 +1,38 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: immich-postgres
+  namespace: immich-postgres
+spec:
+  instances: 1
+  imageName: ghcr.io/tensorchord/vchord-postgres:pg17-v0.4.3
+  primaryUpdateStrategy: unsupervised
+  enableSuperuserAccess: true
+  bootstrap:
+    initdb:
+      database: immich
+      owner: immich
+      secret:
+        name: immich-postgres-app
+      postInitSQL:
+        - CREATE EXTENSION IF NOT EXISTS vchord CASCADE;
+  superuserSecret:
+    name: immich-postgres-superuser
+  storage:
+    size: 30Gi
+    storageClass: rook-ceph-block
+  resources:
+    requests:
+      cpu: 1
+      memory: 2Gi
+    limits:
+      cpu: 2
+      memory: 4Gi
+  postgresql:
+    shared_preload_libraries:
+      - vchord.so
+  monitoring:
+    enablePodMonitor: true
+  backup:
+    volumeSnapshot:
+      className: csi-rbdplugin-snapclass

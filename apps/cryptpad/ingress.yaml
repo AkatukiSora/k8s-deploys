@@ -1,0 +1,41 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cryptpad-main
+  namespace: cryptpad
+  annotations:
+    kubernetes.io/ingress.class: cloudflare-tunnel
+spec:
+  ingressClassName: cloudflare-tunnel
+  rules:
+    - host: pad.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: cryptpad
+                port:
+                  name: main
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cryptpad-sandbox
+  namespace: cryptpad
+  annotations:
+    kubernetes.io/ingress.class: cloudflare-tunnel
+spec:
+  ingressClassName: cloudflare-tunnel
+  rules:
+    - host: pad-sandbox.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: cryptpad
+                port:
+                  name: sandbox
