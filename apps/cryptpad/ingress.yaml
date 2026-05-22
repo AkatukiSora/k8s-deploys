@@ -38,4 +38,4 @@ spec:
               service:
                 name: cryptpad
                 port:
-                  name: sandbox
+                  name: main

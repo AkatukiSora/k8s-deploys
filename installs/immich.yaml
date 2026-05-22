@@ -25,6 +25,14 @@ spec:
     - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
       path: apps/immich-postgres
       targetRevision: master
+  ignoreDifferences:
+    - group: postgresql.cnpg.io
+      kind: Cluster
+      namespace: immich-postgres
+      jsonPointers:
+        - /spec
+        - /metadata/annotations
+        - /metadata/labels
   syncPolicy:
     automated:
       prune: true
