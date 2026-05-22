@@ -5,7 +5,7 @@ controllers:
         image:
           tag: v2.7.5
         env:
-          DB_HOSTNAME: immich-postgres-rw
+          DB_HOSTNAME: immich-postgres-rw.immich-postgres
           DB_PORT: "5432"
           DB_DATABASE_NAME: immich
           DB_USERNAME: immich
