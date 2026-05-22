@@ -31,7 +31,7 @@ server:
       annotations:
         kubernetes.io/ingress.class: cloudflare-tunnel
       hosts:
-        - host: photos.example.com
+        - host: photos.akatuki-host.com
           paths:
             - path: /
               pathType: Prefix
