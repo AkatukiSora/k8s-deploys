@@ -9,8 +9,8 @@ data:
       httpAddress: '0.0.0.0',
       httpPort: 3000,
       httpSafePort: 3001,
-      httpUnsafeOrigin: 'https://pad.example.com',
-      httpSafeOrigin: 'https://pad-sandbox.example.com',
+      httpUnsafeOrigin: 'https://pad.akatuki-host.com',
+      httpSafeOrigin: 'https://pad-sandbox.akatuki-host.com',
     };
   application_config.template.js: |
     AppConfig.registeredOnlyTypes = AppConfig.availablePadTypes;

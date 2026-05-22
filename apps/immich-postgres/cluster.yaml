@@ -5,6 +5,8 @@ metadata:
   namespace: immich-postgres
 spec:
   instances: 1
+  postgresUID: 999
+  postgresGID: 999
   imageCatalogRef:
     apiGroup: postgresql.cnpg.io
     kind: ImageCatalog

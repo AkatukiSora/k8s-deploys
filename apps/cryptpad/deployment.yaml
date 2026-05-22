@@ -43,6 +43,13 @@ spec:
         - name: cryptpad
           image: cryptpad/cryptpad:version-5.7.0
           imagePullPolicy: IfNotPresent
+          env:
+            - name: CPAD_MAIN_DOMAIN
+              value: https://pad.akatuki-host.com
+            - name: CPAD_SANDBOX_DOMAIN
+              value: https://pad-sandbox.akatuki-host.com
+            - name: CPAD_CONF
+              value: /cryptpad/config/config.js
           ports:
             - containerPort: 3000
               name: main
