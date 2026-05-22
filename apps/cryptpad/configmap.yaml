@@ -13,6 +13,7 @@ data:
       websocketPort: 3003,
     };
   application_config.template.js: |
-    window.AppConfig = window.AppConfig || {};
-    var AppConfig = window.AppConfig;
-    AppConfig.registeredOnlyTypes = AppConfig.availablePadTypes;
+    define(['/common/application_config_internal.js'], function (AppConfig) {
+      AppConfig.registeredOnlyTypes = AppConfig.availablePadTypes;
+      return AppConfig;
+    });
