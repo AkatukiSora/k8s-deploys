@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: immich-postgres
+  namespace: argocd
+spec:
+  destination:
+    namespace: immich-postgres
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    path: apps/immich-postgres
+    repoURL: https://github.com/AkatukiSora/k8s-deploys.git
+    targetRevision: master
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
