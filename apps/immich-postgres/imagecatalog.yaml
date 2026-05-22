@@ -1,0 +1,9 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: ImageCatalog
+metadata:
+  name: immich-postgres
+  namespace: immich-postgres
+spec:
+  images:
+    - major: 17
+      image: ghcr.io/tensorchord/vchord-postgres:pg17-v0.4.3

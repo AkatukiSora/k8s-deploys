@@ -5,7 +5,11 @@ metadata:
   namespace: immich-postgres
 spec:
   instances: 1
-  imageName: ghcr.io/tensorchord/vchord-postgres:pg17-v0.4.3
+  imageCatalogRef:
+    apiGroup: postgresql.cnpg.io
+    kind: ImageCatalog
+    name: immich-postgres
+    major: 17
   primaryUpdateStrategy: unsupervised
   enableSuperuserAccess: true
   bootstrap:

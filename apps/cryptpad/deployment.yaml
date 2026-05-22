@@ -7,6 +7,8 @@ metadata:
     app.kubernetes.io/name: cryptpad
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: cryptpad
@@ -17,13 +19,13 @@ spec:
     spec:
       initContainers:
         - name: prepare-customize
-          image: cryptpad/cryptpad:2026.2.2
+          image: cryptpad/cryptpad:version-5.7.0
           command:
             - /bin/sh
             - -ec
             - |
               set -eu
-              cp -a /cryptpad/customize.dist/. /work/customize/
+              cp -R /cryptpad/customize.dist/. /work/customize/
               cat /config/application_config.template.js > /work/customize/application_config.js
               echo "AppConfig.loginSalt = '${LOGIN_SALT}';" >> /work/customize/application_config.js
           env:
@@ -39,7 +41,7 @@ spec:
               mountPath: /config
       containers:
         - name: cryptpad
-          image: cryptpad/cryptpad:2026.2.2
+          image: cryptpad/cryptpad:version-5.7.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
