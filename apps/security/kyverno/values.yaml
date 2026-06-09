@@ -7,6 +7,7 @@ admissionController:
       release: kube-prometheus-stack
 
 backgroundController:
+  enabled: false
   replicas: 1
   serviceMonitor:
     enabled: true
@@ -17,6 +18,7 @@ cleanupController:
   enabled: false
 
 reportsController:
+  enabled: false
   replicas: 1
   serviceMonitor:
     enabled: true
@@ -27,5 +29,13 @@ grafana:
   enabled: false
 
 features:
+  admissionReports:
+    enabled: false
+  aggregateReports:
+    enabled: false
   policyReports:
-    enabled: true
+    enabled: false
+  validatingAdmissionPolicyReports:
+    enabled: false
+  backgroundScan:
+    enabled: false
