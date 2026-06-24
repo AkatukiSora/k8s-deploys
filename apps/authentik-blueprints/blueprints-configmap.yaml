@@ -58,6 +58,10 @@ data:
           invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
           client_id: kubernetes-cluster
           client_secret: !Env KUBERNETES_OIDC_CLIENT_SECRET
+          grant_types:
+            - authorization_code
+            - refresh_token
+            - urn:ietf:params:oauth:grant-type:device_code
           # Use an asymmetric signing key so the JWKS endpoint exposes public keys.
           signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
           issuer_mode: per_provider
@@ -82,14 +86,17 @@ data:
           invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
           client_id: proxmox-ve
           client_secret: !Env PROXMOX_OIDC_CLIENT_SECRET
+          grant_types:
+            - authorization_code
+            - refresh_token
           # Proxmox requires a JWKS with public keys, so this provider must use an asymmetric signing key.
           signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
           issuer_mode: per_provider
           include_claims_in_id_token: true
           sub_mode: user_email
           redirect_uris:
-            - matching_mode: strict
-              url: https://proxmox.akatuki-host.com/
+            - matching_mode: regex
+              url: ^https://proxmox\.akatuki-host\.com/?$
           property_mappings:
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'openid'"]]
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'email'"]]
