@@ -1,6 +1,6 @@
 # Authentik Required Secrets
 
-Authentik を `login.akatuki-host.com` で運用する前提で、1Password に登録が必要な項目を列挙します。
+Authentik を `auth.akatuki-host.com` で運用する前提で、1Password に登録が必要な項目を列挙します。
 
 この repo では Kubernetes 側で `OnePasswordItem` を使って Secret を同期し、以下の用途で利用します。
 
@@ -112,7 +112,7 @@ Secret ではありませんが、後続の IaC / Talos 設定で以下を前提
 
 | Item | Value |
 | --- | --- |
-| Authentik FQDN | `login.akatuki-host.com` |
+| Authentik FQDN | `auth.akatuki-host.com` |
 | KubeAPI OIDC username claim | `username` |
 | KubeAPI OIDC groups claim | `groups` |
 | KubeAPI client ID | `kubernetes-cluster` |

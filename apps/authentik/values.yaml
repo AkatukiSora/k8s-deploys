@@ -42,7 +42,7 @@ server:
     annotations:
       kubernetes.io/ingress.class: cloudflare-tunnel
     hosts:
-      - login.akatuki-host.com
+      - auth.akatuki-host.com
 
 worker:
   replicas: 1

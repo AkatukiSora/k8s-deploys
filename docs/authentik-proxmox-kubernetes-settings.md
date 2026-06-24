@@ -4,7 +4,7 @@
 
 前提:
 
-- Authentik FQDN: `https://login.akatuki-host.com`
+- Authentik FQDN: `https://auth.akatuki-host.com`
 - Kubernetes Application slug: `kubernetes`
 - Kubernetes client ID: `kubernetes-cluster`
 - Proxmox Application slug: `proxmox`
@@ -26,7 +26,7 @@ Path:
 
 | Field | Value |
 | --- | --- |
-| Issuer URL | `https://login.akatuki-host.com/application/o/proxmox/` |
+| Issuer URL | `https://auth.akatuki-host.com/application/o/proxmox/` |
 | Realm | `authentik` など任意 |
 | Client ID | `proxmox-ve` |
 | Client Key | `authentik-blueprints-oidc` の `PROXMOX_OIDC_CLIENT_SECRET` |
@@ -49,7 +49,7 @@ Path:
 ```bash
 pveum realm add authentik \
   --type openid \
-  --issuer-url https://login.akatuki-host.com/application/o/proxmox/ \
+  --issuer-url https://auth.akatuki-host.com/application/o/proxmox/ \
   --client-id proxmox-ve \
   --client-key '<PROXMOX_OIDC_CLIENT_SECRET>' \
   --username-claim username \
@@ -129,7 +129,7 @@ cluster:
   apiServer:
     extraArgs:
       oidc-client-id: kubernetes-cluster
-      oidc-issuer-url: https://login.akatuki-host.com/application/o/kubernetes/
+      oidc-issuer-url: https://auth.akatuki-host.com/application/o/kubernetes/
       oidc-username-claim: username
       oidc-groups-claim: groups
       oidc-groups-prefix: oidc:
@@ -158,7 +158,7 @@ talosctl patch mc --nodes <controlplane-node-ip> --patch @talos-oidc-authentik.p
 
 ```bash
 kubectl oidc-login setup \
-  --oidc-issuer-url=https://login.akatuki-host.com/application/o/kubernetes/ \
+  --oidc-issuer-url=https://auth.akatuki-host.com/application/o/kubernetes/ \
   --oidc-client-id=kubernetes-cluster \
   --oidc-client-secret='<KUBERNETES_OIDC_CLIENT_SECRET>'
 ```
@@ -172,7 +172,7 @@ kubectl config set-credentials oidc \
   --exec-command=kubectl \
   --exec-arg=oidc-login \
   --exec-arg=get-token \
-  --exec-arg=--oidc-issuer-url=https://login.akatuki-host.com/application/o/kubernetes/ \
+  --exec-arg=--oidc-issuer-url=https://auth.akatuki-host.com/application/o/kubernetes/ \
   --exec-arg=--oidc-client-id=kubernetes-cluster \
   --exec-arg=--oidc-client-secret=<KUBERNETES_OIDC_CLIENT_SECRET> \
   --exec-arg=--token-cache-storage=keyring
@@ -234,12 +234,12 @@ roleRef:
 
 | Item | Value |
 | --- | --- |
-| Kubernetes issuer URL | `https://login.akatuki-host.com/application/o/kubernetes/` |
+| Kubernetes issuer URL | `https://auth.akatuki-host.com/application/o/kubernetes/` |
 | Kubernetes client ID | `kubernetes-cluster` |
 | Kubernetes username claim | `username` |
 | Kubernetes groups claim | `groups` |
 | Kubernetes groups prefix | `oidc:` |
-| Proxmox issuer URL | `https://login.akatuki-host.com/application/o/proxmox/` |
+| Proxmox issuer URL | `https://auth.akatuki-host.com/application/o/proxmox/` |
 | Proxmox client ID | `proxmox-ve` |
 | Proxmox username claim | `username` |
 | Proxmox external URL | `https://proxmox.akatuki-host.com/` |
