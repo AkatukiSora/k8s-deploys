@@ -58,6 +58,8 @@ data:
           invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
           client_id: kubernetes-cluster
           client_secret: !Env KUBERNETES_OIDC_CLIENT_SECRET
+          # Use an asymmetric signing key so the JWKS endpoint exposes public keys.
+          signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
           issuer_mode: per_provider
           include_claims_in_id_token: true
           sub_mode: user_username
@@ -80,6 +82,8 @@ data:
           invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
           client_id: proxmox-ve
           client_secret: !Env PROXMOX_OIDC_CLIENT_SECRET
+          # Proxmox requires a JWKS with public keys, so this provider must use an asymmetric signing key.
+          signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
           issuer_mode: per_provider
           include_claims_in_id_token: true
           sub_mode: user_email
