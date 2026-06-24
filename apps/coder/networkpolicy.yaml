@@ -43,10 +43,18 @@ spec:
         - protocol: TCP
           port: 53
     - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: coder
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: coder
+              app.kubernetes.io/instance: coder
+    - to:
         - ipBlock:
             cidr: 0.0.0.0/0
             except:
               - 10.0.0.0/8
               - 172.16.0.0/12
-              - 192.168.0.0/26
+              - 192.168.0.0/16
               - 100.64.0.0/10
