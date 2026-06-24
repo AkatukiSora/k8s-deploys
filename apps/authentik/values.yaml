@@ -1,0 +1,48 @@
+postgresql:
+  enabled: false
+
+authentik:
+  existingSecret:
+    secretName: authentik-secret
+  error_reporting:
+    enabled: false
+
+global:
+  env:
+    - name: AUTHENTIK_POSTGRESQL__HOST
+      value: authentik-postgres-rw.authentik
+    - name: AUTHENTIK_POSTGRESQL__PORT
+      value: "5432"
+    - name: AUTHENTIK_POSTGRESQL__NAME
+      value: authentik
+    - name: AUTHENTIK_POSTGRESQL__USER
+      valueFrom:
+        secretKeyRef:
+          name: authentik-postgres-app
+          key: username
+    - name: AUTHENTIK_POSTGRESQL__PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: authentik-postgres-app
+          key: password
+  envFrom:
+    - secretRef:
+        name: authentik-smtp
+    - secretRef:
+        name: authentik-blueprints-oidc
+
+blueprints:
+  configMaps:
+    - authentik-blueprints
+
+server:
+  ingress:
+    enabled: true
+    ingressClassName: cloudflare-tunnel
+    annotations:
+      kubernetes.io/ingress.class: cloudflare-tunnel
+    hosts:
+      - login.akatuki-host.com
+
+worker:
+  replicas: 1
