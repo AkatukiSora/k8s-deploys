@@ -7,3 +7,8 @@ coder:
         secretKeyRef:
           name: coder-postgres-app
           key: uri
+  service:
+    type: ClusterIP
+  serviceAccount:
+    workspaceNamespaces:
+      - name: coder-worker
