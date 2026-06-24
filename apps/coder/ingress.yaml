@@ -4,7 +4,6 @@ metadata:
   name: coder
   namespace: coder
   annotations:
-    argocd.argoproj.io/sync-wave: "1"
     kubernetes.io/ingress.class: cloudflare-tunnel
 spec:
   ingressClassName: cloudflare-tunnel
