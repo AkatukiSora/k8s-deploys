@@ -434,6 +434,8 @@ data:
           redirect_uris:
             - matching_mode: regex
               url: ^https://proxmox\.akatuki-host\.com/?$
+            - matching_mode: regex
+              url: ^proxman://auth/callback/?$
           property_mappings:
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'openid'"]]
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'email'"]]
