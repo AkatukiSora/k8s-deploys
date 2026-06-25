@@ -161,6 +161,9 @@ data:
             - !KeyOf app-grafana-global-viewer-group
             - !KeyOf app-gitlab-global-observer-group
 
+      # Legacy direct-access groups such as kubernetes-users and proxmox-users
+      # are intentionally not managed in IaC anymore.
+
       - id: kubernetes-profile-scope
         model: authentik_providers_oauth2.scopemapping
         identifiers:
@@ -250,7 +253,7 @@ data:
         identifiers:
           name: Proxmox VE provider
         attrs:
-          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-explicit-consent]]
           invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
           client_id: proxmox-ve
           client_secret: !Env PROXMOX_OIDC_CLIENT_SECRET
@@ -323,7 +326,7 @@ data:
         identifiers:
           name: Immich OIDC
         attrs:
-          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-explicit-consent]]
           invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
           client_id: immich
           client_secret: !Env IMMICH_OIDC_CLIENT_SECRET

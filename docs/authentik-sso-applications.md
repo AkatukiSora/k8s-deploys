@@ -45,6 +45,13 @@ app:<service>:global:<role>
 
 `team:* -> app:*` のネストは Authentik Blueprint で管理します。
 
+Legacy group:
+
+- `kubernetes-users`
+- `proxmox-users`
+
+これらの direct-access 用 legacy group は IaC ではもう管理しません。
+
 アプリ向け provider の `groups` claim は direct membership ではなく effective membership を返すため、nested `app:*` group も downstream に見えます。
 
 ## Group to role mapping
@@ -116,6 +123,7 @@ Suggested manual flow:
 - Authentik provider/application is managed declaratively
 - Immich app-side OIDC settings are not managed from this repo today
 - Configure OAuth in Immich admin settings manually
+- Login starts with an explicit Authentik authorization prompt so the destination service is visible to the user
 
 Required Immich admin settings:
 

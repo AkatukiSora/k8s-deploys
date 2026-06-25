@@ -79,6 +79,7 @@ OIDC login 自体と、Proxmox 上の権限付与は別です。
 2. Proxmox Realm で `Groups claim=groups` を使う
 3. `Autocreate groups` を有効にする
 4. Proxmox の ACL は個別ユーザーではなく group に付ける
+5. `proxmox-users` のような legacy direct-access group は IaC で管理しない
 
 Proxmox では、OIDC の groups claim で受けた group 名に `-<realm>` が付きます。
 
@@ -187,6 +188,8 @@ kubectl config set-credentials oidc \
 - `app:k8s:cluster:admin`
 - `app:proxmox:cluster:main:admin`
 
+`kubernetes-users` / `proxmox-users` のような legacy direct-access group は IaC 対象外です。
+
 そのため、Kubernetes の RBAC では例えば以下のように group を bind します。
 
 ### 例: cluster-admin を group に付与
@@ -215,7 +218,8 @@ roleRef:
 1. OIDC Realm を追加
 2. Proxmox ログイン画面で Realm を選択
 3. Authentik にリダイレクトされることを確認
-4. 初回ログイン後にユーザー作成/権限付与を確認
+4. Authentik 側で Proxmox VE への明示的な authorization prompt が出ることを確認
+5. 初回ログイン後にユーザー作成/権限付与を確認
 
 ### Kubernetes
 
