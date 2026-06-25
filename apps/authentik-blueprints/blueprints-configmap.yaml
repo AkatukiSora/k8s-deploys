@@ -4,22 +4,11 @@ metadata:
   name: authentik-blueprints
   namespace: authentik
 data:
-  10-oidc-applications.yaml: |
+  10-groups.yaml: |
     version: 1
     metadata:
-      name: OIDC applications for infrastructure services
+      name: Authentik permission groups
     entries:
-      # ---------------------------------------------------------------------
-      # app:* groups
-      #
-      # App-specific minimal permission groups.
-      # These groups are intended to be consumed by each application's OIDC
-      # claims or authentik Application policy bindings.
-      #
-      # Users should normally NOT be assigned to app:* groups directly.
-      # Assign users to team:* groups instead.
-      # ---------------------------------------------------------------------
-
       - id: app-authentik-global-admin-group
         model: authentik_core.group
         identifiers:
@@ -228,6 +217,11 @@ data:
       # Legacy direct-access groups such as kubernetes-users and proxmox-users
       # are intentionally not managed in IaC anymore.
 
+  20-oauth-scopes.yaml: |
+    version: 1
+    metadata:
+      name: OIDC scope mappings
+    entries:
       - id: kubernetes-profile-scope
         model: authentik_providers_oauth2.scopemapping
         identifiers:
@@ -388,6 +382,11 @@ data:
                 "email": request.user.email,
                 "groups": [group.name for group in request.user.all_groups() if group.name.startswith("app:gitlab:")],
             }
+  30-oauth-providers.yaml: |
+    version: 1
+    metadata:
+      name: OIDC providers
+    entries:
       - id: kubernetes-provider
         model: authentik_providers_oauth2.oauth2provider
         identifiers:
@@ -413,7 +412,7 @@ data:
           property_mappings:
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'openid'"]]
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'email'"]]
-            - !KeyOf kubernetes-profile-scope
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "Kubernetes profile claims"]]
 
       - id: proxmox-provider
         model: authentik_providers_oauth2.oauth2provider
@@ -439,7 +438,7 @@ data:
           property_mappings:
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'openid'"]]
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'email'"]]
-            - !KeyOf proxmox-profile-scope
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "Proxmox profile claims"]]
 
       - id: argocd-provider
         model: authentik_providers_oauth2.oauth2provider
@@ -462,8 +461,8 @@ data:
               url: https://argocd.akatuki-host.com/auth/callback
           property_mappings:
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'openid'"]]
-            - !KeyOf service-email-scope
-            - !KeyOf argocd-profile-scope
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "Service email claims"]]
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "Argo CD profile claims"]]
 
       - id: coder-provider
         model: authentik_providers_oauth2.oauth2provider
@@ -487,8 +486,8 @@ data:
           property_mappings:
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'openid'"]]
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'offline_access'"]]
-            - !KeyOf service-email-scope
-            - !KeyOf coder-profile-scope
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "Service email claims"]]
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "Coder profile claims"]]
 
       - id: immich-provider
         model: authentik_providers_oauth2.oauth2provider
@@ -518,8 +517,8 @@ data:
           property_mappings:
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'openid'"]]
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'offline_access'"]]
-            - !KeyOf service-email-scope
-            - !KeyOf immich-profile-scope
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "Service email claims"]]
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "Immich profile claims"]]
 
       - id: grafana-provider
         model: authentik_providers_oauth2.oauth2provider
@@ -543,8 +542,8 @@ data:
           property_mappings:
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'openid'"]]
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'offline_access'"]]
-            - !KeyOf service-email-scope
-            - !KeyOf grafana-profile-scope
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "Service email claims"]]
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "Grafana profile claims"]]
 
       - id: nextcloud-provider
         model: authentik_providers_oauth2.oauth2provider
@@ -568,8 +567,8 @@ data:
           property_mappings:
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'openid'"]]
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'offline_access'"]]
-            - !KeyOf service-email-scope
-            - !KeyOf nextcloud-profile-scope
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "Service email claims"]]
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "Nextcloud profile claims"]]
 
       - id: gitlab-provider
         model: authentik_providers_oauth2.oauth2provider
@@ -593,16 +592,21 @@ data:
           property_mappings:
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'openid'"]]
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'offline_access'"]]
-            - !KeyOf service-email-scope
-            - !KeyOf gitlab-profile-scope
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "Service email claims"]]
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "GitLab profile claims"]]
 
+  40-applications.yaml: |
+    version: 1
+    metadata:
+      name: Authentik applications
+    entries:
       - id: kubernetes-application
         model: authentik_core.application
         identifiers:
           slug: kubernetes
         attrs:
           name: Kubernetes API
-          provider: !KeyOf kubernetes-provider
+          provider: !Find [authentik_providers_oauth2.oauth2provider, [name, "Kubernetes API provider"]]
           meta_launch_url: https://kubernetes.default.svc
           meta_icon_url: https://raw.githubusercontent.com/kubernetes/kubernetes/master/logo/logo.svg
           open_in_new_tab: true
@@ -613,7 +617,7 @@ data:
           slug: proxmox
         attrs:
           name: Proxmox VE
-          provider: !KeyOf proxmox-provider
+          provider: !Find [authentik_providers_oauth2.oauth2provider, [name, "Proxmox VE provider"]]
           meta_launch_url: https://proxmox.akatuki-host.com/
           meta_icon_url: https://raw.githubusercontent.com/proxmox/proxmox-backup/main/docs/images/proxmox-logo.svg
           open_in_new_tab: true
@@ -624,7 +628,7 @@ data:
           slug: argocd
         attrs:
           name: Argo CD
-          provider: !KeyOf argocd-provider
+          provider: !Find [authentik_providers_oauth2.oauth2provider, [name, "Argo CD OIDC"]]
           meta_launch_url: https://argocd.akatuki-host.com
           meta_icon_url: https://argocd-manager-default.apps.authentik.local/logo.png
           open_in_new_tab: true
@@ -635,7 +639,7 @@ data:
           slug: coder
         attrs:
           name: Coder
-          provider: !KeyOf coder-provider
+          provider: !Find [authentik_providers_oauth2.oauth2provider, [name, "Coder OIDC"]]
           meta_launch_url: https://coder.akatuki-host.com
           meta_icon_url: https://raw.githubusercontent.com/coder/coder/main/docs/logo-dark.svg
           open_in_new_tab: true
@@ -646,7 +650,7 @@ data:
           slug: immich
         attrs:
           name: Immich
-          provider: !KeyOf immich-provider
+          provider: !Find [authentik_providers_oauth2.oauth2provider, [name, "Immich OIDC"]]
           meta_launch_url: https://photos.akatuki-host.com
           meta_icon_url: https://raw.githubusercontent.com/immich-app/immich/main/.github/logo.svg
           open_in_new_tab: true
@@ -657,7 +661,7 @@ data:
           slug: grafana
         attrs:
           name: Grafana
-          provider: !KeyOf grafana-provider
+          provider: !Find [authentik_providers_oauth2.oauth2provider, [name, "Grafana OIDC"]]
           meta_launch_url: https://grafana.akatuki-host.com
           meta_icon_url: https://raw.githubusercontent.com/grafana/grafana/main/public/img/grafana_icon.svg
           open_in_new_tab: true
@@ -668,7 +672,7 @@ data:
           slug: nextcloud
         attrs:
           name: Nextcloud
-          provider: !KeyOf nextcloud-provider
+          provider: !Find [authentik_providers_oauth2.oauth2provider, [name, "Nextcloud OIDC"]]
           meta_launch_url: https://nextcloud.akatuki-host.com
           meta_icon_url: https://raw.githubusercontent.com/nextcloud/server/master/img/logo-dark.svg
           open_in_new_tab: true
@@ -679,154 +683,372 @@ data:
           slug: gitlab
         attrs:
           name: GitLab
-          provider: !KeyOf gitlab-provider
+          provider: !Find [authentik_providers_oauth2.oauth2provider, [name, "GitLab OIDC"]]
           meta_launch_url: https://gitlab.akatuki-host.com
           meta_icon_url: https://raw.githubusercontent.com/gitlabhq/gitlab/master/app/assets/images/logos/workflow/gitlab-logo-dark.svg
           open_in_new_tab: true
 
+  50-application-policy-bindings.yaml: |
+    version: 1
+    metadata:
+      name: Application access policy bindings
+    entries:
       - model: authentik_policies.policybinding
         identifiers:
-          target: !KeyOf kubernetes-application
+          target: !Find [authentik_core.application, [slug, kubernetes]]
           order: 0
         attrs:
-          group: !KeyOf app-k8s-cluster-admin-group
+          group: !Find [authentik_core.group, [name, "app:k8s:cluster:admin"]]
 
       - model: authentik_policies.policybinding
         identifiers:
-          target: !KeyOf proxmox-application
+          target: !Find [authentik_core.application, [slug, proxmox]]
           order: 0
         attrs:
-          group: !KeyOf app-proxmox-cluster-main-admin-group
+          group: !Find [authentik_core.group, [name, "app:proxmox:cluster:main:admin"]]
 
       - model: authentik_policies.policybinding
         identifiers:
-          target: !KeyOf argocd-application
+          target: !Find [authentik_core.application, [slug, argocd]]
           order: 0
         attrs:
-          group: !KeyOf app-argocd-global-admin-group
+          group: !Find [authentik_core.group, [name, "app:argocd:global:admin"]]
 
       - model: authentik_policies.policybinding
         identifiers:
-          target: !KeyOf argocd-application
+          target: !Find [authentik_core.application, [slug, argocd]]
           order: 1
         attrs:
-          group: !KeyOf app-argocd-global-sync-group
+          group: !Find [authentik_core.group, [name, "app:argocd:global:sync"]]
 
       - model: authentik_policies.policybinding
         identifiers:
-          target: !KeyOf argocd-application
+          target: !Find [authentik_core.application, [slug, argocd]]
           order: 2
         attrs:
-          group: !KeyOf app-argocd-global-readonly-group
+          group: !Find [authentik_core.group, [name, "app:argocd:global:readonly"]]
 
       - model: authentik_policies.policybinding
         identifiers:
-          target: !KeyOf coder-application
+          target: !Find [authentik_core.application, [slug, coder]]
           order: 0
         attrs:
-          group: !KeyOf app-coder-global-admin-group
+          group: !Find [authentik_core.group, [name, "app:coder:global:admin"]]
 
       - model: authentik_policies.policybinding
         identifiers:
-          target: !KeyOf coder-application
+          target: !Find [authentik_core.application, [slug, coder]]
           order: 1
         attrs:
-          group: !KeyOf app-coder-global-user-group
+          group: !Find [authentik_core.group, [name, "app:coder:global:user"]]
 
       - model: authentik_policies.policybinding
         identifiers:
-          target: !KeyOf coder-application
+          target: !Find [authentik_core.application, [slug, coder]]
           order: 2
         attrs:
-          group: !KeyOf app-coder-global-auditor-group
+          group: !Find [authentik_core.group, [name, "app:coder:global:auditor"]]
 
       - model: authentik_policies.policybinding
         identifiers:
-          target: !KeyOf coder-application
+          target: !Find [authentik_core.application, [slug, coder]]
           order: 3
         attrs:
-          group: !KeyOf app-coder-global-template-admin-group
+          group: !Find [authentik_core.group, [name, "app:coder:global:template-admin"]]
 
       - model: authentik_policies.policybinding
         identifiers:
-          target: !KeyOf immich-application
+          target: !Find [authentik_core.application, [slug, immich]]
           order: 0
         attrs:
-          group: !KeyOf app-immich-global-admin-group
+          group: !Find [authentik_core.group, [name, "app:immich:global:admin"]]
 
       - model: authentik_policies.policybinding
         identifiers:
-          target: !KeyOf immich-application
+          target: !Find [authentik_core.application, [slug, immich]]
           order: 1
         attrs:
-          group: !KeyOf app-immich-global-user-group
+          group: !Find [authentik_core.group, [name, "app:immich:global:user"]]
 
       - model: authentik_policies.policybinding
         identifiers:
-          target: !KeyOf grafana-application
+          target: !Find [authentik_core.application, [slug, grafana]]
           order: 0
         attrs:
-          group: !KeyOf app-grafana-global-admin-group
+          group: !Find [authentik_core.group, [name, "app:grafana:global:admin"]]
 
       - model: authentik_policies.policybinding
         identifiers:
-          target: !KeyOf grafana-application
+          target: !Find [authentik_core.application, [slug, grafana]]
           order: 1
         attrs:
-          group: !KeyOf app-grafana-global-editor-group
+          group: !Find [authentik_core.group, [name, "app:grafana:global:editor"]]
 
       - model: authentik_policies.policybinding
         identifiers:
-          target: !KeyOf grafana-application
+          target: !Find [authentik_core.application, [slug, grafana]]
           order: 2
         attrs:
-          group: !KeyOf app-grafana-global-viewer-group
+          group: !Find [authentik_core.group, [name, "app:grafana:global:viewer"]]
 
       - model: authentik_policies.policybinding
         identifiers:
-          target: !KeyOf nextcloud-application
+          target: !Find [authentik_core.application, [slug, nextcloud]]
           order: 0
         attrs:
-          group: !KeyOf app-nextcloud-global-admin-group
+          group: !Find [authentik_core.group, [name, "app:nextcloud:global:admin"]]
 
       - model: authentik_policies.policybinding
         identifiers:
-          target: !KeyOf nextcloud-application
+          target: !Find [authentik_core.application, [slug, nextcloud]]
           order: 1
         attrs:
-          group: !KeyOf app-nextcloud-global-user-group
+          group: !Find [authentik_core.group, [name, "app:nextcloud:global:user"]]
 
       - model: authentik_policies.policybinding
         identifiers:
-          target: !KeyOf nextcloud-application
+          target: !Find [authentik_core.application, [slug, nextcloud]]
           order: 2
         attrs:
-          group: !KeyOf app-nextcloud-global-group-admin-group
+          group: !Find [authentik_core.group, [name, "app:nextcloud:global:group-admin"]]
 
       - model: authentik_policies.policybinding
         identifiers:
-          target: !KeyOf gitlab-application
+          target: !Find [authentik_core.application, [slug, gitlab]]
           order: 0
         attrs:
-          group: !KeyOf app-gitlab-global-admin-group
+          group: !Find [authentik_core.group, [name, "app:gitlab:global:admin"]]
 
       - model: authentik_policies.policybinding
         identifiers:
-          target: !KeyOf gitlab-application
+          target: !Find [authentik_core.application, [slug, gitlab]]
           order: 1
         attrs:
-          group: !KeyOf app-gitlab-global-user-group
+          group: !Find [authentik_core.group, [name, "app:gitlab:global:user"]]
 
       - model: authentik_policies.policybinding
         identifiers:
-          target: !KeyOf gitlab-application
+          target: !Find [authentik_core.application, [slug, gitlab]]
           order: 2
         attrs:
-          group: !KeyOf app-gitlab-global-observer-group
+          group: !Find [authentik_core.group, [name, "app:gitlab:global:observer"]]
 
       - model: authentik_policies.policybinding
         identifiers:
-          target: !KeyOf gitlab-application
+          target: !Find [authentik_core.application, [slug, gitlab]]
           order: 3
         attrs:
-          group: !KeyOf app-gitlab-global-external-user-group
+          group: !Find [authentik_core.group, [name, "app:gitlab:global:external-user"]]
+  60-invite-enrollment.yaml: |
+    version: 1
+    metadata:
+      name: Invite enrollment flow
+    entries:
+      - identifiers:
+          slug: invite-enrollment
+        model: authentik_flows.flow
+        id: invite-enrollment-flow
+        attrs:
+          name: Invite enrollment
+          title: Welcome! Complete your enrollment
+          designation: enrollment
+          authentication: require_unauthenticated
+
+      - identifiers:
+          name: invite-enrollment-invitation
+        id: invite-enrollment-invitation-stage
+        model: authentik_stages_invitation.invitationstage
+        attrs:
+          continue_flow_without_invitation: false
+
+      - identifiers:
+          name: invite-enrollment-field-username
+        id: invite-enrollment-field-username
+        model: authentik_stages_prompt.prompt
+        attrs:
+          field_key: username
+          label: Username
+          type: username
+          required: true
+          placeholder: Username
+          placeholder_expression: false
+          order: 0
+
+      - identifiers:
+          name: invite-enrollment-field-password
+        id: invite-enrollment-field-password
+        model: authentik_stages_prompt.prompt
+        attrs:
+          field_key: password
+          label: Password
+          type: password
+          required: true
+          placeholder: Password
+          placeholder_expression: false
+          order: 1
+
+      - identifiers:
+          name: invite-enrollment-field-password-repeat
+        id: invite-enrollment-field-password-repeat
+        model: authentik_stages_prompt.prompt
+        attrs:
+          field_key: password_repeat
+          label: Password (repeat)
+          type: password
+          required: true
+          placeholder: Password (repeat)
+          placeholder_expression: false
+          order: 2
+
+      - identifiers:
+          name: invite-enrollment-field-name
+        id: invite-enrollment-field-name
+        model: authentik_stages_prompt.prompt
+        attrs:
+          field_key: name
+          label: Name
+          type: text
+          required: true
+          placeholder: Name
+          placeholder_expression: false
+          order: 0
+
+      - identifiers:
+          name: invite-enrollment-field-email
+        id: invite-enrollment-field-email
+        model: authentik_stages_prompt.prompt
+        attrs:
+          field_key: email
+          label: Email
+          type: email
+          required: true
+          placeholder: Email
+          placeholder_expression: false
+          order: 1
+
+      - identifiers:
+          name: invite-enrollment-prompt-credentials
+        id: invite-enrollment-prompt-credentials
+        model: authentik_stages_prompt.promptstage
+        attrs:
+          fields:
+            - !KeyOf invite-enrollment-field-username
+            - !KeyOf invite-enrollment-field-password
+            - !KeyOf invite-enrollment-field-password-repeat
+
+      - identifiers:
+          name: invite-enrollment-prompt-profile
+        id: invite-enrollment-prompt-profile
+        model: authentik_stages_prompt.promptstage
+        attrs:
+          fields:
+            - !KeyOf invite-enrollment-field-name
+            - !KeyOf invite-enrollment-field-email
+
+      - identifiers:
+          name: invite-enrollment-assign-groups
+        id: invite-enrollment-assign-groups
+        model: authentik_policies_expression.expressionpolicy
+        attrs:
+          expression: |
+            from authentik.core.models import Group
+
+            flow_plan = request.context.get("flow_plan")
+            if not flow_plan:
+                ak_message("Missing flow context")
+                return False
+
+            prompt_data = flow_plan.context.get("prompt_data", {})
+            invite_kind = prompt_data.get("invite_kind")
+
+            group_sets = {
+                "friend-media": ["cohort:friend", "team:media-user"],
+                "friend-dev": ["cohort:friend", "team:dev-user"],
+                "friend-storage": ["cohort:friend", "team:storage-user"],
+                "family-media": ["cohort:family", "team:media-user"],
+                "family-storage": ["cohort:family", "team:storage-user"],
+                "family-media-storage": ["cohort:family", "team:media-user", "team:storage-user"],
+                "nkc-dev": ["cohort:nkc-member", "team:dev-user"],
+                "nkc-storage": ["cohort:nkc-member", "team:storage-user"],
+            }
+
+            group_names = list(prompt_data.get("invite_groups", []))
+            if not group_names and invite_kind:
+                group_names = group_sets.get(invite_kind, [])
+
+            allowed_prefixes = ("cohort:", "team:")
+            denied_groups = {"team:owner"}
+            invalid_group_names = [
+                name for name in group_names
+                if not isinstance(name, str)
+                or not name.startswith(allowed_prefixes)
+                or name in denied_groups
+            ]
+            if not group_names or invalid_group_names:
+                ak_message("Invalid or missing invite_groups/invite_kind")
+                return False
+
+            flow_plan.context["groups"] = list(Group.objects.filter(name__in=group_names))
+            found_group_names = {group.name for group in flow_plan.context["groups"]}
+            missing_group_names = set(group_names) - found_group_names
+            if missing_group_names:
+                ak_message("Missing invite groups: %s" % ", ".join(sorted(missing_group_names)))
+                return False
+
+            return True
+
+      - identifiers:
+          name: invite-enrollment-user-write
+        id: invite-enrollment-user-write
+        model: authentik_stages_user_write.userwritestage
+        attrs:
+          user_creation_mode: always_create
+          user_type: external
+          user_path_template: users/invited
+
+      - identifiers:
+          name: invite-enrollment-user-login
+        id: invite-enrollment-user-login
+        model: authentik_stages_user_login.userloginstage
+
+      - identifiers:
+          target: !KeyOf invite-enrollment-flow
+          stage: !KeyOf invite-enrollment-invitation-stage
+          order: 5
+        model: authentik_flows.flowstagebinding
+        attrs:
+          evaluate_on_plan: true
+          re_evaluate_policies: true
+
+      - identifiers:
+          target: !KeyOf invite-enrollment-flow
+          stage: !KeyOf invite-enrollment-prompt-credentials
+          order: 10
+        model: authentik_flows.flowstagebinding
+
+      - identifiers:
+          target: !KeyOf invite-enrollment-flow
+          stage: !KeyOf invite-enrollment-prompt-profile
+          order: 15
+        model: authentik_flows.flowstagebinding
+
+      - identifiers:
+          target: !KeyOf invite-enrollment-flow
+          stage: !KeyOf invite-enrollment-user-write
+          order: 20
+        id: invite-enrollment-user-write-binding
+        model: authentik_flows.flowstagebinding
+
+      - identifiers:
+          target: !KeyOf invite-enrollment-user-write-binding
+          policy: !KeyOf invite-enrollment-assign-groups
+          order: 0
+        model: authentik_policies.policybinding
+        attrs:
+          failure_result: false
+
+      - identifiers:
+          target: !KeyOf invite-enrollment-flow
+          stage: !KeyOf invite-enrollment-user-login
+          order: 100
+        model: authentik_flows.flowstagebinding

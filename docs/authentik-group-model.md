@@ -100,6 +100,41 @@ team:media-user
 4. **Keep old teams as deprecated** to avoid breaking access
 5. **Later remove** old teams once all users have migrated
 
+
+## Invitation Enrollment
+
+Invitation-based enrollment uses the `invite-enrollment` flow. The invitation fixed data can assign groups in either of these ways:
+
+### Explicit group list
+
+Use `invite_groups` when the invitation should grant an arbitrary safe combination of people-facing groups:
+
+```yaml
+invite_groups:
+  - cohort:friend
+  - team:media-user
+  - team:storage-user
+```
+
+Only `cohort:*` and `team:*` groups are accepted by the flow. `team:owner` is explicitly denied so administrative access cannot be granted by invitation.
+
+### Shorthand invite kind
+
+Use `invite_kind` when one of the standard combinations is enough:
+
+| `invite_kind` | Assigned groups |
+| --- | --- |
+| `friend-media` | `cohort:friend`, `team:media-user` |
+| `friend-dev` | `cohort:friend`, `team:dev-user` |
+| `friend-storage` | `cohort:friend`, `team:storage-user` |
+| `family-media` | `cohort:family`, `team:media-user` |
+| `family-storage` | `cohort:family`, `team:storage-user` |
+| `family-media-storage` | `cohort:family`, `team:media-user`, `team:storage-user` |
+| `nkc-dev` | `cohort:nkc-member`, `team:dev-user` |
+| `nkc-storage` | `cohort:nkc-member`, `team:storage-user` |
+
+The flow prefers `invite_groups` when both keys are present, and falls back to `invite_kind` only when `invite_groups` is empty.
+
 ## OIDC Claims
 
 Each application's scope mapping filters to `app:<app>:` prefix, ensuring only `app:*` groups are exposed:
