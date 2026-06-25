@@ -997,11 +997,22 @@ data:
 
             return True
 
+
+      - identifiers:
+          name: invite-enrollment-email-verification
+        id: invite-enrollment-email-verification
+        model: authentik_stages_email.emailstage
+        attrs:
+          use_global_settings: true
+          template: email/account_confirmation.html
+          activate_user_on_success: true
+
       - identifiers:
           name: invite-enrollment-user-write
         id: invite-enrollment-user-write
         model: authentik_stages_user_write.userwritestage
         attrs:
+          create_users_as_inactive: true
           user_creation_mode: always_create
           user_type: external
           user_path_template: users/invited
@@ -1046,6 +1057,12 @@ data:
         model: authentik_policies.policybinding
         attrs:
           failure_result: false
+
+      - identifiers:
+          target: !KeyOf invite-enrollment-flow
+          stage: !KeyOf invite-enrollment-email-verification
+          order: 30
+        model: authentik_flows.flowstagebinding
 
       - identifiers:
           target: !KeyOf invite-enrollment-flow

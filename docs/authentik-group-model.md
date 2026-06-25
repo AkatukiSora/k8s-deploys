@@ -103,7 +103,7 @@ team:media-user
 
 ## Invitation Enrollment
 
-Invitation-based enrollment uses the `invite-enrollment` flow. The invitation fixed data can assign groups in either of these ways:
+Invitation-based enrollment uses the `invite-enrollment` flow. The flow creates invited users as inactive, sends an account confirmation email with authentik's global SMTP settings, and activates the user only after the email stage succeeds. The invitation fixed data can assign groups in either of these ways:
 
 ### Explicit group list
 
