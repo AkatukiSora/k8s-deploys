@@ -604,6 +604,8 @@ data:
           name: Kubernetes API
           provider: !KeyOf kubernetes-provider
           meta_launch_url: https://kubernetes.default.svc
+          meta_icon_url: https://raw.githubusercontent.com/kubernetes/kubernetes/master/logo/logo.svg
+          open_in_new_tab: true
 
       - id: proxmox-application
         model: authentik_core.application
@@ -613,6 +615,8 @@ data:
           name: Proxmox VE
           provider: !KeyOf proxmox-provider
           meta_launch_url: https://proxmox.akatuki-host.com/
+          meta_icon_url: https://raw.githubusercontent.com/proxmox/proxmox-backup/main/docs/images/proxmox-logo.svg
+          open_in_new_tab: true
 
       - id: argocd-application
         model: authentik_core.application
@@ -622,6 +626,8 @@ data:
           name: Argo CD
           provider: !KeyOf argocd-provider
           meta_launch_url: https://argocd.akatuki-host.com
+          meta_icon_url: https://argocd-manager-default.apps.authentik.local/logo.png
+          open_in_new_tab: true
 
       - id: coder-application
         model: authentik_core.application
@@ -631,6 +637,8 @@ data:
           name: Coder
           provider: !KeyOf coder-provider
           meta_launch_url: https://coder.akatuki-host.com
+          meta_icon_url: https://raw.githubusercontent.com/coder/coder/main/docs/logo-dark.svg
+          open_in_new_tab: true
 
       - id: immich-application
         model: authentik_core.application
@@ -640,6 +648,8 @@ data:
           name: Immich
           provider: !KeyOf immich-provider
           meta_launch_url: https://photos.akatuki-host.com
+          meta_icon_url: https://raw.githubusercontent.com/immich-app/immich/main/.github/logo.svg
+          open_in_new_tab: true
 
       - id: grafana-application
         model: authentik_core.application
@@ -649,6 +659,8 @@ data:
           name: Grafana
           provider: !KeyOf grafana-provider
           meta_launch_url: https://grafana.akatuki-host.com
+          meta_icon_url: https://raw.githubusercontent.com/grafana/grafana/main/public/img/grafana_icon.svg
+          open_in_new_tab: true
 
       - id: nextcloud-application
         model: authentik_core.application
@@ -658,6 +670,8 @@ data:
           name: Nextcloud
           provider: !KeyOf nextcloud-provider
           meta_launch_url: https://nextcloud.akatuki-host.com
+          meta_icon_url: https://raw.githubusercontent.com/nextcloud/server/master/img/logo-dark.svg
+          open_in_new_tab: true
 
       - id: gitlab-application
         model: authentik_core.application
@@ -667,6 +681,8 @@ data:
           name: GitLab
           provider: !KeyOf gitlab-provider
           meta_launch_url: https://gitlab.akatuki-host.com
+          meta_icon_url: https://raw.githubusercontent.com/gitlabhq/gitlab/master/app/assets/images/logos/workflow/gitlab-logo-dark.svg
+          open_in_new_tab: true
 
       - model: authentik_policies.policybinding
         identifiers:
