@@ -62,6 +62,14 @@ pveum realm add authentik \
 
 OIDC login 自体と、Proxmox 上の権限付与は別です。
 
+Authentik の内部 group 名と、Proxmox に渡す ACL 用 group 名は intentionally different です。
+
+| Authentik group                    | Proxmox group claim | Intended Proxmox role     |
+| ---------------------------------- | ------------------- | ------------------------- |
+| `app:proxmox:cluster:main:admin`   | `proxmox-admins`    | `Administrator`           |
+| `app:proxmox:cluster:main:user`    | `proxmox-users`     | future use                |
+| `app:proxmox:cluster:main:auditor` | `proxmox-auditors`  | future use / `PVEAuditor` |
+
 必要作業:
 
 1. OIDC Realm 経由でログインさせる
@@ -81,21 +89,41 @@ OIDC login 自体と、Proxmox 上の権限付与は別です。
 4. Proxmox の ACL は個別ユーザーではなく group に付ける
 5. `proxmox-users` のような legacy direct-access group は IaC で管理しない
 
+Proxmox 側の group と ACL は別途作成します。
+
+最低限のコマンド:
+
+```bash
+pveum group add proxmox-admins -comment "Administrators from Authentik OIDC"
+pveum acl modify / -group proxmox-admins -role Administrator
+```
+
+将来の例:
+
+```bash
+pveum group add proxmox-users -comment "Users from Authentik OIDC"
+pveum group add proxmox-auditors -comment "Read-only observers from Authentik OIDC"
+
+pveum acl modify / -group proxmox-auditors -role PVEAuditor
+# Attach proxmox-users only to specific pools/resources, not globally:
+# pveum acl modify /pool/<pool-name> -group proxmox-users -role PVEVMUser
+```
+
 Proxmox では、OIDC の groups claim で受けた group 名に `-<realm>` が付きます。
 
 例:
 
-- Authentik group: `app:proxmox:cluster:main:admin`
+- Authentik group: `proxmox-admins`
 - Proxmox realm: `authentik`
-- Proxmox group: `app:proxmox:cluster:main:admin-authentik`
+- Proxmox group: `proxmox-admins-authentik`
 
 そのため、ACL は例えば以下のように group に付けます。
 
 ```bash
-pveum acl modify / -group 'app:proxmox:cluster:main:admin-authentik' -role Administrator
+pveum acl modify / -group 'proxmox-admins-authentik' -role Administrator
 ```
 
-監査用の read-only group を使う場合は、Blueprint 側にも対応する `app:proxmox:*` group を追加した上で、同じ命名で ACL を付けてください。
+監査用の read-only group を使う場合は、Blueprint 側にも対応する `app:proxmox:cluster:main:auditor` などの Authentik group を追加し、Proxmox 側では `proxmox-auditors` のような別名 ACL group を作成してください。
 
 ### いま起きていた現象の意味
 
@@ -189,6 +217,8 @@ kubectl config set-credentials oidc \
 - `app:proxmox:cluster:main:admin`
 
 `kubernetes-users` / `proxmox-users` のような legacy direct-access group は IaC 対象外です。
+
+Proxmox だけは Authentik 内部 group をそのまま使わず、`proxmox-admins` などの Proxmox-safe group に変換します。
 
 そのため、Kubernetes の RBAC では例えば以下のように group を bind します。
 

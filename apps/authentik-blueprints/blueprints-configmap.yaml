@@ -186,12 +186,27 @@ data:
         attrs:
           scope_name: profile
           expression: |
+            groups = [group.name for group in request.user.all_groups()]
+
+            group_mapping = {
+                "app:proxmox:cluster:main:admin": "proxmox-admins",
+                # Future examples:
+                # "app:proxmox:cluster:main:user": "proxmox-users",
+                # "app:proxmox:cluster:main:auditor": "proxmox-auditors",
+            }
+
+            proxmox_groups = [
+                proxmox_group
+                for authentik_group, proxmox_group in group_mapping.items()
+                if authentik_group in groups
+            ]
+
             return {
                 "name": request.user.name,
                 "preferred_username": request.user.username,
                 "username": request.user.username,
                 "email": request.user.email,
-                "groups": [group.name for group in request.user.all_groups() if group.name.startswith("app:proxmox:")],
+                "groups": proxmox_groups,
             }
 
       - id: service-email-scope
