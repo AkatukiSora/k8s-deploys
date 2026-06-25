@@ -8,7 +8,7 @@ data:
     version: 1
     metadata:
       name: OIDC applications for infrastructure services
-     entries:
+    entries:
       # ---------------------------------------------------------------------
       # app:* groups
       #
