@@ -8,7 +8,18 @@ data:
     version: 1
     metadata:
       name: OIDC applications for infrastructure services
-    entries:
+     entries:
+      # ---------------------------------------------------------------------
+      # app:* groups
+      #
+      # App-specific minimal permission groups.
+      # These groups are intended to be consumed by each application's OIDC
+      # claims or authentik Application policy bindings.
+      #
+      # Users should normally NOT be assigned to app:* groups directly.
+      # Assign users to team:* groups instead.
+      # ---------------------------------------------------------------------
+
       - id: app-authentik-global-admin-group
         model: authentik_core.group
         identifiers:
@@ -119,10 +130,45 @@ data:
         identifiers:
           name: "app:gitlab:global:external-user"
 
-      - id: team-infra-group
+      # ---------------------------------------------------------------------
+      # cohort:* groups
+      #
+      # Cohort groups classify who the user is.
+      # They are labels for enrollment, policy decisions, and documentation.
+      #
+      # Cohort groups MUST NOT grant application permissions directly.
+      # Do not set parents here unless there is a clearly documented reason.
+      # ---------------------------------------------------------------------
+
+      - id: cohort-nkc-member-group
         model: authentik_core.group
         identifiers:
-          name: "team:infra"
+          name: "cohort:nkc-member"
+
+      - id: cohort-family-group
+        model: authentik_core.group
+        identifiers:
+          name: "cohort:family"
+
+      - id: cohort-friend-group
+        model: authentik_core.group
+        identifiers:
+          name: "cohort:friend"
+
+      # ---------------------------------------------------------------------
+      # team:* groups
+      #
+      # Team groups are the primary assignment targets for users.
+      # Assign users to team:* groups, not app:* groups.
+      #
+      # team:* groups inherit app:* groups through parents.
+      # Application OIDC claims should continue exposing only app:* groups.
+      # ---------------------------------------------------------------------
+
+      - id: team-owner-group
+        model: authentik_core.group
+        identifiers:
+          name: "team:owner"
         attrs:
           parents:
             - !KeyOf app-authentik-global-admin-group
@@ -137,29 +183,47 @@ data:
             - !KeyOf app-nextcloud-global-group-admin-group
             - !KeyOf app-gitlab-global-admin-group
 
-      - id: team-app-dev-group
+      - id: team-dev-user-group
         model: authentik_core.group
         identifiers:
-          name: "team:app-dev"
+          name: "team:dev-user"
         attrs:
           parents:
-            - !KeyOf app-argocd-global-sync-group
             - !KeyOf app-coder-global-user-group
-            - !KeyOf app-immich-global-user-group
-            - !KeyOf app-grafana-global-editor-group
             - !KeyOf app-nextcloud-global-user-group
-            - !KeyOf app-gitlab-global-user-group
 
-      - id: team-guest-group
+      - id: team-media-user-group
         model: authentik_core.group
         identifiers:
-          name: "team:guest"
+          name: "team:media-user"
         attrs:
           parents:
-            - !KeyOf app-argocd-global-readonly-group
-            - !KeyOf app-coder-global-auditor-group
-            - !KeyOf app-grafana-global-viewer-group
-            - !KeyOf app-gitlab-global-observer-group
+            - !KeyOf app-immich-global-user-group
+
+      - id: team-storage-user-group
+        model: authentik_core.group
+        identifiers:
+          name: "team:storage-user"
+        attrs:
+          parents:
+            - !KeyOf app-nextcloud-global-user-group
+
+      # ---------------------------------------------------------------------
+      # Deprecated legacy team groups
+      #
+      # These groups are intentionally not redefined in the new permission model:
+      #
+      # - team:infra
+      # - team:app-dev
+      # - team:guest
+      #
+      # Migration:
+      # - team:infra   -> team:owner
+      # - team:app-dev -> team:dev-user, with Argo CD sync / Grafana editor removed
+      # - team:guest   -> no direct replacement
+      #
+      # Do not add these groups back unless there is a documented reason.
+      # ---------------------------------------------------------------------
 
       # Legacy direct-access groups such as kubernetes-users and proxmox-users
       # are intentionally not managed in IaC anymore.
