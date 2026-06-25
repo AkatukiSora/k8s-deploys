@@ -9,7 +9,7 @@ spec:
     server: https://kubernetes.default.svc
   sources:
     - repoURL: https://nextcloud.github.io/helm/
-      targetRevision: 6.6.8
+      targetRevision: 9.1.3
       chart: nextcloud
       helm:
         releaseName: nextcloud
