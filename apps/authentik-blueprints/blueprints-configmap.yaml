@@ -7,17 +7,159 @@ data:
   10-oidc-applications.yaml: |
     version: 1
     metadata:
-      name: OIDC applications for Kubernetes and Proxmox
+      name: OIDC applications for infrastructure services
     entries:
-      - id: kubernetes-group
+      - id: app-authentik-global-admin-group
         model: authentik_core.group
         identifiers:
-          name: kubernetes-users
+          name: "app:authentik:global:admin"
 
-      - id: proxmox-group
+      - id: app-k8s-cluster-admin-group
         model: authentik_core.group
         identifiers:
-          name: proxmox-users
+          name: "app:k8s:cluster:admin"
+
+      - id: app-proxmox-cluster-main-admin-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:proxmox:cluster:main:admin"
+
+      - id: app-argocd-global-admin-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:argocd:global:admin"
+
+      - id: app-argocd-global-sync-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:argocd:global:sync"
+
+      - id: app-argocd-global-readonly-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:argocd:global:readonly"
+
+      - id: app-coder-global-admin-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:coder:global:admin"
+
+      - id: app-coder-global-user-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:coder:global:user"
+
+      - id: app-coder-global-auditor-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:coder:global:auditor"
+
+      - id: app-coder-global-template-admin-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:coder:global:template-admin"
+
+      - id: app-immich-global-admin-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:immich:global:admin"
+
+      - id: app-immich-global-user-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:immich:global:user"
+
+      - id: app-grafana-global-admin-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:grafana:global:admin"
+
+      - id: app-grafana-global-editor-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:grafana:global:editor"
+
+      - id: app-grafana-global-viewer-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:grafana:global:viewer"
+
+      - id: app-nextcloud-global-admin-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:nextcloud:global:admin"
+
+      - id: app-nextcloud-global-user-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:nextcloud:global:user"
+
+      - id: app-nextcloud-global-group-admin-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:nextcloud:global:group-admin"
+
+      - id: app-gitlab-global-admin-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:gitlab:global:admin"
+
+      - id: app-gitlab-global-user-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:gitlab:global:user"
+
+      - id: app-gitlab-global-observer-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:gitlab:global:observer"
+
+      - id: app-gitlab-global-external-user-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:gitlab:global:external-user"
+
+      - id: team-infra-group
+        model: authentik_core.group
+        identifiers:
+          name: "team:infra"
+        attrs:
+          parents:
+            - !KeyOf app-authentik-global-admin-group
+            - !KeyOf app-k8s-cluster-admin-group
+            - !KeyOf app-proxmox-cluster-main-admin-group
+            - !KeyOf app-argocd-global-admin-group
+            - !KeyOf app-coder-global-admin-group
+            - !KeyOf app-coder-global-template-admin-group
+            - !KeyOf app-immich-global-admin-group
+            - !KeyOf app-grafana-global-admin-group
+            - !KeyOf app-nextcloud-global-admin-group
+            - !KeyOf app-nextcloud-global-group-admin-group
+            - !KeyOf app-gitlab-global-admin-group
+
+      - id: team-app-dev-group
+        model: authentik_core.group
+        identifiers:
+          name: "team:app-dev"
+        attrs:
+          parents:
+            - !KeyOf app-argocd-global-sync-group
+            - !KeyOf app-coder-global-user-group
+            - !KeyOf app-immich-global-user-group
+            - !KeyOf app-grafana-global-editor-group
+            - !KeyOf app-nextcloud-global-user-group
+            - !KeyOf app-gitlab-global-user-group
+
+      - id: team-guest-group
+        model: authentik_core.group
+        identifiers:
+          name: "team:guest"
+        attrs:
+          parents:
+            - !KeyOf app-argocd-global-readonly-group
+            - !KeyOf app-coder-global-auditor-group
+            - !KeyOf app-grafana-global-viewer-group
+            - !KeyOf app-gitlab-global-observer-group
 
       - id: kubernetes-profile-scope
         model: authentik_providers_oauth2.scopemapping
@@ -31,7 +173,7 @@ data:
                 "preferred_username": request.user.username,
                 "username": request.user.username,
                 "email": request.user.email,
-                "groups": [group.name for group in request.user.groups.all()],
+                "groups": [group.name for group in request.user.all_groups() if group.name.startswith("app:k8s:")],
             }
 
       - id: proxmox-profile-scope
@@ -46,7 +188,34 @@ data:
                 "preferred_username": request.user.username,
                 "username": request.user.username,
                 "email": request.user.email,
-                "groups": [group.name for group in request.user.groups.all()],
+                "groups": [group.name for group in request.user.all_groups() if group.name.startswith("app:proxmox:")],
+            }
+
+      - id: service-email-scope
+        model: authentik_providers_oauth2.scopemapping
+        identifiers:
+          name: Service email claims
+        attrs:
+          scope_name: email
+          expression: |
+            return {
+                "email": request.user.email,
+                "email_verified": True,
+            }
+
+      - id: service-profile-scope
+        model: authentik_providers_oauth2.scopemapping
+        identifiers:
+          name: Service profile claims
+        attrs:
+          scope_name: profile
+          expression: |
+            return {
+                "name": request.user.name,
+                "preferred_username": request.user.username,
+                "username": request.user.username,
+                "email": request.user.email,
+                "groups": [group.name for group in request.user.all_groups() if group.name.startswith("app:")],
             }
 
       - id: kubernetes-provider
@@ -62,7 +231,6 @@ data:
             - authorization_code
             - refresh_token
             - urn:ietf:params:oauth:grant-type:device_code
-          # Use an asymmetric signing key so the JWKS endpoint exposes public keys.
           signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
           issuer_mode: per_provider
           include_claims_in_id_token: true
@@ -89,7 +257,6 @@ data:
           grant_types:
             - authorization_code
             - refresh_token
-          # Proxmox requires a JWKS with public keys, so this provider must use an asymmetric signing key.
           signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
           issuer_mode: per_provider
           include_claims_in_id_token: true
@@ -101,6 +268,161 @@ data:
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'openid'"]]
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'email'"]]
             - !KeyOf proxmox-profile-scope
+
+      - id: argocd-provider
+        model: authentik_providers_oauth2.oauth2provider
+        identifiers:
+          name: Argo CD OIDC
+        attrs:
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+          client_id: argocd
+          client_secret: !Env ARGOCD_OIDC_CLIENT_SECRET
+          grant_types:
+            - authorization_code
+            - refresh_token
+          signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
+          issuer_mode: per_provider
+          include_claims_in_id_token: true
+          sub_mode: hashed_user_id
+          redirect_uris:
+            - matching_mode: strict
+              url: https://argocd.akatuki-host.com/auth/callback
+          property_mappings:
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'openid'"]]
+            - !KeyOf service-email-scope
+            - !KeyOf service-profile-scope
+
+      - id: coder-provider
+        model: authentik_providers_oauth2.oauth2provider
+        identifiers:
+          name: Coder OIDC
+        attrs:
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+          client_id: coder
+          client_secret: !Env CODER_OIDC_CLIENT_SECRET
+          grant_types:
+            - authorization_code
+            - refresh_token
+          signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
+          issuer_mode: per_provider
+          include_claims_in_id_token: true
+          sub_mode: hashed_user_id
+          redirect_uris:
+            - matching_mode: strict
+              url: https://coder.akatuki-host.com/api/v2/users/oidc/callback
+          property_mappings:
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'openid'"]]
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'offline_access'"]]
+            - !KeyOf service-email-scope
+            - !KeyOf service-profile-scope
+
+      - id: immich-provider
+        model: authentik_providers_oauth2.oauth2provider
+        identifiers:
+          name: Immich OIDC
+        attrs:
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+          client_id: immich
+          client_secret: !Env IMMICH_OIDC_CLIENT_SECRET
+          grant_types:
+            - authorization_code
+            - refresh_token
+          signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
+          issuer_mode: per_provider
+          include_claims_in_id_token: true
+          sub_mode: hashed_user_id
+          redirect_uris:
+            - matching_mode: strict
+              url: https://photos.akatuki-host.com/auth/login
+            - matching_mode: strict
+              url: https://photos.akatuki-host.com/user-settings
+            - matching_mode: strict
+              url: app.immich:///oauth-callback
+            - matching_mode: strict
+              url: https://photos.akatuki-host.com/api/oauth/mobile-redirect
+          property_mappings:
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'openid'"]]
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'offline_access'"]]
+            - !KeyOf service-email-scope
+            - !KeyOf service-profile-scope
+
+      - id: grafana-provider
+        model: authentik_providers_oauth2.oauth2provider
+        identifiers:
+          name: Grafana OIDC
+        attrs:
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+          client_id: grafana
+          client_secret: !Env GRAFANA_OIDC_CLIENT_SECRET
+          grant_types:
+            - authorization_code
+            - refresh_token
+          signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
+          issuer_mode: per_provider
+          include_claims_in_id_token: true
+          sub_mode: hashed_user_id
+          redirect_uris:
+            - matching_mode: strict
+              url: https://grafana.akatuki-host.com/login/generic_oauth
+          property_mappings:
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'openid'"]]
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'offline_access'"]]
+            - !KeyOf service-email-scope
+            - !KeyOf service-profile-scope
+
+      - id: nextcloud-provider
+        model: authentik_providers_oauth2.oauth2provider
+        identifiers:
+          name: Nextcloud OIDC
+        attrs:
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+          client_id: nextcloud
+          client_secret: !Env NEXTCLOUD_OIDC_CLIENT_SECRET
+          grant_types:
+            - authorization_code
+            - refresh_token
+          signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
+          issuer_mode: per_provider
+          include_claims_in_id_token: true
+          sub_mode: hashed_user_id
+          redirect_uris:
+            - matching_mode: strict
+              url: https://nextcloud.akatuki-host.com/apps/user_oidc/code
+          property_mappings:
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'openid'"]]
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'offline_access'"]]
+            - !KeyOf service-email-scope
+            - !KeyOf service-profile-scope
+
+      - id: gitlab-provider
+        model: authentik_providers_oauth2.oauth2provider
+        identifiers:
+          name: GitLab OIDC
+        attrs:
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+          client_id: gitlab
+          client_secret: !Env GITLAB_OIDC_CLIENT_SECRET
+          grant_types:
+            - authorization_code
+            - refresh_token
+          signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
+          issuer_mode: per_provider
+          include_claims_in_id_token: true
+          sub_mode: hashed_user_id
+          redirect_uris:
+            - matching_mode: strict
+              url: https://gitlab.akatuki-host.com/users/auth/openid_connect/callback
+          property_mappings:
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'openid'"]]
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'offline_access'"]]
+            - !KeyOf service-email-scope
+            - !KeyOf service-profile-scope
 
       - id: kubernetes-application
         model: authentik_core.application
@@ -120,16 +442,203 @@ data:
           provider: !KeyOf proxmox-provider
           meta_launch_url: https://proxmox.akatuki-host.com/
 
+      - id: argocd-application
+        model: authentik_core.application
+        identifiers:
+          slug: argocd
+        attrs:
+          name: Argo CD
+          provider: !KeyOf argocd-provider
+          meta_launch_url: https://argocd.akatuki-host.com
+
+      - id: coder-application
+        model: authentik_core.application
+        identifiers:
+          slug: coder
+        attrs:
+          name: Coder
+          provider: !KeyOf coder-provider
+          meta_launch_url: https://coder.akatuki-host.com
+
+      - id: immich-application
+        model: authentik_core.application
+        identifiers:
+          slug: immich
+        attrs:
+          name: Immich
+          provider: !KeyOf immich-provider
+          meta_launch_url: https://photos.akatuki-host.com
+
+      - id: grafana-application
+        model: authentik_core.application
+        identifiers:
+          slug: grafana
+        attrs:
+          name: Grafana
+          provider: !KeyOf grafana-provider
+          meta_launch_url: https://grafana.akatuki-host.com
+
+      - id: nextcloud-application
+        model: authentik_core.application
+        identifiers:
+          slug: nextcloud
+        attrs:
+          name: Nextcloud
+          provider: !KeyOf nextcloud-provider
+          meta_launch_url: https://nextcloud.akatuki-host.com
+
+      - id: gitlab-application
+        model: authentik_core.application
+        identifiers:
+          slug: gitlab
+        attrs:
+          name: GitLab
+          provider: !KeyOf gitlab-provider
+          meta_launch_url: https://gitlab.akatuki-host.com
+
       - model: authentik_policies.policybinding
         identifiers:
           target: !KeyOf kubernetes-application
           order: 0
         attrs:
-          group: !KeyOf kubernetes-group
+          group: !KeyOf app-k8s-cluster-admin-group
 
       - model: authentik_policies.policybinding
         identifiers:
           target: !KeyOf proxmox-application
           order: 0
         attrs:
-          group: !KeyOf proxmox-group
+          group: !KeyOf app-proxmox-cluster-main-admin-group
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !KeyOf argocd-application
+          order: 0
+        attrs:
+          group: !KeyOf app-argocd-global-admin-group
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !KeyOf argocd-application
+          order: 1
+        attrs:
+          group: !KeyOf app-argocd-global-sync-group
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !KeyOf argocd-application
+          order: 2
+        attrs:
+          group: !KeyOf app-argocd-global-readonly-group
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !KeyOf coder-application
+          order: 0
+        attrs:
+          group: !KeyOf app-coder-global-admin-group
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !KeyOf coder-application
+          order: 1
+        attrs:
+          group: !KeyOf app-coder-global-user-group
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !KeyOf coder-application
+          order: 2
+        attrs:
+          group: !KeyOf app-coder-global-auditor-group
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !KeyOf coder-application
+          order: 3
+        attrs:
+          group: !KeyOf app-coder-global-template-admin-group
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !KeyOf immich-application
+          order: 0
+        attrs:
+          group: !KeyOf app-immich-global-admin-group
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !KeyOf immich-application
+          order: 1
+        attrs:
+          group: !KeyOf app-immich-global-user-group
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !KeyOf grafana-application
+          order: 0
+        attrs:
+          group: !KeyOf app-grafana-global-admin-group
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !KeyOf grafana-application
+          order: 1
+        attrs:
+          group: !KeyOf app-grafana-global-editor-group
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !KeyOf grafana-application
+          order: 2
+        attrs:
+          group: !KeyOf app-grafana-global-viewer-group
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !KeyOf nextcloud-application
+          order: 0
+        attrs:
+          group: !KeyOf app-nextcloud-global-admin-group
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !KeyOf nextcloud-application
+          order: 1
+        attrs:
+          group: !KeyOf app-nextcloud-global-user-group
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !KeyOf nextcloud-application
+          order: 2
+        attrs:
+          group: !KeyOf app-nextcloud-global-group-admin-group
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !KeyOf gitlab-application
+          order: 0
+        attrs:
+          group: !KeyOf app-gitlab-global-admin-group
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !KeyOf gitlab-application
+          order: 1
+        attrs:
+          group: !KeyOf app-gitlab-global-user-group
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !KeyOf gitlab-application
+          order: 2
+        attrs:
+          group: !KeyOf app-gitlab-global-observer-group
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !KeyOf gitlab-application
+          order: 3
+        attrs:
+          group: !KeyOf app-gitlab-global-external-user-group
