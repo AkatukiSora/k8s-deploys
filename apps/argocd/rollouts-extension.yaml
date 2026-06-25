@@ -7,6 +7,14 @@ metadata:
     app.kubernetes.io/name: argocd-cm
     app.kubernetes.io/part-of: argocd
 data:
+  url: https://argocd.akatuki-host.com
+  oidc.config: |
+    name: Authentik
+    issuer: https://auth.akatuki-host.com/application/o/argocd/
+    clientID: argocd
+    clientSecret: $argocd-oidc-client-secret:client-secret
+    requestedScopes: ["openid", "profile", "email"]
+    requestedIDTokenClaims: {"groups": {"essential": true}}
   extension.config: |
     extensions:
       - name: argo-rollouts

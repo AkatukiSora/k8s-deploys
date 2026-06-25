@@ -2,6 +2,19 @@ coder:
   env:
     - name: CODER_ACCESS_URL
       value: "https://coder.akatuki-host.com"
+    - name: CODER_OIDC_ISSUER_URL
+      value: "https://auth.akatuki-host.com/application/o/coder/"
+    - name: CODER_OIDC_CLIENT_ID
+      value: "coder"
+    - name: CODER_OIDC_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: coder-oidc-client-secret
+          key: client-secret
+    - name: CODER_OIDC_SCOPES
+      value: "openid,profile,email,offline_access"
+    - name: CODER_OIDC_SIGN_IN_TEXT
+      value: "Sign in with Authentik"
     - name: CODER_PG_CONNECTION_URL
       valueFrom:
         secretKeyRef:
