@@ -8,6 +8,7 @@ mariadb:
     persistence:
       enabled: true
 persistence:
+  storageClass: ceph-cephfs
   enabled: true
   accessMode: ReadWriteMany
   size: 100Gi
