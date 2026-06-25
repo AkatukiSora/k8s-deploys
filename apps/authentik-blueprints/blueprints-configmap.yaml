@@ -218,9 +218,97 @@ data:
                 "preferred_username": request.user.username,
                 "username": request.user.username,
                 "email": request.user.email,
-                "groups": [group.name for group in request.user.all_groups() if group.name.startswith("app:")],
             }
 
+      - id: argocd-profile-scope
+        model: authentik_providers_oauth2.scopemapping
+        identifiers:
+          name: Argo CD profile claims
+        attrs:
+          scope_name: profile
+          expression: |
+            return {
+                "name": request.user.name,
+                "preferred_username": request.user.username,
+                "username": request.user.username,
+                "email": request.user.email,
+                "groups": [group.name for group in request.user.all_groups() if group.name.startswith("app:argocd:")],
+            }
+
+      - id: coder-profile-scope
+        model: authentik_providers_oauth2.scopemapping
+        identifiers:
+          name: Coder profile claims
+        attrs:
+          scope_name: profile
+          expression: |
+            return {
+                "name": request.user.name,
+                "preferred_username": request.user.username,
+                "username": request.user.username,
+                "email": request.user.email,
+                "groups": [group.name for group in request.user.all_groups() if group.name.startswith("app:coder:")],
+            }
+
+      - id: immich-profile-scope
+        model: authentik_providers_oauth2.scopemapping
+        identifiers:
+          name: Immich profile claims
+        attrs:
+          scope_name: profile
+          expression: |
+            return {
+                "name": request.user.name,
+                "preferred_username": request.user.username,
+                "username": request.user.username,
+                "email": request.user.email,
+                "groups": [group.name for group in request.user.all_groups() if group.name.startswith("app:immich:")],
+            }
+
+      - id: grafana-profile-scope
+        model: authentik_providers_oauth2.scopemapping
+        identifiers:
+          name: Grafana profile claims
+        attrs:
+          scope_name: profile
+          expression: |
+            return {
+                "name": request.user.name,
+                "preferred_username": request.user.username,
+                "username": request.user.username,
+                "email": request.user.email,
+                "groups": [group.name for group in request.user.all_groups() if group.name.startswith("app:grafana:")],
+            }
+
+      - id: nextcloud-profile-scope
+        model: authentik_providers_oauth2.scopemapping
+        identifiers:
+          name: Nextcloud profile claims
+        attrs:
+          scope_name: profile
+          expression: |
+            return {
+                "name": request.user.name,
+                "preferred_username": request.user.username,
+                "username": request.user.username,
+                "email": request.user.email,
+                "groups": [group.name for group in request.user.all_groups() if group.name.startswith("app:nextcloud:")],
+            }
+
+      - id: gitlab-profile-scope
+        model: authentik_providers_oauth2.scopemapping
+        identifiers:
+          name: GitLab profile claims
+        attrs:
+          scope_name: profile
+          expression: |
+            return {
+                "name": request.user.name,
+                "preferred_username": request.user.username,
+                "username": request.user.username,
+                "email": request.user.email,
+                "groups": [group.name for group in request.user.all_groups() if group.name.startswith("app:gitlab:")],
+            }
       - id: kubernetes-provider
         model: authentik_providers_oauth2.oauth2provider
         identifiers:
@@ -294,7 +382,7 @@ data:
           property_mappings:
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'openid'"]]
             - !KeyOf service-email-scope
-            - !KeyOf service-profile-scope
+            - !KeyOf argocd-profile-scope
 
       - id: coder-provider
         model: authentik_providers_oauth2.oauth2provider
@@ -319,7 +407,7 @@ data:
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'openid'"]]
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'offline_access'"]]
             - !KeyOf service-email-scope
-            - !KeyOf service-profile-scope
+            - !KeyOf coder-profile-scope
 
       - id: immich-provider
         model: authentik_providers_oauth2.oauth2provider
@@ -350,7 +438,7 @@ data:
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'openid'"]]
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'offline_access'"]]
             - !KeyOf service-email-scope
-            - !KeyOf service-profile-scope
+            - !KeyOf immich-profile-scope
 
       - id: grafana-provider
         model: authentik_providers_oauth2.oauth2provider
@@ -375,7 +463,7 @@ data:
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'openid'"]]
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'offline_access'"]]
             - !KeyOf service-email-scope
-            - !KeyOf service-profile-scope
+            - !KeyOf grafana-profile-scope
 
       - id: nextcloud-provider
         model: authentik_providers_oauth2.oauth2provider
@@ -400,7 +488,7 @@ data:
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'openid'"]]
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'offline_access'"]]
             - !KeyOf service-email-scope
-            - !KeyOf service-profile-scope
+            - !KeyOf nextcloud-profile-scope
 
       - id: gitlab-provider
         model: authentik_providers_oauth2.oauth2provider
@@ -425,7 +513,7 @@ data:
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'openid'"]]
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'offline_access'"]]
             - !KeyOf service-email-scope
-            - !KeyOf service-profile-scope
+            - !KeyOf gitlab-profile-scope
 
       - id: kubernetes-application
         model: authentik_core.application

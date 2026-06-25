@@ -52,7 +52,17 @@ Legacy group:
 
 これらの direct-access 用 legacy group は IaC ではもう管理しません。
 
-アプリ向け provider の `groups` claim は direct membership ではなく effective membership を返すため、nested `app:*` group も downstream に見えます。
+Authentik 上の group membership は広く持たせてもよく、OIDC の `groups` claim 側で application ごとに絞り込みます。
+
+アプリ向け provider の `groups` claim は direct membership ではなく `request.user.all_groups()` ベースの effective membership を返すため、nested `app:*` group も downstream に見えます。
+
+OIDC group claims は application ごとに prefix で必ず絞り込みます。
+
+- `app:authentik:*` は Authentik 以外に出しません
+- `app:k8s:*` は Kubernetes 以外に出しません
+- `app:proxmox:*` は Proxmox 以外に出しません
+- `app:argocd:*` / `app:coder:*` / `app:immich:*` / `app:grafana:*` / `app:nextcloud:*` / `app:gitlab:*` は各 application だけに出します
+- `app:*` を全 provider に一律配信しません
 
 ## Group to role mapping
 
@@ -103,6 +113,7 @@ Legacy group:
 - Uses native Casbin RBAC in `argocd-rbac-cm`
 - `policy.default` is set to `role:authenticated` with no useful permissions
 - `app:argocd:global:sync` can view, sync, and read logs only
+- OIDC `groups` claim is scoped to `app:argocd:*`
 
 ### Coder
 
@@ -110,6 +121,7 @@ Legacy group:
 - Password auth remains enabled until OIDC login is verified
 - Group to Coder role sync is not fully declared in this repo
 - Initial role assignment after first login is a manual or API-backed operational step
+- OIDC `groups` claim is scoped to `app:coder:*`
 
 Suggested manual flow:
 
@@ -124,6 +136,7 @@ Suggested manual flow:
 - Immich app-side OIDC settings are not managed from this repo today
 - Configure OAuth in Immich admin settings manually
 - Login starts with an explicit Authentik authorization prompt so the destination service is visible to the user
+- OIDC `groups` claim is scoped to `app:immich:*`
 
 Required Immich admin settings:
 
@@ -144,12 +157,14 @@ Limitation:
 - Generic OAuth is configured declaratively in Helm values
 - Users outside the mapped groups receive `None` and are denied when `role_attribute_strict=true`
 - First implementation uses Grafana org `Admin`, not `GrafanaAdmin`
+- OIDC `groups` claim is scoped to `app:grafana:*`
 
 ### Nextcloud
 
 - This repo now treats Nextcloud as a fresh k8s deployment
 - `user_oidc` bootstrap is attempted from chart hook scripts using `occ`
 - A break-glass local admin remains via `nextcloud-admin`
+- OIDC `groups` claim is scoped to `app:nextcloud:*`
 
 Break-glass path:
 
@@ -171,6 +186,7 @@ Current limitation:
 - GitLab itself is not deployed by this repository
 - No separate Kubernetes `OnePasswordItem` is required for GitLab because it is external
 - Use `GITLAB_OIDC_CLIENT_SECRET` from `authentik-blueprints-oidc` as the canonical stored secret
+- OIDC `groups` claim is scoped to `app:gitlab:*`
 
 Example Omnibus config:
 
@@ -238,7 +254,9 @@ GitLab caveat:
 3. Providers exist for Argo CD, Coder, Immich, Grafana, Nextcloud, GitLab
 4. Applications are visible in the Authentik catalog
 5. Access bindings are restricted to the intended groups
-6. `groups` includes inherited `app:*` groups in ID token or userinfo payload
+6. `iss` matches the provider slug URL
+7. `aud` matches the client ID
+8. `groups` includes only the application's own `app:<service>:*` groups in ID token or userinfo payload
 
 ### Argo CD
 
