@@ -14,9 +14,9 @@ persistence:
 cronjob:
   enabled: true
 hpa:
-  enabled: true
-  minPods: 2
-  maxPods: 10
+  enabled: false
+  minPods: 1
+  maxPods: 1
 ingress:
   enabled: true
   className: cloudflare-tunnel
