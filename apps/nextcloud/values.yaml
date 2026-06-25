@@ -9,19 +9,50 @@ mariadb:
       enabled: true
 persistence:
   enabled: true
-  accessModes:
-    - ReadWriteMany
+  accessMode: ReadWriteMany
   size: 100Gi
+cronjob:
+  enabled: true
 hpa:
   enabled: true
-  minReplicas: 2
-  maxReplicas: 10
+  minPods: 2
+  maxPods: 10
 ingress:
   enabled: true
+  className: cloudflare-tunnel
+  annotations:
+    kubernetes.io/ingress.class: cloudflare-tunnel
 nextcloud:
   host: "nextcloud.akatuki-host.com"
+  existingSecret:
+    enabled: true
+    secretName: nextcloud-admin
+    usernameKey: nextcloud-username
+    passwordKey: nextcloud-password
   trustedDomains:
     - "nextcloud.akatuki-host.com"
+  extraEnv:
+    - name: NEXTCLOUD_OIDC_CLIENT_ID
+      value: "nextcloud"
+    - name: NEXTCLOUD_OIDC_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: nextcloud-oidc-client-secret
+          key: client-secret
+    - name: NEXTCLOUD_OIDC_DISCOVERY_URL
+      value: "https://auth.akatuki-host.com/application/o/nextcloud/.well-known/openid-configuration"
+  hooks:
+    before-starting: |
+      # Bootstrap the user_oidc app and provider idempotently for a fresh install.
+      php occ app:install user_oidc || php occ app:enable user_oidc
+      php occ user_oidc:provider authentik \
+        --clientid="$NEXTCLOUD_OIDC_CLIENT_ID" \
+        --clientsecret="$NEXTCLOUD_OIDC_CLIENT_SECRET" \
+        --discoveryuri="$NEXTCLOUD_OIDC_DISCOVERY_URL" \
+        --group-provisioning=1 \
+        --group-whitelist-regex='/^(app:nextcloud:global:admin|app:nextcloud:global:user|app:nextcloud:global:group-admin)$/' \
+        --group-restrict-login-to-whitelist=1
+      php occ config:app:set --type=string --value=0 user_oidc allow_multiple_user_backends
   configs:
     trusted_proxy: |
       <?php
@@ -51,6 +82,18 @@ nextcloud:
           2c0f:f248::/32
         ],
         'overwriteprotocol' => 'https',
-        'overwritewebroot'  => '/domain.tld/nextcloud',
         'overwrite.cli.url' => 'https://nextcloud.akatuki-host.com/',
+      );
+    oidc.config.php: |
+      <?php
+      $CONFIG = array (
+        'user_oidc' => array (
+          'login_label' => 'Sign in with Authentik',
+          'auto_provision' => true,
+          'soft_auto_provision' => true,
+          'disable_account_creation' => false,
+          'single_logout' => true,
+          'send_userinfo_claims' => false,
+          'use_pkce' => true,
+        ),
       );

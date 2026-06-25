@@ -12,12 +12,15 @@ spec:
       targetRevision: 6.6.8
       chart: nextcloud
       helm:
+        releaseName: nextcloud
         valueFiles:
-          - $repo/values.yaml
+          - $repo/apps/nextcloud/values.yaml
     - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
       targetRevision: master
-      path: apps/nextcloud
       ref: repo
+    - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
+      targetRevision: master
+      path: apps/nextcloud/manifests
   project: default
   syncPolicy:
     automated:
@@ -25,3 +28,4 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - ServerSideApply=true
