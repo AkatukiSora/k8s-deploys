@@ -128,3 +128,134 @@ kubectl --user=oidc auth can-i --list
 ## 5. 注意
 
 - 本番では `cluster-admin` binding ではなく、必要最小限の `ClusterRole` / `RoleBinding` に置き換えてください。
+
+## 6. 配布用 kubeconfig
+
+配布用の OIDC kubeconfig テンプレートを repo に置いてあります。
+
+- `setup-template/kubeconfig-oidc.yaml`
+
+このファイルは以下だけを含みます。
+
+- Kubernetes API server URL
+- Kubernetes cluster CA certificate
+- OIDC exec 設定
+- context / current-context
+
+以下は含みません。
+
+- `client-certificate-data`
+- `client-key-data`
+- `token`
+
+## 7. 既存 kubeconfig への追加
+
+既存の `~/.kube/config` に OIDC 設定を取り込む場合は merge します。
+
+```bash
+KUBECONFIG="$HOME/.kube/config:./setup-template/kubeconfig-oidc.yaml" \
+  kubectl config view --flatten > /tmp/kubeconfig.merged
+
+install -m 600 /tmp/kubeconfig.merged "$HOME/.kube/config"
+```
+
+追加後に default context を OIDC に切り替える場合:
+
+```bash
+kubectl config use-context oidc@k8s-internal
+```
+
+まず試験的に使うだけなら:
+
+```bash
+KUBECONFIG=./setup-template/kubeconfig-oidc.yaml kubectl auth whoami
+```
+
+## 8. 外部ユーザーや別デバイスへの配布
+
+外部ユーザーや別デバイスには、`admin` の client certificate / private key を含む kubeconfig を配布しないでください。
+
+配布するのは次の情報だけです。
+
+- Kubernetes API server URL
+- Kubernetes cluster CA certificate
+- OIDC issuer URL
+- OIDC client ID
+- 必要な scope
+
+この構成では、ユーザー固有の秘密鍵は配りません。認証は毎回 Authentik OIDC で行います。
+
+### 配布してよい kubeconfig の形
+
+以下の kubeconfig は、server CA と OIDC exec 設定だけを持ちます。
+
+```yaml
+apiVersion: v1
+kind: Config
+clusters:
+  - name: k8s-internal
+    cluster:
+      server: https://c1.k8s.internal:6443
+      certificate-authority-data: <BASE64_CLUSTER_CA>
+users:
+  - name: oidc
+    user:
+      exec:
+        apiVersion: client.authentication.k8s.io/v1
+        command: kubectl
+        args:
+          - oidc-login
+          - get-token
+          - --oidc-issuer-url=https://auth.akatuki-host.com/application/o/kubernetes/
+          - --oidc-client-id=kubernetes-cluster
+          - --oidc-extra-scope=profile
+          - --token-cache-storage=keyring
+        interactiveMode: Never
+        provideClusterInfo: false
+contexts:
+  - name: oidc@k8s-internal
+    context:
+      cluster: k8s-internal
+      user: oidc
+current-context: oidc@k8s-internal
+```
+
+この kubeconfig には以下を含めません。
+
+- `client-certificate-data`
+- `client-key-data`
+- `token`
+- `username/password`
+
+### 別デバイスでのセットアップ例
+
+1. `kubelogin` を入れる
+
+```bash
+mise use -g kubelogin
+```
+
+2. 配布された kubeconfig を保存する
+
+```bash
+install -m 600 ./kubeconfig-oidc ~/.kube/config
+```
+
+3. OIDC 認証で接続確認する
+
+```bash
+kubectl oidc-login setup \
+  --oidc-issuer-url=https://auth.akatuki-host.com/application/o/kubernetes/ \
+  --oidc-client-id=kubernetes-cluster \
+  --oidc-extra-scope=profile
+
+kubectl auth whoami
+kubectl auth can-i --list
+```
+
+運用方針:
+
+- `admin` kubeconfig は break-glass 専用
+- 日常利用は OIDC kubeconfig
+- 外部ユーザーには OIDC kubeconfig だけ配布
+- `talosconfig` は一般ユーザーに配布しない

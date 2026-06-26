@@ -5,4 +5,4 @@ cluster:
       oidc-issuer-url: https://auth.akatuki-host.com/application/o/kubernetes/
       oidc-username-claim: username
       oidc-groups-claim: groups
-      oidc-groups-prefix: "oidc:"
+      oidc-groups-prefix: oidc:
