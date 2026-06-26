@@ -619,7 +619,7 @@ data:
           name: Proxmox VE
           provider: !Find [authentik_providers_oauth2.oauth2provider, [name, "Proxmox VE provider"]]
           meta_launch_url: https://proxmox.akatuki-host.com/
-          icon: https://raw.githubusercontent.com/proxmox/proxmox-backup/main/docs/images/proxmox-logo.svg
+          icon: https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/proxmox.svg
           open_in_new_tab: true
 
       - id: argocd-application
@@ -630,7 +630,7 @@ data:
           name: Argo CD
           provider: !Find [authentik_providers_oauth2.oauth2provider, [name, "Argo CD OIDC"]]
           meta_launch_url: https://argocd.akatuki-host.com
-          icon: https://argocd-manager-default.apps.authentik.local/logo.png
+          icon: https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/argo.svg
           open_in_new_tab: true
 
       - id: coder-application
@@ -641,7 +641,7 @@ data:
           name: Coder
           provider: !Find [authentik_providers_oauth2.oauth2provider, [name, "Coder OIDC"]]
           meta_launch_url: https://coder.akatuki-host.com
-          icon: https://raw.githubusercontent.com/coder/coder/main/docs/logo-dark.svg
+          icon: https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/coder.svg
           open_in_new_tab: true
 
       - id: immich-application
@@ -652,7 +652,7 @@ data:
           name: Immich
           provider: !Find [authentik_providers_oauth2.oauth2provider, [name, "Immich OIDC"]]
           meta_launch_url: https://photos.akatuki-host.com
-          icon: https://raw.githubusercontent.com/immich-app/immich/main/.github/logo.svg
+          icon: https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/immich.svg
           open_in_new_tab: true
 
       - id: grafana-application
@@ -674,7 +674,7 @@ data:
           name: Nextcloud
           provider: !Find [authentik_providers_oauth2.oauth2provider, [name, "Nextcloud OIDC"]]
           meta_launch_url: https://nextcloud.akatuki-host.com
-          icon: https://raw.githubusercontent.com/nextcloud/server/master/img/logo-dark.svg
+          icon: https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/nextcloud.svg
           open_in_new_tab: true
 
       - id: gitlab-application
@@ -685,7 +685,7 @@ data:
           name: GitLab
           provider: !Find [authentik_providers_oauth2.oauth2provider, [name, "GitLab OIDC"]]
           meta_launch_url: https://gitlab.akatuki-host.com
-          icon: https://raw.githubusercontent.com/gitlabhq/gitlab/master/app/assets/images/logos/workflow/gitlab-logo-dark.svg
+          icon: https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/gitlab.svg
           open_in_new_tab: true
 
   50-application-policy-bindings.yaml: |
