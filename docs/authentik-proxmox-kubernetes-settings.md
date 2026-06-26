@@ -183,7 +183,8 @@ talosctl patch mc --nodes <controlplane-node-ip> --patch @talos-oidc-authentik.p
 ```bash
 kubectl oidc-login setup \
   --oidc-issuer-url=https://auth.akatuki-host.com/application/o/kubernetes/ \
-  --oidc-client-id=kubernetes-cluster
+  --oidc-client-id=kubernetes-cluster \
+  --oidc-extra-scope=profile
 ```
 
 ### kubeconfig 設定例
@@ -197,14 +198,14 @@ kubectl config set-credentials oidc \
   --exec-arg=get-token \
   --exec-arg=--oidc-issuer-url=https://auth.akatuki-host.com/application/o/kubernetes/ \
   --exec-arg=--oidc-client-id=kubernetes-cluster \
+  --exec-arg=--oidc-extra-scope=profile \
   --exec-arg=--token-cache-storage=keyring
 ```
 
 補足:
 
 - 現在の Blueprint では Kubernetes provider を public client にしているため、kubelogin 側の client secret は不要です。
-- ブラウザ認証を使う前提です。
-- `kubelogin` は Authorization Code + PKCE または Device Code を使えます。
+- `profile` scope を要求しないと `username` / `groups` claim が入らないため、明示します。
 
 ## 4. Kubernetes RBAC 側の考え方
 
