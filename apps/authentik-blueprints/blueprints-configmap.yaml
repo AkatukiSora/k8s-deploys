@@ -1014,8 +1014,7 @@ data:
         attrs:
           create_users_as_inactive: true
           user_creation_mode: always_create
-          user_type: external
-          user_path_template: users/invited
+          user_type: internal
 
       - identifiers:
           name: invite-enrollment-user-login
