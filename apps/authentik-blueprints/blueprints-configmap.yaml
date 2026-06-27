@@ -852,11 +852,23 @@ data:
         attrs:
           device_classes:
             - webauthn
-          not_configured_action: deny
+          not_configured_action: skip
           webauthn_user_verification: required
 
       - identifiers:
-          slug: passwordless-authentication-flow
+          name: passwordless-authentication-skip-fallback
+        id: passwordless-authentication-skip-fallback
+        model: authentik_policies_expression.expressionpolicy
+        attrs:
+          expression: |
+            flow_plan = request.context.get("flow_plan")
+            if not flow_plan:
+                return True
+
+            return flow_plan.context.get("auth_method") != "auth_webauthn_pwl"
+
+      - identifiers:
+          slug: 00-passwordless-authentication-flow
         id: passwordless-authentication-flow
         model: authentik_flows.flow
         attrs:
@@ -873,8 +885,44 @@ data:
 
       - identifiers:
           target: !KeyOf passwordless-authentication-flow
-          stage: !Find [authentik_stages_user_login.userloginstage, [name, default-authentication-login]]
+          stage: !Find [authentik_stages_identification.identificationstage, [name, default-authentication-identification]]
           order: 100
+        id: passwordless-authentication-identification-binding
+        model: authentik_flows.flowstagebinding
+        attrs:
+          evaluate_on_plan: true
+          re_evaluate_policies: true
+
+      - identifiers:
+          target: !KeyOf passwordless-authentication-identification-binding
+          policy: !KeyOf passwordless-authentication-skip-fallback
+          order: 0
+        model: authentik_policies.policybinding
+        attrs:
+          failure_result: false
+
+      - identifiers:
+          target: !KeyOf passwordless-authentication-flow
+          stage: !Find [authentik_stages_password.passwordstage, [name, default-authentication-password]]
+          order: 110
+        id: passwordless-authentication-password-binding
+        model: authentik_flows.flowstagebinding
+        attrs:
+          evaluate_on_plan: true
+          re_evaluate_policies: true
+
+      - identifiers:
+          target: !KeyOf passwordless-authentication-password-binding
+          policy: !KeyOf passwordless-authentication-skip-fallback
+          order: 0
+        model: authentik_policies.policybinding
+        attrs:
+          failure_result: false
+
+      - identifiers:
+          target: !KeyOf passwordless-authentication-flow
+          stage: !Find [authentik_stages_user_login.userloginstage, [name, default-authentication-login]]
+          order: 200
         model: authentik_flows.flowstagebinding
 
       - identifiers:
@@ -882,7 +930,7 @@ data:
         model: authentik_stages_identification.identificationstage
         attrs:
           webauthn_stage: !KeyOf passwordless-authentication-webauthn-validation
-          passwordless_flow: !KeyOf passwordless-authentication-flow
+          passwordless_flow: null
 
   60-invite-enrollment.yaml: |
     version: 1
