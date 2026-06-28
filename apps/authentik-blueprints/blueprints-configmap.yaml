@@ -851,7 +851,7 @@ data:
         model: authentik_stages_authenticator_validate.authenticatorvalidatestage
         attrs:
           device_classes:
-            - webauthn
+            - web_authn
           not_configured_action: deny
           webauthn_user_verification: required
 
@@ -866,6 +866,11 @@ data:
           authentication: require_unauthenticated
 
       - identifiers:
+          name: passwordless-authentication-user-login
+        id: passwordless-authentication-user-login
+        model: authentik_stages_user_login.userloginstage
+
+      - identifiers:
           target: !KeyOf passwordless-authentication-flow
           stage: !KeyOf passwordless-authentication-webauthn-validation
           order: 10
@@ -873,8 +878,8 @@ data:
 
       - identifiers:
           target: !KeyOf passwordless-authentication-flow
-          stage: !Find [authentik_stages_user_login.userloginstage, [name, default-authentication-login]]
-          order: 100
+          stage: !KeyOf passwordless-authentication-user-login
+          order: 20
         model: authentik_flows.flowstagebinding
 
       - identifiers:
