@@ -866,6 +866,18 @@ data:
           authentication: require_unauthenticated
 
       - identifiers:
+          target: !KeyOf passwordless-authentication-flow
+          stage: !KeyOf passwordless-authentication-webauthn-validation
+          order: 10
+        model: authentik_flows.flowstagebinding
+
+      - identifiers:
+          target: !KeyOf passwordless-authentication-flow
+          stage: !Find [authentik_stages_user_login.userloginstage, [name, default-authentication-login]]
+          order: 100
+        model: authentik_flows.flowstagebinding
+
+      - identifiers:
           name: default-authentication-identification
         model: authentik_stages_identification.identificationstage
         attrs:
