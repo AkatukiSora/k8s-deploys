@@ -865,13 +865,6 @@ data:
           designation: authentication
           authentication: require_unauthenticated
 
-      - identifiers:
-          name: default-authentication-identification
-        model: authentik_stages_identification.identificationstage
-        attrs:
-          webauthn_stage: !KeyOf passwordless-authentication-webauthn-validation
-          passwordless_flow: !KeyOf passwordless-authentication-flow
-
   55-passwordless-authentication-bindings.yaml: |
     version: 1
     metadata:
@@ -882,6 +875,18 @@ data:
           stage: !Find [authentik_stages_authenticator_validate.authenticatorvalidatestage, [name, passwordless-authentication-webauthn-validation]]
           order: 10
         model: authentik_flows.flowstagebinding
+
+  56-passwordless-identification-stage.yaml: |
+    version: 1
+    metadata:
+      name: Passwordless identification stage settings
+    entries:
+      - identifiers:
+          name: default-authentication-identification
+        model: authentik_stages_identification.identificationstage
+        attrs:
+          webauthn_stage: !Find [authentik_stages_authenticator_validate.authenticatorvalidatestage, [name, passwordless-authentication-webauthn-validation]]
+          passwordless_flow: !Find [authentik_flows.flow, [slug, passwordless-authentication-flow]]
 
   60-invite-enrollment.yaml: |
     version: 1
