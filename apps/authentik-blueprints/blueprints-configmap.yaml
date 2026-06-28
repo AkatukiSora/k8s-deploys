@@ -846,6 +846,16 @@ data:
       name: Passwordless authentication flow
     entries:
       - identifiers:
+          name: passwordless-authentication-webauthn-validation
+        id: passwordless-authentication-webauthn-validation
+        model: authentik_stages_authenticator_validate.authenticatorvalidatestage
+        attrs:
+          device_classes:
+            - webauthn
+          not_configured_action: deny
+          webauthn_user_verification: required
+
+      - identifiers:
           slug: passwordless-authentication-flow
         id: passwordless-authentication-flow
         model: authentik_flows.flow
