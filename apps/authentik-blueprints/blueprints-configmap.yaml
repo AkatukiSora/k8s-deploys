@@ -865,6 +865,13 @@ data:
           designation: authentication
           authentication: require_unauthenticated
 
+      - identifiers:
+          name: default-authentication-identification
+        model: authentik_stages_identification.identificationstage
+        attrs:
+          webauthn_stage: !KeyOf passwordless-authentication-webauthn-validation
+          passwordless_flow: !KeyOf passwordless-authentication-flow
+
   60-invite-enrollment.yaml: |
     version: 1
     metadata:
