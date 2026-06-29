@@ -74,6 +74,7 @@ Proxmox は例外で、Authentik 内部の `app:proxmox:*` から Proxmox-safe �
 | Authentik   | `app:authentik:global:admin`             | Authentik admin candidate       |
 | Kubernetes  | `app:k8s:cluster:admin`                  | cluster-admin candidate         |
 | Proxmox     | `app:proxmox:cluster:main:admin`         | Proxmox admin candidate         |
+| Proxmox     | `app:proxmox:cluster:main:auditor`       | Proxmox read-only candidate     |
 | Argo CD     | `app:argocd:global:admin`                | `role:admin`                    |
 | Argo CD     | `app:argocd:global:sync`                 | `role:deployer`                 |
 | Argo CD     | `app:argocd:global:readonly`             | `role:readonly`                 |
