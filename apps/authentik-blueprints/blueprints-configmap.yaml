@@ -596,6 +596,22 @@ data:
             - !Find [authentik_providers_oauth2.scopemapping, [name, "Service email claims"]]
             - !Find [authentik_providers_oauth2.scopemapping, [name, "GitLab profile claims"]]
 
+  10-brand.yaml: |
+    version: 1
+    metadata:
+      name: ソララボ brand
+    entries:
+      - id: sora-lab-brand
+        model: authentik_brands.brand
+        state: present
+        identifiers:
+          domain: authentik-default
+          default: true
+        attrs:
+          branding_title: ソララボ
+          branding_logo: https://raw.githubusercontent.com/AkatukiSora/k8s-deploys/master/apps/authentik-blueprints/icons/FullLogo.png
+          branding_favicon: https://raw.githubusercontent.com/AkatukiSora/k8s-deploys/master/apps/authentik-blueprints/icons/ShortLogo.png
+
   40-applications.yaml: |
     version: 1
     metadata:
