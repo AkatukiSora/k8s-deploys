@@ -209,22 +209,6 @@ data:
           parents:
             - !KeyOf app-nextcloud-global-user-group
 
-      - id: team-cloudflare-access-argocd-group
-        model: authentik_core.group
-        identifiers:
-          name: "team:cloudflare-access-argocd"
-        attrs:
-          parents:
-            - !KeyOf app-cloudflare-resource-argocd-access-group
-
-      - id: team-cloudflare-access-proxmox-group
-        model: authentik_core.group
-        identifiers:
-          name: "team:cloudflare-access-proxmox"
-        attrs:
-          parents:
-            - !KeyOf app-cloudflare-resource-proxmox-access-group
-
       # ---------------------------------------------------------------------
       # Deprecated legacy team groups
       #

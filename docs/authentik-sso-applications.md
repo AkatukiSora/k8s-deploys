@@ -200,8 +200,8 @@ Current limitation:
 - Argo CD and Proxmox continue to use their own downstream RBAC after Cloudflare admission
 - Use `CLOUDFLARE_OIDC_CLIENT_SECRET` from `authentik-blueprints-oidc` as the canonical stored secret
 - Current edge access groups are `app:cloudflare:resource:argocd:access` and `app:cloudflare:resource:proxmox:access`
-- Current people-facing assignment groups are `team:cloudflare-access-argocd` and `team:cloudflare-access-proxmox`
-- `team:owner` inherits both Cloudflare Access groups so the existing owner path remains functional
+- Existing Argo CD / Proxmox people-facing assignment stays on the current `team:*` groups that already inherit those app permissions
+- In the current IaC, `team:owner` inherits both Cloudflare Access groups so the existing owner path remains functional
 
 Example Omnibus config:
 
