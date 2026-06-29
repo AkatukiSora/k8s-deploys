@@ -42,6 +42,8 @@ Path:
 - 現在の Blueprint では redirect URI を regex で許可しています。
 - 許可範囲: `^https://proxmox\.akatuki-host\.com/?$`
 - Cloudflare Tunnel 配下でも、Proxmox 側には `https://proxmox.akatuki-host.com` を設定してください。
+- Cloudflare Access を前段に置く場合でも、Proxmox 側の OIDC Realm と ACL は引き続き必要です。
+- Cloudflare Access は edge admission、Proxmox OIDC groups/ACL は Proxmox 内部の権限制御を担当します。
 
 ### CLI 例
 
