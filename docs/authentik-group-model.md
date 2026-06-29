@@ -103,7 +103,7 @@ team:media-user
 
 ## Invitation Enrollment
 
-Invitation-based enrollment uses the `invite-enrollment` flow. The flow creates invited users as inactive, sends an account confirmation email with authentik's global SMTP settings, and activates the user only after the email stage succeeds. The invitation fixed data can assign groups in either of these ways:
+Invitation-based enrollment uses the `invite-enrollment` flow. The flow creates invited users as inactive, sends an account confirmation email with authentik's global SMTP settings, and activates the user only after the email stage succeeds. Invitation fixed data is optional: when neither `invite_groups` nor `invite_kind` is present, the user is created without any preassigned groups. When group assignment is needed, fixed data can assign groups in either of these ways:
 
 ### Explicit group list
 
@@ -116,7 +116,7 @@ invite_groups:
   - team:storage-user
 ```
 
-Only `cohort:*` and `team:*` groups are accepted by the flow. `team:owner` is explicitly denied so administrative access cannot be granted by invitation.
+Only `app:*`, `cohort:*`, and `team:*` groups are accepted by the flow when fixed data is provided. `team:owner` is explicitly denied so administrative access cannot be granted by invitation.
 
 ### Shorthand invite kind
 
@@ -133,7 +133,7 @@ Use `invite_kind` when one of the standard combinations is enough:
 | `nkc-dev` | `cohort:nkc-member`, `team:dev-user` |
 | `nkc-storage` | `cohort:nkc-member`, `team:storage-user` |
 
-The flow prefers `invite_groups` when both keys are present, and falls back to `invite_kind` only when `invite_groups` is empty.
+The flow prefers `invite_groups` when both keys are present, falls back to `invite_kind` only when `invite_groups` is empty, and creates the user without extra groups when neither key is provided.
 
 ## OIDC Claims
 

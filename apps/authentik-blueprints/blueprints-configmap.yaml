@@ -1137,7 +1137,11 @@ data:
             if not group_names and invite_kind:
                 group_names = group_sets.get(invite_kind, [])
 
-            allowed_prefixes = ("cohort:", "team:")
+            if not group_names:
+                flow_plan.context["groups"] = []
+                return True
+
+            allowed_prefixes = ("app:", "cohort:", "team:")
             denied_groups = {"team:owner"}
             invalid_group_names = [
                 name for name in group_names
@@ -1145,8 +1149,8 @@ data:
                 or not name.startswith(allowed_prefixes)
                 or name in denied_groups
             ]
-            if not group_names or invalid_group_names:
-                ak_message("Invalid or missing invite_groups/invite_kind")
+            if invalid_group_names:
+                ak_message("Invalid invite_groups/invite_kind")
                 return False
 
             flow_plan.context["groups"] = list(Group.objects.filter(name__in=group_names))
