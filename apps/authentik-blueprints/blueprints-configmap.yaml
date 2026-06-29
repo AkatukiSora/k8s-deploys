@@ -980,6 +980,12 @@ data:
           order: 10
         model: authentik_flows.flowstagebinding
 
+      - identifiers:
+          target: !Find [authentik_flows.flow, [slug, passwordless-authentication-flow]]
+          stage: !Find [authentik_stages_user_login.userloginstage, [name, default-authentication-login]]
+          order: 100
+        model: authentik_flows.flowstagebinding
+
   56-passwordless-identification-stage.yaml: |
     version: 1
     metadata:
