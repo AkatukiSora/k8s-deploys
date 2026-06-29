@@ -609,8 +609,8 @@ data:
           default: true
         attrs:
           branding_title: ソララボ
-          branding_logo: https://raw.githubusercontent.com/AkatukiSora/k8s-deploys/master/apps/authentik-blueprints/icons/FullLogo.png
-          branding_favicon: https://raw.githubusercontent.com/AkatukiSora/k8s-deploys/master/apps/authentik-blueprints/icons/ShortLogo.png
+          branding_logo: https://raw.githubusercontent.com/AkatukiSora/k8s-deploys/master/apps/authentik-blueprints/icons/FullLogo-transparent.png
+          branding_favicon: https://raw.githubusercontent.com/AkatukiSora/k8s-deploys/master/apps/authentik-blueprints/icons/ShortLogo-transparent.png
 
   40-applications.yaml: |
     version: 1
