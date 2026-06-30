@@ -6,17 +6,21 @@ Authentik とネイティブ OIDC 対応アプリを `auth.akatuki-host.com` で
 
 ## Secret inventory
 
-| Secret / Item                  | Namespace    | Required fields                                                                                                                                                                                                                                | Purpose                                         |
-| ------------------------------ | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| `authentik-secret`             | `authentik`  | `AUTHENTIK_SECRET_KEY`                                                                                                                                                                                                                         | Authentik app secret                            |
-| `authentik-smtp`               | `authentik`  | `AUTHENTIK_EMAIL__HOST`, `AUTHENTIK_EMAIL__PORT`, `AUTHENTIK_EMAIL__USERNAME`, `AUTHENTIK_EMAIL__PASSWORD`, `AUTHENTIK_EMAIL__USE_TLS`, `AUTHENTIK_EMAIL__FROM`                                                                                | Authentik SMTP                                  |
-| `authentik-blueprints-oidc`    | `authentik`  | `PROXMOX_OIDC_CLIENT_SECRET`, `ARGOCD_OIDC_CLIENT_SECRET`, `CODER_OIDC_CLIENT_SECRET`, `IMMICH_OIDC_CLIENT_SECRET`, `GRAFANA_OIDC_CLIENT_SECRET`, `NEXTCLOUD_OIDC_CLIENT_SECRET`, `GITLAB_OIDC_CLIENT_SECRET`, `CLOUDFLARE_OIDC_CLIENT_SECRET` | Authentik Blueprint provider secrets            |
-| `argocd-oidc-client-secret`    | `argocd`     | `client-secret`                                                                                                                                                                                                                                | Argo CD native OIDC client secret               |
-| `coder-oidc-client-secret`     | `coder`      | `client-secret`                                                                                                                                                                                                                                | Coder native OIDC client secret                 |
-| `immich-oidc-client-secret`    | `immich`     | `client-secret`                                                                                                                                                                                                                                | Immich native OIDC client secret                |
-| `grafana-oidc-client-secret`   | `monitoring` | `client-secret`                                                                                                                                                                                                                                | Grafana Generic OAuth client secret             |
-| `nextcloud-oidc-client-secret` | `nextcloud`  | `client-secret`                                                                                                                                                                                                                                | Nextcloud `user_oidc` provider secret           |
-| `nextcloud-admin`              | `nextcloud`  | `nextcloud-username`, `nextcloud-password`                                                                                                                                                                                                     | Break-glass bootstrap admin for fresh Nextcloud |
+| Secret / Item                  | Namespace    | Required fields                                                                                                                                                                                                                                                              | Purpose                                         |
+| ------------------------------ | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| `authentik-secret`             | `authentik`  | `AUTHENTIK_SECRET_KEY`                                                                                                                                                                                                                                                       | Authentik app secret                            |
+| `authentik-smtp`               | `authentik`  | `AUTHENTIK_EMAIL__HOST`, `AUTHENTIK_EMAIL__PORT`, `AUTHENTIK_EMAIL__USERNAME`, `AUTHENTIK_EMAIL__PASSWORD`, `AUTHENTIK_EMAIL__USE_TLS`, `AUTHENTIK_EMAIL__FROM`                                                                                                              | Authentik SMTP                                  |
+| `authentik-blueprints-oidc`    | `authentik`  | `PROXMOX_OIDC_CLIENT_SECRET`, `ARGOCD_OIDC_CLIENT_SECRET`, `CODER_OIDC_CLIENT_SECRET`, `IMMICH_OIDC_CLIENT_SECRET`, `GRAFANA_OIDC_CLIENT_SECRET`, `NEXTCLOUD_OIDC_CLIENT_SECRET`, `GITLAB_OIDC_CLIENT_SECRET`, `VIKUNJA_OIDC_CLIENT_SECRET`, `CLOUDFLARE_OIDC_CLIENT_SECRET` | Authentik Blueprint provider secrets            |
+| `argocd-oidc-client-secret`    | `argocd`     | `client-secret`                                                                                                                                                                                                                                                              | Argo CD native OIDC client secret               |
+| `coder-oidc-client-secret`     | `coder`      | `client-secret`                                                                                                                                                                                                                                                              | Coder native OIDC client secret                 |
+| `immich-oidc-client-secret`    | `immich`     | `client-secret`                                                                                                                                                                                                                                                              | Immich native OIDC client secret                |
+| `grafana-oidc-client-secret`   | `monitoring` | `client-secret`                                                                                                                                                                                                                                                              | Grafana Generic OAuth client secret             |
+| `nextcloud-oidc-client-secret` | `nextcloud`  | `client-secret`                                                                                                                                                                                                                                                              | Nextcloud `user_oidc` provider secret           |
+| `nextcloud-admin`              | `nextcloud`  | `nextcloud-username`, `nextcloud-password`                                                                                                                                                                                                                                   | Break-glass bootstrap admin for fresh Nextcloud |
+| `vikunja-secret`               | `vikunja`    | `VIKUNJA_SERVICE_SECRET`                                                                                                                                                                                                                                                     | Vikunja JWT and signing secret                  |
+| `vikunja-oidc-client-secret`   | `vikunja`    | `client-secret`                                                                                                                                                                                                                                                              | Vikunja native OIDC client secret               |
+| `vikunja-postgres-app`         | `vikunja`    | `username`, `password`                                                                                                                                                                                                                                                       | Vikunja PostgreSQL bootstrap app user           |
+| `vikunja-postgres-superuser`   | `vikunja`    | `username`, `password`                                                                                                                                                                                                                                                       | Vikunja PostgreSQL superuser                    |
 
 ## External GitLab
 
@@ -73,6 +77,7 @@ IMMICH_OIDC_CLIENT_SECRET
 GRAFANA_OIDC_CLIENT_SECRET
 NEXTCLOUD_OIDC_CLIENT_SECRET
 GITLAB_OIDC_CLIENT_SECRET
+VIKUNJA_OIDC_CLIENT_SECRET
 CLOUDFLARE_OIDC_CLIENT_SECRET
 ```
 
@@ -95,6 +100,10 @@ CLOUDFLARE_OIDC_CLIENT_SECRET
 - `grafana-oidc-client-secret`
 - `nextcloud-oidc-client-secret`
 - `nextcloud-admin`
+- `vikunja-secret`
+- `vikunja-oidc-client-secret`
+- `vikunja-postgres-app`
+- `vikunja-postgres-superuser`
 
 `itemPath` は作成後に次形式へ置き換えてください。
 

@@ -11,6 +11,7 @@
 - Immich
 - Grafana
 - Nextcloud
+- Vikunja
 - GitLab
 
 除外:
@@ -62,6 +63,7 @@ OIDC group claims は application ごとに prefix で必ず絞り込みます�
 - `app:k8s:*` は Kubernetes 以外に出しません
 - `app:proxmox:*` は Proxmox 以外に出しません
 - `app:argocd:*` / `app:coder:*` / `app:immich:*` / `app:grafana:*` / `app:nextcloud:*` / `app:gitlab:*` は各 application だけに出します
+- `app:vikunja:*` は Vikunja 以外に出しません
 - `app:cloudflare:*` は Cloudflare Access 以外に出しません
 - `app:*` を全 provider に一律配信しません
 
@@ -90,6 +92,8 @@ Proxmox は例外で、Authentik 内部の `app:proxmox:*` から Proxmox-safe �
 | Nextcloud   | `app:nextcloud:global:admin`             | Nextcloud admin candidate       |
 | Nextcloud   | `app:nextcloud:global:user`              | normal user                     |
 | Nextcloud   | `app:nextcloud:global:group-admin`       | Nextcloud group admin candidate |
+| Vikunja     | `app:vikunja:team:personal:member`       | Access and sync to `Personal`   |
+| Vikunja     | `app:vikunja:team:nkc-ug:member`         | Access and sync to `NKC-UG`     |
 | GitLab      | `app:gitlab:global:admin`                | `admin_groups`                  |
 | GitLab      | `app:gitlab:global:user`                 | `required_groups`               |
 | GitLab      | `app:gitlab:global:observer`             | Reporter / auditor-equivalent   |
@@ -109,6 +113,7 @@ Proxmox は例外で、Authentik 内部の `app:proxmox:*` から Proxmox-safe �
 | Immich mobile | `https://photos.akatuki-host.com/api/oauth/mobile-redirect`          |
 | Grafana       | `https://grafana.akatuki-host.com/login/generic_oauth`               |
 | Nextcloud     | `https://nextcloud.akatuki-host.com/apps/user_oidc/code`             |
+| Vikunja       | `https://vikunja.akatuki-host.com/auth/openid/authentik`             |
 | GitLab        | `https://gitlab.akatuki-host.com/users/auth/openid_connect/callback` |
 
 ## App notes
@@ -185,6 +190,29 @@ Current limitation:
 
 - Group provisioning is enabled for whitelisted `app:nextcloud:*` groups
 - Mapping a provisioned Nextcloud group to platform admin / group-admin rights still needs manual verification and may remain a manual admin task
+
+### Vikunja
+
+- Native OIDC is configured declaratively in Helm values
+- Local authentication is disabled, so Authentik is the only login source
+- `service.enableregistration=false` blocks local self-registration, but OIDC first login still creates the Vikunja user record
+- OIDC `groups` claim is scoped to `app:vikunja:*`
+- OIDC `vikunja_groups` claim is generated from a data-driven mapping in the Authentik blueprint so future team additions only require extending one mapping table
+
+Initial Authentik to Vikunja team mapping:
+
+- `app:vikunja:team:personal:member` -> `Personal`
+- `app:vikunja:team:nkc-ug:member` -> `NKC-UG`
+
+Operational model:
+
+- Authentik `app:vikunja:team:*` groups both gate who may log in and drive Vikunja team creation and membership sync through `vikunja_groups`
+- Projects should be shared to Vikunja teams, not to individual users
+
+Current limitation:
+
+- This repo does not attempt to automate Vikunja team-admin flags or per-project rights via API
+- Team membership is declarative through OIDC, while project sharing remains a Vikunja-side operation
 
 ### GitLab
 
