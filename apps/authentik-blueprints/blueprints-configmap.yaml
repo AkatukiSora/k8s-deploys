@@ -134,6 +134,16 @@ data:
         identifiers:
           name: "app:cloudflare:resource:proxmox:access"
 
+      - id: app-vikunja-team-personal-member-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:vikunja:team:personal:member"
+
+      - id: app-vikunja-team-nkc-ug-member-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:vikunja:team:nkc-ug:member"
+
       # ---------------------------------------------------------------------
       # cohort:* groups
       #
@@ -400,6 +410,51 @@ data:
                 "groups": [group.name for group in request.user.all_groups() if group.name.startswith("app:gitlab:")],
             }
 
+      - id: vikunja-profile-scope
+        model: authentik_providers_oauth2.scopemapping
+        identifiers:
+          name: Vikunja profile claims
+        attrs:
+          scope_name: profile
+          expression: |
+            return {
+                "name": request.user.name,
+                "preferred_username": request.user.username,
+                "username": request.user.username,
+                "email": request.user.email,
+                "groups": [group.name for group in request.user.all_groups() if group.name.startswith("app:vikunja:")],
+            }
+
+      - id: vikunja-team-scope
+        model: authentik_providers_oauth2.scopemapping
+        identifiers:
+          name: Vikunja team claims
+        attrs:
+          scope_name: vikunja_scope
+          expression: |
+            effective_groups = {group.name for group in request.user.all_groups()}
+
+            team_mappings = {
+                "app:vikunja:team:personal:member": {
+                    "name": "Personal",
+                    "oidcID": "personal",
+                },
+                "app:vikunja:team:nkc-ug:member": {
+                    "name": "NKC-UG",
+                    "oidcID": "nkc-ug",
+                },
+            }
+
+            vikunja_groups = [
+                team_definition
+                for group_name, team_definition in team_mappings.items()
+                if group_name in effective_groups
+            ]
+
+            return {
+                "vikunja_groups": vikunja_groups,
+            }
+
       - id: cloudflare-access-profile-scope
         model: authentik_providers_oauth2.scopemapping
         identifiers:
@@ -628,6 +683,31 @@ data:
             - !Find [authentik_providers_oauth2.scopemapping, [name, "Service email claims"]]
             - !Find [authentik_providers_oauth2.scopemapping, [name, "GitLab profile claims"]]
 
+      - id: vikunja-provider
+        model: authentik_providers_oauth2.oauth2provider
+        identifiers:
+          name: Vikunja OIDC
+        attrs:
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-explicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+          client_id: vikunja
+          client_secret: !Env VIKUNJA_OIDC_CLIENT_SECRET
+          grant_types:
+            - authorization_code
+            - refresh_token
+          signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
+          issuer_mode: per_provider
+          include_claims_in_id_token: true
+          sub_mode: hashed_user_id
+          redirect_uris:
+            - matching_mode: strict
+              url: https://vikunja.akatuki-host.com/auth/openid/authentik
+          property_mappings:
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'openid'"]]
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "Service email claims"]]
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "Vikunja profile claims"]]
+            - !Find [authentik_providers_oauth2.scopemapping, [name, "Vikunja team claims"]]
+
       - id: cloudflare-access-provider
         model: authentik_providers_oauth2.oauth2provider
         identifiers:
@@ -759,6 +839,17 @@ data:
           provider: !Find [authentik_providers_oauth2.oauth2provider, [name, "GitLab OIDC"]]
           meta_launch_url: https://gitlab.akatuki-host.com
           icon: https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/gitlab.svg
+          open_in_new_tab: true
+
+      - id: vikunja-application
+        model: authentik_core.application
+        identifiers:
+          slug: vikunja
+        attrs:
+          name: Vikunja
+          provider: !Find [authentik_providers_oauth2.oauth2provider, [name, "Vikunja OIDC"]]
+          meta_launch_url: https://vikunja.akatuki-host.com
+          icon: https://vikunja.io/images/logo.svg
           open_in_new_tab: true
 
       - id: cloudflare-access-application
@@ -930,6 +1021,20 @@ data:
           order: 3
         attrs:
           group: !Find [authentik_core.group, [name, "app:gitlab:global:external-user"]]
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, vikunja]]
+          order: 0
+        attrs:
+          group: !Find [authentik_core.group, [name, "app:vikunja:team:personal:member"]]
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, vikunja]]
+          order: 1
+        attrs:
+          group: !Find [authentik_core.group, [name, "app:vikunja:team:nkc-ug:member"]]
 
       - model: authentik_policies.policybinding
         identifiers:

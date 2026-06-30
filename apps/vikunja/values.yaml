@@ -1,0 +1,74 @@
+vikunja:
+  image:
+    tag: 2.3.0
+
+  persistence:
+    data:
+      enabled: true
+      accessMode: ReadWriteOnce
+      size: 10Gi
+      storageClass: ceph-rbd
+    database:
+      enabled: false
+
+  ingress:
+    main:
+      enabled: true
+      ingressClassName: cloudflare-tunnel
+      annotations:
+        kubernetes.io/ingress.class: cloudflare-tunnel
+      hosts:
+        - host: vikunja.akatuki-host.com
+          paths:
+            - path: /
+              pathType: Prefix
+      tls: []
+
+  configMaps:
+    config:
+      enabled: true
+      data:
+        config.yml: |
+          service:
+            publicurl: https://vikunja.akatuki-host.com
+            enableregistration: false
+          auth:
+            local:
+              enabled: false
+            openid:
+              enabled: true
+              providers:
+                authentik:
+                  name: Authentik
+                  authurl: https://auth.akatuki-host.com/application/o/vikunja/
+                  logouturl: https://auth.akatuki-host.com/application/o/vikunja/end-session/
+                  clientid: vikunja
+                  scope: openid profile email vikunja_scope
+                  forceuserinfo: false
+
+  env:
+    VIKUNJA_DATABASE_TYPE: postgres
+    VIKUNJA_DATABASE_HOST: vikunja-postgres-rw.vikunja
+    VIKUNJA_DATABASE_PORT: "5432"
+    VIKUNJA_DATABASE_DATABASE: vikunja
+    VIKUNJA_DATABASE_USER:
+      valueFrom:
+        secretKeyRef:
+          name: vikunja-postgres-app
+          key: username
+    VIKUNJA_DATABASE_PASSWORD:
+      valueFrom:
+        secretKeyRef:
+          name: vikunja-postgres-app
+          key: password
+    VIKUNJA_DATABASE_SSLMODE: disable
+    VIKUNJA_SERVICE_SECRET:
+      valueFrom:
+        secretKeyRef:
+          name: vikunja-secret
+          key: VIKUNJA_SERVICE_SECRET
+    VIKUNJA_AUTH_OPENID_PROVIDERS_AUTHENTIK_CLIENTSECRET:
+      valueFrom:
+        secretKeyRef:
+          name: vikunja-oidc-client-secret
+          key: client-secret

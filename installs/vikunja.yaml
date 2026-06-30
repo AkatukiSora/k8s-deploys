@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vikunja
+  namespace: argocd
+spec:
+  destination:
+    namespace: vikunja
+    server: https://kubernetes.default.svc
+  project: default
+  sources:
+    - repoURL: https://github.com/go-vikunja/helm-chart.git
+      path: .
+      targetRevision: v2.0.2
+      helm:
+        releaseName: vikunja
+        valueFiles:
+          - $values/apps/vikunja/values.yaml
+    - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
+      targetRevision: master
+      ref: values
+    - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
+      path: apps/vikunja/manifests
+      targetRevision: master
+    - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
+      path: apps/vikunja-postgres
+      targetRevision: master
+  ignoreDifferences:
+    - group: postgresql.cnpg.io
+      kind: Cluster
+      name: vikunja-postgres
+      namespace: vikunja
+      jsonPointers:
+        - /spec
+        - /metadata/annotations
+        - /metadata/labels
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
