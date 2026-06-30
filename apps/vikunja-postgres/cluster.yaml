@@ -11,10 +11,6 @@ spec:
     initdb:
       database: vikunja
       owner: vikunja
-      secret:
-        name: vikunja-postgres-app
-  superuserSecret:
-    name: vikunja-postgres-superuser
   storage:
     size: 10Gi
     storageClass: ceph-rbd
