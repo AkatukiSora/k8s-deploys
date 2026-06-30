@@ -196,8 +196,6 @@ data:
             - !KeyOf app-nextcloud-global-admin-group
             - !KeyOf app-nextcloud-global-group-admin-group
             - !KeyOf app-gitlab-global-admin-group
-            - !KeyOf app-vikunja-team-personal-member-group
-            - !KeyOf app-vikunja-team-nkc-ug-member-group
             - !KeyOf app-cloudflare-resource-argocd-access-group
             - !KeyOf app-cloudflare-resource-proxmox-access-group
 

@@ -207,6 +207,7 @@ Initial Authentik to Vikunja team mapping:
 Operational model:
 
 - Authentik `app:vikunja:team:*` groups both gate who may log in and drive Vikunja team creation and membership sync through `vikunja_groups`
+- `team:owner` does not implicitly inherit Vikunja team membership because `Personal` must remain explicit and private
 - Projects should be shared to Vikunja teams, not to individual users
 
 Current limitation:

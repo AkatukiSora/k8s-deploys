@@ -1,4 +1,7 @@
 vikunja:
+  image:
+    tag: 2.3.0
+
   persistence:
     data:
       enabled: true
