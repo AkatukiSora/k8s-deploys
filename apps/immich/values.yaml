@@ -37,6 +37,7 @@ server:
   enabled: true
   controllers:
     main:
+      strategy: Recreate
       pod:
         securityContext:
           seccompProfile:
@@ -77,4 +78,3 @@ machine-learning:
             capabilities:
               drop:
                 - ALL
-            runAsNonRoot: true
