@@ -1,4 +1,13 @@
 coder:
+  podSecurityContext:
+    runAsNonRoot: true
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+
   env:
     - name: CODER_ACCESS_URL
       value: "https://coder.akatuki-host.com"
