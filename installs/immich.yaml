@@ -18,13 +18,10 @@ spec:
           - $values/apps/immich/values.yaml
     - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
       targetRevision: master
+      path:
+        - apps/immich/manifests
+        - apps:/immich/postgres
       ref: values
-    - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
-      path: apps/immich/manifests
-      targetRevision: master
-    - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
-      path: apps/immich-postgres
-      targetRevision: master
   ignoreDifferences:
     - group: postgresql.cnpg.io
       kind: Cluster
