@@ -3,10 +3,13 @@ kind: ClusterPolicy
 metadata:
   name: audit-require-requests-limits
 spec:
+  admission: true
   validationFailureAction: Audit
   background: true
+  emitWarning: false
   rules:
     - name: resources-required
+      skipBackgroundRequests: true
       match:
         any:
           - resources:
@@ -16,6 +19,7 @@ spec:
           - resources:
               namespaces: [kube-system, kube-public, kube-node-lease, argocd, monitoring, kyverno, trivy-system]
       validate:
+        allowExistingViolations: true
         message: "CPU/memory requests and limits should be defined."
         pattern:
           spec:

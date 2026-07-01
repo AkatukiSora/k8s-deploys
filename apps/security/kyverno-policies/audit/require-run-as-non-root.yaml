@@ -3,10 +3,13 @@ kind: ClusterPolicy
 metadata:
   name: audit-require-run-as-non-root
 spec:
+  admission: true
   validationFailureAction: Audit
   background: true
+  emitWarning: false
   rules:
     - name: run-as-non-root
+      skipBackgroundRequests: true
       match:
         any:
           - resources:
@@ -16,6 +19,7 @@ spec:
           - resources:
               namespaces: [kube-system, kube-public, kube-node-lease, argocd, monitoring, kyverno, trivy-system]
       validate:
+        allowExistingViolations: true
         message: "runAsNonRoot should be true."
         pattern:
           spec:
