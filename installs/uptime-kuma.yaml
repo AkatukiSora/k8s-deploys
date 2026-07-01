@@ -8,10 +8,10 @@ spec:
     namespace: uptime-kuma
     server: https://kubernetes.default.svc
   sources:
-    - # path: $repo/apps/uptime-kuma
-      repoURL: https://github.com/AkatukiSora/k8s-deploys.git
+    - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
       targetRevision: 'master'
       ref: repo
+      path: apps/uptime-kuma
       directory:
         exclude: '{values.yaml,**/values.yaml,**/*values*.yaml}'
 

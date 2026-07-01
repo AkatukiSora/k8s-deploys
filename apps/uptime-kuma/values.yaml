@@ -36,17 +36,15 @@ podEnv: []
   #   value: "a-value"
 
 podSecurityContext:
-  {}
-  # fsGroup: 2000
+  seccompProfile:
+    type: RuntimeDefault
 
 securityContext:
-  {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsNonRoot: true
 
 service:
   type: ClusterIP
