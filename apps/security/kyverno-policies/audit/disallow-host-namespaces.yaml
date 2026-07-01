@@ -3,10 +3,13 @@ kind: ClusterPolicy
 metadata:
   name: audit-disallow-host-namespaces
 spec:
+  admission: true
   validationFailureAction: Audit
   background: true
+  emitWarning: false
   rules:
     - name: host-namespaces-disallowed
+      skipBackgroundRequests: true
       match:
         any:
           - resources:
@@ -16,6 +19,7 @@ spec:
           - resources:
               namespaces: [kube-system, kube-public, kube-node-lease, argocd, monitoring, kyverno, trivy-system]
       validate:
+        allowExistingViolations: true
         message: "hostNetwork/hostPID/hostIPC should not be enabled."
         pattern:
           spec:

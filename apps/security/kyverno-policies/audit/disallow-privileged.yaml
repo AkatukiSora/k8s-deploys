@@ -5,10 +5,13 @@ metadata:
   annotations:
     policies.kyverno.io/category: Pod Security
 spec:
+  admission: true
   validationFailureAction: Audit
   background: true
+  emitWarning: false
   rules:
     - name: privileged-disallowed
+      skipBackgroundRequests: true
       match:
         any:
           - resources:
@@ -18,6 +21,7 @@ spec:
           - resources:
               namespaces: [kube-system, kube-public, kube-node-lease, argocd, monitoring, kyverno, trivy-system]
       validate:
+        allowExistingViolations: true
         message: "Privileged containers are not allowed."
         pattern:
           spec:

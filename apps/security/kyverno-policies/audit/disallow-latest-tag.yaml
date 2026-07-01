@@ -3,10 +3,13 @@ kind: ClusterPolicy
 metadata:
   name: audit-disallow-latest-tag
 spec:
+  admission: true
   validationFailureAction: Audit
   background: true
+  emitWarning: false
   rules:
     - name: no-latest-tag
+      skipBackgroundRequests: true
       match:
         any:
           - resources:
@@ -16,6 +19,7 @@ spec:
           - resources:
               namespaces: [kube-system, kube-public, kube-node-lease, argocd, monitoring, kyverno, trivy-system]
       validate:
+        allowExistingViolations: true
         message: "Container images should not use latest tag."
         foreach:
           - list: "request.object.spec.containers"
