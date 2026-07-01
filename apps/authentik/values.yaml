@@ -36,6 +36,16 @@ blueprints:
     - authentik-blueprints
 
 server:
+  securityContext:
+    runAsNonRoot: true
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   ingress:
     enabled: true
     ingressClassName: cloudflare-tunnel
@@ -46,3 +56,13 @@ server:
 
 worker:
   replicas: 1
+  securityContext:
+    runAsNonRoot: true
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
