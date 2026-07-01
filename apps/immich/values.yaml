@@ -1,7 +1,17 @@
 controllers:
   main:
+    pod:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
     containers:
       main:
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          runAsNonRoot: true
         image:
           tag: v2.7.5
         env:
@@ -25,6 +35,20 @@ valkey:
   enabled: false
 server:
   enabled: true
+  controllers:
+    main:
+      pod:
+        securityContext:
+          seccompProfile:
+            type: RuntimeDefault
+      containers:
+        main:
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
   ingress:
     main:
       enabled: true
@@ -40,3 +64,17 @@ server:
       tls: []
 machine-learning:
   enabled: true
+  controllers:
+    main:
+      pod:
+        securityContext:
+          seccompProfile:
+            type: RuntimeDefault
+      containers:
+        main:
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
