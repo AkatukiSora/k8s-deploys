@@ -2,6 +2,9 @@ apiService:
   create: true
   insecureSkipTLSVerify: false
 
+args:
+  - --kubelet-insecure-tls
+
 serviceMonitor:
   enabled: true
   additionalLabels:
