@@ -20,6 +20,13 @@ cleanupController:
 reportsController:
   enabled: true
   replicas: 1
+  resources:
+    requests:
+      cpu: 400m
+      memory: 96Mi
+    limits:
+      cpu: 800m
+      memory: 192Mi
   serviceMonitor:
     enabled: true
     additionalLabels:
