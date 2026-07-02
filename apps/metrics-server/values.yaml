@@ -1,5 +1,6 @@
 apiService:
   create: true
+  insecureSkipTLSVerify: false
 
 serviceMonitor:
   enabled: true
