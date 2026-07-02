@@ -36,13 +36,14 @@ grafana:
   enabled: false
 
 features:
+  # Temporary storage-pressure mitigation. Re-enable once Ceph latency is fixed.
   admissionReports:
-    enabled: true
+    enabled: false
   aggregateReports:
-    enabled: true
+    enabled: false
   policyReports:
     enabled: true
   validatingAdmissionPolicyReports:
     enabled: false
   backgroundScan:
-    enabled: true
+    enabled: false

@@ -49,6 +49,9 @@ grafana:
 prometheus:
   enabled: true
   prometheusSpec:
+    # Temporary storage-pressure mitigation. Return to shorter intervals after storage replacement.
+    scrapeInterval: 1m
+    evaluationInterval: 1m
     retention: 10d
 
 alertmanager:

@@ -2,7 +2,8 @@ trivy:
   severity: CRITICAL,HIGH,MEDIUM
 
 operator:
-  scanJobsConcurrentLimit: 5
+  # Temporary storage-pressure mitigation. Restore concurrency after storage replacement.
+  scanJobsConcurrentLimit: 1
 
 serviceMonitor:
   enabled: true
