@@ -7,7 +7,7 @@ spec:
   destination:
     namespace: vikunja
     server: https://kubernetes.default.svc
-  project: default
+  project: platform
   sources:
     - repoURL: https://github.com/go-vikunja/helm-chart.git
       path: .

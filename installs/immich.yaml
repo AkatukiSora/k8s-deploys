@@ -7,7 +7,7 @@ spec:
   destination:
     namespace: immich
     server: https://kubernetes.default.svc
-  project: default
+  project: platform
   sources:
     - repoURL: https://github.com/immich-app/immich-charts.git
       path: charts/immich

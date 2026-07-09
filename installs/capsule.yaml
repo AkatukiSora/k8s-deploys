@@ -1,28 +1,26 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: metrics-server
+  name: capsule
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "5"
+    argocd.argoproj.io/sync-wave: "4"
 spec:
   destination:
-    namespace: metrics-server
+    namespace: capsule-system
     server: https://kubernetes.default.svc
   project: platform
   sources:
+    - repoURL: https://projectcapsule.github.io/charts
+      chart: capsule
+      targetRevision: 0.13.9
+      helm:
+        valueFiles:
+          - $repo/apps/capsule/values.yaml
     - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
       targetRevision: master
       ref: repo
-      path: apps/metrics-server
-      directory:
-        exclude: '{values.yaml,**/values.yaml,**/*values*.yaml}'
-    - repoURL: https://kubernetes-sigs.github.io/metrics-server/
-      chart: metrics-server
-      targetRevision: 3.13.1
-      helm:
-        valueFiles:
-          - $repo/apps/metrics-server/values.yaml
+      path: apps/capsule
   syncPolicy:
     automated:
       prune: true
@@ -30,3 +28,4 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
+      - SkipDryRunOnMissingResource=true

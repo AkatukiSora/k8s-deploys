@@ -7,7 +7,7 @@ spec:
   destination:
     namespace: coder
     server: https://kubernetes.default.svc
-  project: default
+  project: platform
   sources:
     - repoURL: https://helm.coder.com/v2
       chart: coder

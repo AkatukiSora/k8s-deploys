@@ -21,7 +21,7 @@ spec:
       helm:
         valueFiles:
           - $repo/apps/uptime-kuma/values.yaml
-  project: default
+  project: platform
   ignoreDifferences:
     - kind: Secret
       name: uptime-kuma-mariadb

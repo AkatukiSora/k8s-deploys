@@ -17,7 +17,7 @@ spec:
     - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
       targetRevision: master
       ref: repo
-  project: default
+  project: platform
   syncPolicy:
     automated:
       prune: true
