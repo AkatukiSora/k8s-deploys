@@ -6,8 +6,43 @@ crds:
 kubeProxy:
   enabled: false
 
+kubeControllerManager:
+  enabled: true
+  endpoints:
+    - 10.0.40.11
+  serviceMonitor:
+    https: true
+    insecureSkipVerify: true
+
+kubeScheduler:
+  enabled: true
+  endpoints:
+    - 10.0.40.11
+  serviceMonitor:
+    https: true
+    insecureSkipVerify: true
+
+kubeEtcd:
+  enabled: true
+  endpoints:
+    - 10.0.40.11
+  service:
+    port: 2381
+    targetPort: 2381
+  serviceMonitor:
+    scheme: http
+
 grafana:
   enabled: true
+  serviceMonitor:
+    labels:
+      release: kube-prometheus-stack
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      searchNamespace: monitoring
   admin:
     existingSecret: grafana-admin-user
     userKey: admin-user

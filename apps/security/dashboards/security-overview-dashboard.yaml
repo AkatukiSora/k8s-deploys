@@ -33,19 +33,19 @@ data:
           "type": "stat",
           "title": "Trivy Critical Vulnerabilities",
           "gridPos": {"h": 6, "w": 8, "x": 0, "y": 8},
-          "targets": [{"expr": "sum(trivy_image_vulnerabilities{severity=\"Critical\"})", "refId": "A"}]
+          "targets": [{"expr": "sum(trivy_image_vulnerabilities{severity=\"Critical\"}) or vector(0)", "refId": "A"}]
         },
         {
           "type": "stat",
           "title": "Trivy High Vulnerabilities",
           "gridPos": {"h": 6, "w": 8, "x": 8, "y": 8},
-          "targets": [{"expr": "sum(trivy_image_vulnerabilities{severity=\"High\"})", "refId": "A"}]
+          "targets": [{"expr": "sum(trivy_image_vulnerabilities{severity=\"High\"}) or vector(0)", "refId": "A"}]
         },
         {
           "type": "stat",
           "title": "Trivy Config Audit Findings",
           "gridPos": {"h": 6, "w": 8, "x": 16, "y": 8},
-          "targets": [{"expr": "sum(trivy_resource_configaudits)", "refId": "A"}]
+          "targets": [{"expr": "sum(trivy_resource_configaudits) or vector(0)", "refId": "A"}]
         }
       ]
     }

@@ -6,3 +6,12 @@ cluster:
       oidc-username-claim: username
       oidc-groups-claim: groups
       oidc-groups-prefix: oidc:
+  controllerManager:
+    extraArgs:
+      bind-address: 10.0.40.11
+  scheduler:
+    extraArgs:
+      bind-address: 10.0.40.11
+  etcd:
+    extraArgs:
+      listen-metrics-urls: http://10.0.40.11:2381
