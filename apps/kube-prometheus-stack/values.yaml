@@ -34,6 +34,13 @@ kubeEtcd:
 
 grafana:
   enabled: true
+  persistence:
+    enabled: true
+    type: sts
+    storageClassName: ceph-rbd
+    accessModes:
+      - ReadWriteOnce
+    size: 10Gi
   serviceMonitor:
     labels:
       release: kube-prometheus-stack
@@ -88,12 +95,30 @@ prometheus:
     scrapeInterval: 1m
     evaluationInterval: 1m
     retention: 10d
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: ceph-rbd
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 50Gi
 
 alertmanager:
   enabled: true
   alertmanagerSpec:
     secrets:
       - alertmanager-discord-webhooks
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: ceph-rbd
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 10Gi
   config:
     global:
       resolve_timeout: 5m
