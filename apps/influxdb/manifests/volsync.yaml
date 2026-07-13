@@ -1,0 +1,21 @@
+apiVersion: volsync.backube/v1alpha1
+kind: ReplicationSource
+metadata:
+  name: influxdb2-data
+  namespace: influxdb
+spec:
+  sourcePVC: influx-db-influxdb2
+  trigger:
+    schedule: "0 45 */6 * * *"
+  restic:
+    repository: volsync-restic-influxdb2
+    copyMethod: Snapshot
+    storageClassName: ceph-rbd
+    volumeSnapshotClassName: csi-rbdplugin-snapclass
+    cacheCapacity: 2Gi
+    cacheStorageClassName: ceph-rbd
+    pruneIntervalDays: 7
+    retain:
+      daily: 7
+      weekly: 5
+      monthly: 6
