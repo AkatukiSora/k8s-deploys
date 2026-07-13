@@ -549,7 +549,7 @@ storageClass:
 
 volumeSnapshotClass:
   # Specifies whether the VolumeSnapshotClass should be created
-  create: false
+  create: true
   name: csi-rbdplugin-snapclass
 
   # Annotations for the VolumeSnapshotClass
@@ -571,7 +571,7 @@ volumeSnapshotClass:
   # Ensure to create an entry in the configmap named ceph-csi-config, based on
   # csi-config-map-sample.yaml, to accompany the string chosen to
   # represent the Ceph cluster in clusterID below
-  clusterID: <cluster-id>
+  clusterID: 5bef1c02-f871-4b70-ba18-c6cce8221916
 
   # Prefix to use for naming RBD snapshots.
   # If omitted, defaults to "csi-snap-".
