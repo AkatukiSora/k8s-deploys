@@ -1,0 +1,22 @@
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: authentik-postgres-barman-store
+  namespace: authentik
+spec:
+  configuration:
+    destinationPath: s3://soras-home-k8s-backup/cnpg/authentik-postgres
+    endpointURL: https://s3.us-west-004.backblazeb2.com
+    s3Credentials:
+      accessKeyId:
+        name: authentik-postgres-barman-s3
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: authentik-postgres-barman-s3
+        key: ACCESS_SECRET_KEY
+    wal:
+      compression: gzip
+      maxParallel: 2
+    data:
+      compression: gzip
+      jobs: 2

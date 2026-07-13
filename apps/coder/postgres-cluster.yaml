@@ -15,5 +15,10 @@ spec:
   storage:
     size: 10Gi
     storageClass: ceph-rbd
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: coder-postgres-barman-store
   monitoring:
     enablePodMonitor: true

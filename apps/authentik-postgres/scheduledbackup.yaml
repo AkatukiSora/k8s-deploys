@@ -1,0 +1,14 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: authentik-postgres-barman-daily
+  namespace: authentik
+spec:
+  schedule: "0 10 1 * * *"
+  suspend: true
+  backupOwnerReference: self
+  cluster:
+    name: authentik-postgres
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io

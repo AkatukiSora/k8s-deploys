@@ -37,6 +37,11 @@ spec:
   postgresql:
     shared_preload_libraries:
       - vchord.so
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: immich-postgres-barman-store
   monitoring:
     enablePodMonitor: true
   backup:

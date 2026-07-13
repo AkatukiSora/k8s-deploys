@@ -1,0 +1,22 @@
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: vikunja-postgres-barman-store
+  namespace: vikunja
+spec:
+  configuration:
+    destinationPath: s3://soras-home-k8s-backup/cnpg/vikunja-postgres
+    endpointURL: https://s3.us-west-004.backblazeb2.com
+    s3Credentials:
+      accessKeyId:
+        name: vikunja-postgres-barman-s3
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: vikunja-postgres-barman-s3
+        key: ACCESS_SECRET_KEY
+    wal:
+      compression: gzip
+      maxParallel: 2
+    data:
+      compression: gzip
+      jobs: 2
