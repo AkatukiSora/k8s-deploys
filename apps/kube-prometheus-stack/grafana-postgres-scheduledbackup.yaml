@@ -5,7 +5,7 @@ metadata:
   namespace: monitoring
 spec:
   schedule: "0 40 1 * * *"
-  suspend: true
+  suspend: false
   backupOwnerReference: self
   cluster:
     name: grafana-postgres

@@ -5,7 +5,7 @@ metadata:
   namespace: coder
 spec:
   schedule: "0 30 1 * * *"
-  suspend: true
+  suspend: false
   backupOwnerReference: self
   cluster:
     name: coder-postgres
