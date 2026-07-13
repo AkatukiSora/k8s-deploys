@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: volsync-canary
+  namespace: argocd
+spec:
+  destination:
+    namespace: volsync-canary
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    path: apps/volsync-canary
+    repoURL: https://github.com/AkatukiSora/k8s-deploys.git
+    targetRevision: master
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

@@ -1,0 +1,34 @@
+manageCRDs: true
+
+image:
+  tag: 0.16.0
+
+rclone:
+  tag: 0.16.0
+
+restic:
+  tag: 0.16.0
+
+rsync:
+  tag: 0.16.0
+
+rsync-tls:
+  tag: 0.16.0
+
+syncthing:
+  tag: 0.16.0
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 64Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
