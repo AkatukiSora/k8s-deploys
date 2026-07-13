@@ -12,6 +12,10 @@ spec:
     copyMethod: Snapshot
     storageClassName: ceph-rbd
     volumeSnapshotClassName: csi-rbdplugin-snapclass
+    moverSecurityContext:
+      runAsUser: 0
+      runAsGroup: 0
+      fsGroup: 0
     cacheCapacity: 2Gi
     cacheStorageClassName: ceph-rbd
     pruneIntervalDays: 7
