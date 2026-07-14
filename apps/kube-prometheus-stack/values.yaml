@@ -97,6 +97,8 @@ grafana:
 prometheus:
   enabled: true
   prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
     # Temporary storage-pressure mitigation. Return to shorter intervals after storage replacement.
     scrapeInterval: 1m
     evaluationInterval: 1m

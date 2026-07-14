@@ -15,3 +15,7 @@ cluster:
   etcd:
     extraArgs:
       listen-metrics-urls: http://0.0.0.0:2381
+      backend-batch-interval: "100ms"
+      backend-batch-limit: "10000"
+
+---

@@ -19,3 +19,5 @@ spec:
       isWALArchiver: true
       parameters:
         barmanObjectName: authentik-postgres-barman-store
+  monitoring:
+    enablePodMonitor: true
