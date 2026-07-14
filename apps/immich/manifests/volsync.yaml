@@ -6,7 +6,7 @@ metadata:
 spec:
   sourcePVC: immich-library
   trigger:
-    schedule: "0 0 */6 * * *"
+    schedule: "0 */6 * * *"
   restic:
     repository: volsync-restic-immich-library
     copyMethod: Snapshot

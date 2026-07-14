@@ -6,7 +6,7 @@ metadata:
 spec:
   sourcePVC: vikunja-data
   trigger:
-    schedule: "0 0 */6 * * *"
+    schedule: "10 */6 * * *"
   restic:
     repository: volsync-restic-vikunja-data
     copyMethod: Snapshot

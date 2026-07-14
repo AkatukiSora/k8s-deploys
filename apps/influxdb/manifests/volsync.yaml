@@ -6,7 +6,7 @@ metadata:
 spec:
   sourcePVC: influx-db-influxdb2
   trigger:
-    schedule: "0 45 */6 * * *"
+    schedule: "45 */6 * * *"
   restic:
     repository: volsync-restic-influxdb2
     copyMethod: Snapshot
