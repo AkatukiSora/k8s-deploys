@@ -9,9 +9,8 @@ spec:
   instances: 1
   primaryUpdateStrategy: unsupervised
   bootstrap:
-    initdb:
-      database: coder
-      owner: coder
+    recovery:
+      source: backup
   storage:
     size: 10Gi
     storageClass: ceph-rbd
@@ -20,5 +19,12 @@ spec:
       isWALArchiver: true
       parameters:
         barmanObjectName: coder-postgres-barman-store
+  externalClusters:
+    - name: backup
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: coder-postgres-barman-store
+          serverName: coder-postgres
   monitoring:
     enablePodMonitor: true

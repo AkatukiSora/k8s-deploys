@@ -1,0 +1,97 @@
+{
+  "nodes": [
+    {
+      "name": "c1",
+      "role": "controlplane",
+      "management": {
+        "address": "10.0.40.11/24",
+        "interface": "ens18",
+        "mtu": 1450,
+        "macAddress": "bc:24:11:57:ea:fc"
+      },
+      "dhcpInterfaces": [
+        {
+          "interface": "ens19",
+          "mtu": 1500
+        }
+      ],
+      "installDisk": "/dev/sda",
+      "patch": "patches/nodes/c1.yaml"
+    },
+    {
+      "name": "c2",
+      "role": "controlplane",
+      "management": {
+        "address": "10.0.40.12/24",
+        "interface": "ens18",
+        "mtu": 1450,
+        "macAddress": "bc:24:11:3d:fa:bf"
+      },
+      "dhcpInterfaces": [
+        {
+          "interface": "ens19",
+          "mtu": 1500
+        }
+      ],
+      "installDisk": "/dev/sda",
+      "patch": "patches/nodes/c2.yaml"
+    },
+    {
+      "name": "c3",
+      "role": "controlplane",
+      "management": {
+        "address": "10.0.40.13/24",
+        "interface": "ens18",
+        "mtu": 1450,
+        "macAddress": "bc:24:11:5f:9e:c7"
+      },
+      "dhcpInterfaces": [
+        {
+          "interface": "ens19",
+          "mtu": 1500
+        }
+      ],
+      "installDisk": "/dev/sda",
+      "patch": "patches/nodes/c3.yaml"
+    },
+    {
+      "name": "w1",
+      "role": "worker",
+      "management": {
+        "address": "10.0.40.51/24",
+        "interface": "ens18",
+        "mtu": 1450,
+        "macAddress": "bc:24:11:02:73:7c"
+      },
+      "dhcpInterfaces": [],
+      "installDisk": "/dev/sda",
+      "patch": "patches/nodes/w1.yaml"
+    },
+    {
+      "name": "w2",
+      "role": "worker",
+      "management": {
+        "address": "10.0.40.52/24",
+        "interface": "ens18",
+        "mtu": 1450,
+        "macAddress": "bc:24:11:ad:9b:2c"
+      },
+      "dhcpInterfaces": [],
+      "installDisk": "/dev/sda",
+      "patch": "patches/nodes/w2.yaml"
+    },
+    {
+      "name": "w3",
+      "role": "worker",
+      "management": {
+        "address": "10.0.40.53/24",
+        "interface": "ens18",
+        "mtu": 1450,
+        "macAddress": "bc:24:11:f6:a4:cc"
+      },
+      "dhcpInterfaces": [],
+      "installDisk": "/dev/sda",
+      "patch": "patches/nodes/w3.yaml"
+    }
+  ]
+}

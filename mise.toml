@@ -2,4 +2,17 @@
 argocd = "latest"
 helm = "latest"
 kubectl = "latest"
-talosctl = "latest"
+talosctl = "1.13.6"
+
+[tasks.talos-generate]
+description = "Generate Talos MachineConfigs; pass a node name to generate one node"
+usage = '''
+arg "[node]" {
+  help "Inventory node name to generate"
+}
+'''
+run = "bash talos/scripts/generate.sh ${usage_node:-}"
+
+[tasks.talos-validate]
+description = "Generate and statically validate Talos MachineConfigs twice"
+run = "bash talos/scripts/validate.sh"

@@ -8,9 +8,8 @@ spec:
   primaryUpdateStrategy: unsupervised
   enableSuperuserAccess: true
   bootstrap:
-    initdb:
-      database: vikunja
-      owner: vikunja
+    recovery:
+      source: backup
   storage:
     size: 10Gi
     storageClass: ceph-rbd
@@ -19,5 +18,12 @@ spec:
       isWALArchiver: true
       parameters:
         barmanObjectName: vikunja-postgres-barman-store
+  externalClusters:
+    - name: backup
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: vikunja-postgres-barman-store
+          serverName: vikunja-postgres
   monitoring:
     enablePodMonitor: true
