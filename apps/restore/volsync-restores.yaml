@@ -101,6 +101,7 @@ metadata:
   name: influxdb
   annotations:
     argocd.argoproj.io/sync-wave: "-3"
+    volsync.backube/privileged-movers: "true"
 ---
 apiVersion: onepassword.com/v1
 kind: OnePasswordItem
@@ -134,7 +135,7 @@ metadata:
   namespace: influxdb
 spec:
   trigger:
-    manual: restore-latest-root
+    manual: restore-latest-privileged
   restic:
     destinationPVC: influx-db-influxdb2
     repository: volsync-restic-influxdb2
@@ -150,6 +151,7 @@ metadata:
   name: monitoring
   annotations:
     argocd.argoproj.io/sync-wave: "-3"
+    volsync.backube/privileged-movers: "true"
 ---
 apiVersion: onepassword.com/v1
 kind: OnePasswordItem
@@ -183,7 +185,7 @@ metadata:
   namespace: monitoring
 spec:
   trigger:
-    manual: restore-latest-root
+    manual: restore-latest-privileged
   restic:
     destinationPVC: prometheus-kube-prometheus-stack-prometheus-db-prometheus-kube-prometheus-stack-prometheus-0
     repository: volsync-restic-prometheus-db
