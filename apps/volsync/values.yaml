@@ -1,5 +1,10 @@
 manageCRDs: true
 
+metrics:
+  # The chart-generated ServiceMonitor cannot configure bearer-token auth.
+  # The metrics Service is ClusterIP-only and is scraped by Prometheus in-cluster.
+  disableAuth: true
+
 image:
   tag: 0.16.0
 
