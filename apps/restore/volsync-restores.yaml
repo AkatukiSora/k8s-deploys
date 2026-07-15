@@ -134,11 +134,15 @@ metadata:
   namespace: influxdb
 spec:
   trigger:
-    manual: restore-latest
+    manual: restore-latest-root
   restic:
     destinationPVC: influx-db-influxdb2
     repository: volsync-restic-influxdb2
     copyMethod: Direct
+    moverSecurityContext:
+      runAsUser: 0
+      runAsGroup: 0
+      fsGroup: 0
 ---
 apiVersion: v1
 kind: Namespace
@@ -179,8 +183,12 @@ metadata:
   namespace: monitoring
 spec:
   trigger:
-    manual: restore-latest
+    manual: restore-latest-root
   restic:
     destinationPVC: prometheus-kube-prometheus-stack-prometheus-db-prometheus-kube-prometheus-stack-prometheus-0
     repository: volsync-restic-prometheus-db
     copyMethod: Direct
+    moverSecurityContext:
+      runAsUser: 0
+      runAsGroup: 0
+      fsGroup: 0
