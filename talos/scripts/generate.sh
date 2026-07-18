@@ -17,10 +17,10 @@ require_command() {
 
 require_command jq
 require_command talosctl
-[[ -n "${TALOS_SECRETS_FILE:-}" ]] || fail "TALOS_SECRETS_FILE must point to the secrets.yaml downloaded from 1Password"
-[[ -f "$TALOS_SECRETS_FILE" ]] || fail "TALOS_SECRETS_FILE does not exist: $TALOS_SECRETS_FILE"
+secrets_file="${TALOS_SECRETS_FILE:-$root/talos/secrets/secrets.yaml}"
+[[ -f "$secrets_file" ]] || fail "secrets.yaml does not exist: $secrets_file"
 
-secrets_file=$(realpath "$TALOS_SECRETS_FILE")
+secrets_file=$(realpath "$secrets_file")
 case "$secrets_file" in
   "$root/talos/secrets/secrets.yaml") ;;
   "$root"/*) fail "TALOS_SECRETS_FILE must be outside the repository or talos/secrets/secrets.yaml" ;;
@@ -65,7 +65,8 @@ cleanup() {
 trap cleanup EXIT HUP INT TERM
 
 common_patch="$root/talos/patches/common/network.yaml"
-controlplane_patch="$root/talos/patches/controlplane/oidc.yaml"
+oidc_patch="$root/talos/patches/controlplane/oidc.yaml"
+controlplane_patch="$root/talos/patches/controlplane/kubernetes.yaml"
 worker_patch="$root/talos/patches/worker/common.yaml"
 vip_patch="$stage/layer2-vip.yaml"
 proxmox_patch="$stage/proxmox-qemu-guest-agent.yaml"
@@ -144,6 +145,7 @@ generate_node() {
         --with-examples=false \
         --config-patch "@$common_patch" \
         --config-patch "@$proxmox_patch" \
+        --config-patch-control-plane "@$oidc_patch" \
         --config-patch-control-plane "@$controlplane_patch" \
         --config-patch-control-plane "@$vip_patch" \
         --config-patch "@$node_patch" \

@@ -1,11 +1,4 @@
 cluster:
-  apiServer:
-    extraArgs:
-      oidc-client-id: kubernetes-cluster
-      oidc-issuer-url: https://auth.akatuki-host.com/application/o/kubernetes/
-      oidc-username-claim: username
-      oidc-groups-claim: groups
-      oidc-groups-prefix: "oidc:"
   controllerManager:
     extraArgs:
       bind-address: 0.0.0.0
@@ -17,5 +10,3 @@ cluster:
       listen-metrics-urls: http://0.0.0.0:2381
       backend-batch-interval: "100ms"
       backend-batch-limit: "10000"
-
----

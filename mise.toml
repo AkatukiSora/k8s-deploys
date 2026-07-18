@@ -16,3 +16,7 @@ run = "bash talos/scripts/generate.sh ${usage_node:-}"
 [tasks.talos-validate]
 description = "Generate and statically validate Talos MachineConfigs twice"
 run = "bash talos/scripts/validate.sh"
+
+[hooks.enter]
+shell = "bash"
+script = "source <(talosctl completion bash)"
