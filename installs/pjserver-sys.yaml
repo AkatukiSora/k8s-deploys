@@ -3,11 +3,13 @@ kind: Application
 metadata:
   name: pjserver-sys
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: pjserver-sys
-  project: platform
+  project: soras-tenant
   source:
     path: kubernetes
     repoURL: https://github.com/AkatukiSora/pjserver-sys.git

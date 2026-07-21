@@ -1,29 +1,22 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: plugin-barman-cloud
+  name: soras-tenant
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "8"
+    argocd.argoproj.io/sync-wave: "5"
 spec:
   destination:
-    namespace: cnpg-system
+    namespace: argocd
     server: https://kubernetes.default.svc
   project: platform
   source:
-    path: apps/plugin-barman-cloud
+    path: tenants/platform/soras-tenant
     repoURL: https://github.com/AkatukiSora/k8s-deploys.git
     targetRevision: master
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
-    retry:
-      limit: 5
-      backoff:
-        duration: 10s
-        factor: 2
-        maxDuration: 3m
     syncOptions:
-      - CreateNamespace=true
       - ServerSideApply=true

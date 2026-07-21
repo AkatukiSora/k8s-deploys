@@ -3,3 +3,5 @@ kind: Kustomization
 resources:
   - argocd/projects.yaml
   - argocd/rbac.yaml
+  - kubernetes/kyverno-reports-onepassworditem-reader.yaml
+  - kubernetes/oidc-cluster-admin.yaml

@@ -9,6 +9,8 @@ This document captures the first rollout phase for Capsule-based multi-tenancy.
 - `Tenant Owner` is driven by OIDC group membership and mapped through `TenantOwner` resources.
 - `Tenant User` is driven by OIDC group membership and gets namespaced `edit` permissions only.
 - Tenant namespaces must not create `OnePasswordItem` resources.
+- `soras-tenant` is a temporary exception for existing applications that manage
+  `OnePasswordItem` resources through GitOps.
 - Tenant namespaces must not create Argo CD `Application` or `ApplicationSet` resources.
 - Argo CD `AppProject` resources are platform-managed.
 

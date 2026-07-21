@@ -1,0 +1,9 @@
+apiVersion: capsule.clastix.io/v1beta2
+kind: TenantOwner
+metadata:
+  name: soras-tenant-owners
+  labels:
+    projectcapsule.dev/tenant: soras-tenant
+spec:
+  kind: Group
+  name: oidc:app:k8s:tenant:soras-tenant:owner

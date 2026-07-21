@@ -19,6 +19,16 @@ data:
         identifiers:
           name: "app:k8s:cluster:admin"
 
+      - id: app-k8s-tenant-soras-tenant-owner-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:k8s:tenant:soras-tenant:owner"
+
+      - id: app-k8s-tenant-soras-tenant-user-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:k8s:tenant:soras-tenant:user"
+
       - id: app-proxmox-cluster-main-admin-group
         model: authentik_core.group
         identifiers:
@@ -43,6 +53,21 @@ data:
         model: authentik_core.group
         identifiers:
           name: "app:argocd:global:readonly"
+
+      - id: app-argocd-project-soras-tenant-admin-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:argocd:project:soras-tenant:admin"
+
+      - id: app-argocd-project-soras-tenant-sync-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:argocd:project:soras-tenant:sync"
+
+      - id: app-argocd-project-soras-tenant-readonly-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:argocd:project:soras-tenant:readonly"
 
       - id: app-coder-global-admin-group
         model: authentik_core.group
