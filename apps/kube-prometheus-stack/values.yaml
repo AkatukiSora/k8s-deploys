@@ -6,13 +6,61 @@ crds:
 kubeProxy:
   enabled: false
 
+kubeControllerManager:
+  enabled: true
+  endpoints:
+    - 10.0.40.11
+  serviceMonitor:
+    https: true
+    insecureSkipVerify: true
+
+kubeScheduler:
+  enabled: true
+  endpoints:
+    - 10.0.40.11
+  serviceMonitor:
+    https: true
+    insecureSkipVerify: true
+
+kubeEtcd:
+  enabled: true
+  endpoints:
+    - 10.0.40.11
+  service:
+    port: 2381
+    targetPort: 2381
+  serviceMonitor:
+    scheme: http
+
 grafana:
   enabled: true
+  env:
+    GF_DATABASE_TYPE: postgres
+    GF_DATABASE_HOST: grafana-postgres-rw.monitoring:5432
+    GF_DATABASE_NAME: grafana
+    GF_DATABASE_SSL_MODE: disable
+  serviceMonitor:
+    labels:
+      release: kube-prometheus-stack
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      searchNamespace: monitoring
   admin:
     existingSecret: grafana-admin-user
     userKey: admin-user
     passwordKey: admin-password
   envValueFrom:
+    GF_DATABASE_USER:
+      secretKeyRef:
+        name: grafana-postgres-app
+        key: username
+    GF_DATABASE_PASSWORD:
+      secretKeyRef:
+        name: grafana-postgres-app
+        key: password
     GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET:
       secretKeyRef:
         name: grafana-oidc-client-secret
@@ -49,16 +97,36 @@ grafana:
 prometheus:
   enabled: true
   prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
     # Temporary storage-pressure mitigation. Return to shorter intervals after storage replacement.
     scrapeInterval: 1m
     evaluationInterval: 1m
     retention: 10d
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: ceph-rbd
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 50Gi
 
 alertmanager:
   enabled: true
   alertmanagerSpec:
     secrets:
       - alertmanager-discord-webhooks
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: ceph-rbd
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 10Gi
   config:
     global:
       resolve_timeout: 5m

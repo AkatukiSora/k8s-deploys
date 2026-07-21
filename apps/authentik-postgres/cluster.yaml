@@ -8,9 +8,22 @@ spec:
   primaryUpdateStrategy: unsupervised
   enableSuperuserAccess: true
   bootstrap:
-    initdb:
-      database: authentik
-      owner: authentik
+    recovery:
+      source: backup
   storage:
     size: 10Gi
     storageClass: ceph-rbd
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: authentik-postgres-barman-store
+  externalClusters:
+    - name: backup
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: authentik-postgres-barman-store
+          serverName: authentik-postgres
+  monitoring:
+    enablePodMonitor: true

@@ -1,0 +1,17 @@
+{
+  "clusterName": "k8s-soralab",
+  "talosVersion": "v1.13.6",
+  "kubernetesVersion": "v1.36.2",
+  "kubernetesEndpoint": "https://c.k8s.internal:6443",
+  "vip": "10.0.40.99",
+  "proxmox": {
+    "qemuGuestAgentSchematic": "ce4c980550dd2ab1b17bbf2b08801c7eb59418eafe8f279833297925d67c7515"
+  },
+  "managementNetwork": {
+    "cidr": "10.0.40.0/24",
+    "gateway": "10.0.40.1",
+    "dnsServers": [
+      "10.0.40.2"
+    ]
+  }
+}

@@ -1,27 +1,20 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: cryptpad
+  name: external-snapshotter
   namespace: argocd
 spec:
   destination:
-    namespace: cryptpad
+    namespace: kube-system
     server: https://kubernetes.default.svc
-  project: platform
+  project: default
   source:
-    path: apps/cryptpad
     repoURL: https://github.com/AkatukiSora/k8s-deploys.git
     targetRevision: master
-  ignoreDifferences:
-    - group: apps
-      kind: Deployment
-      name: cryptpad
-      namespace: cryptpad
-      jsonPointers:
-        - /spec/template/metadata/annotations
+    path: apps/external-snapshotter
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
-      - CreateNamespace=true
+      - ServerSideApply=true

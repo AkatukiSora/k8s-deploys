@@ -16,6 +16,9 @@ spec:
           - $repo/apps/influxdb/values.yaml
     - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
       targetRevision: master
+      path: apps/influxdb/manifests
+    - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
+      targetRevision: master
       ref: repo
   project: platform
   syncPolicy:

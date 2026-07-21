@@ -33,7 +33,6 @@ spec:
       name: authentik-postgres
       namespace: authentik
       jsonPointers:
-        - /spec
         - /metadata/annotations
         - /metadata/labels
   syncPolicy:

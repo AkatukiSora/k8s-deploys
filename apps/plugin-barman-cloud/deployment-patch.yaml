@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: barman-cloud
+  namespace: cnpg-system
+spec:
+  template:
+    spec:
+      containers:
+        - name: barman-cloud
+          image: ghcr.io/cloudnative-pg/plugin-barman-cloud:v0.13.0
+          args:
+            - operator
+            - --server-cert=/server/tls.crt
+            - --server-key=/server/tls.key
+            - --client-cert=/client/tls.crt
+            - --server-address=:9090
+            - --leader-elect
+            - --log-level=info
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

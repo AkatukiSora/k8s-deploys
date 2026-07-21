@@ -1,19 +1,29 @@
 trivy:
   severity: CRITICAL,HIGH,MEDIUM
+  useBuiltinRegoPolicies: "false"
+  useEmbeddedRegoPolicies: "true"
+  externalRegoPoliciesEnabled: false
 
 operator:
   # Temporary storage-pressure mitigation. Restore concurrency after storage replacement.
   scanJobsConcurrentLimit: 1
+  metricsFindingsEnabled: true
+  metricsVulnIdEnabled: false
+  metricsConfigAuditInfo: true
+  metricsExposedSecretInfo: true
+  metricsRbacAssessmentInfo: true
+  vulnerabilityScannerEnabled: true
+  configAuditScannerEnabled: true
+  exposedSecretScannerEnabled: true
+  rbacAssessmentScannerEnabled: true
+  clusterComplianceEnabled: false
 
 serviceMonitor:
   enabled: true
   labels:
     release: kube-prometheus-stack
 
-metricsFindingsEnabled: true
-metricsVulnIdEnabled: false
-metricsConfigAuditInfo: true
-metricsExposedSecretInfo: true
-metricsRbacAssessmentInfo: true
-
 excludeNamespaces: kube-system,kube-public,kube-node-lease,argocd
+
+compliance:
+  specs: []
