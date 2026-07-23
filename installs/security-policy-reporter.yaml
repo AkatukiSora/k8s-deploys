@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: security-policy-reporter
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
   annotations:
     argocd.argoproj.io/sync-wave: "5"
 spec:
@@ -21,6 +23,9 @@ spec:
     server: https://kubernetes.default.svc
     namespace: policy-reporter
   syncPolicy:
+    managedNamespaceMetadata:
+      annotations:
+        argocd.argoproj.io/tracking-id: "security-policy-reporter:/Namespace:policy-reporter/policy-reporter"
     automated:
       prune: true
       selfHeal: true

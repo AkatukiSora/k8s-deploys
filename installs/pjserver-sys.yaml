@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: pjserver-sys
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   destination:
     server: https://kubernetes.default.svc
@@ -13,6 +15,9 @@ spec:
     repoURL: https://github.com/AkatukiSora/pjserver-sys.git
     targetRevision: master
   syncPolicy:
+    managedNamespaceMetadata:
+      annotations:
+        argocd.argoproj.io/tracking-id: "pjserver-sys:/Namespace:pjserver-sys/pjserver-sys"
     automated:
       prune: true
       selfHeal: true

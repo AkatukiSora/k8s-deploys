@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: caddy-test
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   destination:
     server: https://kubernetes.default.svc
@@ -13,6 +15,9 @@ spec:
     repoURL: https://github.com/AkatukiSora/k8s-deploys.git
     targetRevision: master
   syncPolicy:
+    managedNamespaceMetadata:
+      annotations:
+        argocd.argoproj.io/tracking-id: "caddy-test:/Namespace:caddy-test/caddy-test"
     automated:
       prune: true
       selfHeal: true

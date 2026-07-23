@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: immich
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   destination:
     namespace: immich
@@ -11,7 +13,7 @@ spec:
   sources:
     - repoURL: https://github.com/immich-app/immich-charts.git
       path: charts/immich
-      targetRevision: immich-0.11.1
+      targetRevision: immich-0.13.1
       helm:
         releaseName: immich
         valueFiles:

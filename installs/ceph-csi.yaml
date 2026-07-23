@@ -3,18 +3,20 @@ kind: Application
 metadata:
   name: ceph-csi
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   sources:
     - repoURL: https://ceph.github.io/csi-charts
       chart: ceph-csi-rbd
-      targetRevision: 3.16.0
+      targetRevision: 3.17.0
       helm:
         valueFiles:
           - $repo/apps/ceph-csi/rbd-values.yaml
     - repoURL: https://ceph.github.io/csi-charts
       chart: ceph-csi-cephfs
-      targetRevision: 3.16.0
+      targetRevision: 3.17.0
       helm:
         valueFiles:
           - $repo/apps/ceph-csi/cephfs-values.yaml
@@ -26,6 +28,9 @@ spec:
     server: https://kubernetes.default.svc
     namespace: ceph-csi
   syncPolicy:
+    managedNamespaceMetadata:
+      annotations:
+        argocd.argoproj.io/tracking-id: "ceph-csi:/Namespace:ceph-csi/ceph-csi"
     automated:
       prune: true
       selfHeal: true

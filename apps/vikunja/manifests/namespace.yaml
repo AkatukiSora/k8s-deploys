@@ -2,6 +2,8 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: vikunja
+  annotations:
+    argocd.argoproj.io/tracking-id: "vikunja:/Namespace:vikunja/vikunja"
   labels:
     pod-security.kubernetes.io/enforce: baseline
     pod-security.kubernetes.io/audit: restricted

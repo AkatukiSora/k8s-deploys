@@ -8,4 +8,4 @@ spec:
     spec:
       containers:
         - name: snapshot-controller
-          image: registry.k8s.io/sig-storage/snapshot-controller:v8.4.0
+          image: registry.k8s.io/sig-storage/snapshot-controller:v8.6.0

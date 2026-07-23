@@ -12,7 +12,7 @@ controllers:
             drop:
               - ALL
         image:
-          tag: v2.7.5
+          tag: v3.0.3
         env:
           DB_HOSTNAME: immich-postgres-rw.immich-postgres
           DB_PORT: "5432"

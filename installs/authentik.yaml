@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: authentik
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
   annotations:
     argocd.argoproj.io/sync-wave: "6"
 spec:
@@ -13,7 +15,7 @@ spec:
   sources:
     - repoURL: https://charts.goauthentik.io
       chart: authentik
-      targetRevision: 2026.5.3
+      targetRevision: 2026.5.5
       helm:
         releaseName: authentik
         valueFiles:

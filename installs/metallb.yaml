@@ -3,13 +3,15 @@ kind: Application
 metadata:
   name: metal-lb
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   destination:
     namespace: metallb
     server: https://kubernetes.default.svc
   sources:
     - repoURL: https://metallb.github.io/metallb
-      targetRevision: 0.15.3
+      targetRevision: 0.16.1
       chart: metallb
       helm:
         valueFiles:
@@ -21,13 +23,15 @@ spec:
 
   project: default
   syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
     managedNamespaceMetadata:
+      annotations:
+        argocd.argoproj.io/tracking-id: "metal-lb:/Namespace:metallb/metallb"
       labels:
         pod-security.kubernetes.io/enforce: privileged
         pod-security.kubernetes.io/audit: privileged
         pod-security.kubernetes.io/warn: privileged
+    automated:
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
