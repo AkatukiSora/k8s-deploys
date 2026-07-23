@@ -3,8 +3,6 @@ kind: Application
 metadata:
   name: ceph-csi
   namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   sources:
@@ -28,9 +26,6 @@ spec:
     server: https://kubernetes.default.svc
     namespace: ceph-csi
   syncPolicy:
-    managedNamespaceMetadata:
-      annotations:
-        argocd.argoproj.io/tracking-id: "ceph-csi:/Namespace:ceph-csi/ceph-csi"
     automated:
       prune: true
       selfHeal: true

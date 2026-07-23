@@ -3,8 +3,6 @@ kind: Application
 metadata:
   name: security-trivy-operator
   namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
   annotations:
     argocd.argoproj.io/sync-wave: "5"
 spec:
@@ -23,9 +21,6 @@ spec:
     server: https://kubernetes.default.svc
     namespace: trivy-system
   syncPolicy:
-    managedNamespaceMetadata:
-      annotations:
-        argocd.argoproj.io/tracking-id: "security-trivy-operator:/Namespace:trivy-system/trivy-system"
     automated:
       prune: true
       selfHeal: true

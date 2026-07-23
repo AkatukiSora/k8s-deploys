@@ -3,8 +3,6 @@ kind: Application
 metadata:
   name: argocd-ingress
   namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
 spec:
   destination:
     server: https://kubernetes.default.svc

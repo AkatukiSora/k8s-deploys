@@ -3,8 +3,6 @@ kind: Application
 metadata:
   name: influx-db
   namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
 spec:
   destination:
     namespace: influxdb
@@ -24,9 +22,6 @@ spec:
       ref: repo
   project: default
   syncPolicy:
-    managedNamespaceMetadata:
-      annotations:
-        argocd.argoproj.io/tracking-id: "influx-db:/Namespace:influxdb/influxdb"
     automated:
       prune: true
       selfHeal: true

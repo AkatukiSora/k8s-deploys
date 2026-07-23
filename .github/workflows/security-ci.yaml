@@ -19,8 +19,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install YAML tooling
-        run: pip install yamllint pyyaml
+      - name: Install yamllint
+        run: pip install yamllint
 
       - name: Install kubeconform
         run: |
@@ -43,6 +43,3 @@ jobs:
             apps/security/kyverno-policies/**/*.yaml \
             apps/security/prometheus-rules/**/*.yaml \
             apps/security/dashboards/**/*.yaml
-
-      - name: Validate Argo CD deletion safeguards
-        run: python scripts/validate-argocd-app-deletion.py

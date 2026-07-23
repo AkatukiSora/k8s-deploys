@@ -3,8 +3,6 @@ kind: Application
 metadata:
   name: coder
   namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
 spec:
   destination:
     namespace: coder

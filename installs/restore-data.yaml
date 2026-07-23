@@ -1,20 +1,20 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: pjserver-sys
+  name: restore-data
   namespace: argocd
 spec:
   destination:
+    namespace: default
     server: https://kubernetes.default.svc
-    namespace: pjserver-sys
   project: default
   source:
-    path: kubernetes
-    repoURL: https://github.com/AkatukiSora/pjserver-sys.git
+    path: apps/restore
+    repoURL: https://github.com/AkatukiSora/k8s-deploys.git
     targetRevision: master
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
-      - CreateNamespace=true
+      - ServerSideApply=true

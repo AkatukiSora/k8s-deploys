@@ -3,8 +3,6 @@ kind: Application
 metadata:
   name: volsync
   namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
 spec:
   destination:
     namespace: volsync-system
@@ -22,9 +20,6 @@ spec:
       targetRevision: master
       ref: values
   syncPolicy:
-    managedNamespaceMetadata:
-      annotations:
-        argocd.argoproj.io/tracking-id: "volsync:/Namespace:volsync-system/volsync-system"
     automated:
       prune: true
       selfHeal: true

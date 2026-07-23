@@ -3,8 +3,6 @@ kind: Application
 metadata:
   name: argo-rollouts
   namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
 spec:
   destination:
     namespace: argo-rollouts
@@ -25,9 +23,6 @@ spec:
         - kube-apiserver
         - argocd-controller
   syncPolicy:
-    managedNamespaceMetadata:
-      annotations:
-        argocd.argoproj.io/tracking-id: "argo-rollouts:/Namespace:argo-rollouts/argo-rollouts"
     automated:
       prune: true
       selfHeal: true

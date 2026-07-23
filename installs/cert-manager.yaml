@@ -3,8 +3,6 @@ kind: Application
 metadata:
   name: cert-manager
   namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
   annotations:
     argocd.argoproj.io/sync-wave: "7"
 spec:
@@ -17,9 +15,6 @@ spec:
     repoURL: https://github.com/AkatukiSora/k8s-deploys.git
     targetRevision: master
   syncPolicy:
-    managedNamespaceMetadata:
-      annotations:
-        argocd.argoproj.io/tracking-id: "cert-manager:/Namespace:cert-manager/cert-manager"
     automated:
       prune: true
       selfHeal: true

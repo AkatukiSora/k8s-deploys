@@ -4,8 +4,6 @@ kind: Application
 metadata:
   name: security-kyverno
   namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
   annotations:
     argocd.argoproj.io/sync-wave: "5"
 spec:
@@ -39,9 +37,6 @@ spec:
     server: https://kubernetes.default.svc
     namespace: kyverno
   syncPolicy:
-    managedNamespaceMetadata:
-      annotations:
-        argocd.argoproj.io/tracking-id: "security-kyverno:/Namespace:kyverno/kyverno"
     automated:
       prune: true
       selfHeal: true
