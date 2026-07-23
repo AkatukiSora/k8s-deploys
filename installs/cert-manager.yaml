@@ -9,7 +9,7 @@ spec:
   destination:
     namespace: cert-manager
     server: https://kubernetes.default.svc
-  project: default
+  project: platform
   source:
     path: apps/cert-manager
     repoURL: https://github.com/AkatukiSora/k8s-deploys.git
