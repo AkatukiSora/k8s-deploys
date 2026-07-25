@@ -58,9 +58,12 @@ nextcloud:
             sleep 2
           done
   configs:
-    trusted_proxy: |
+    trusted_proxy.config.php: |
       <?php
       $CONFIG = array (
+        'trusted_domains' => [
+          'nextcloud.akatuki-host.com',
+        ],
         'trusted_proxies'   => [
           173.245.48.0/20,
           103.21.244.0/22,

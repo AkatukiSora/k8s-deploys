@@ -40,22 +40,21 @@ spec:
             - sh
             - -ec
             - |
-              if php occ status --output=json | grep -q '"installed":true'; then
-                exit 0
+              if ! php occ status --output=json | grep -q '"installed":true'; then
+                rm -f config/config.php
+                touch config/CAN_INSTALL
+                until php occ maintenance:install \
+                  --database pgsql \
+                  --database-host "$POSTGRES_HOST" \
+                  --database-name "$POSTGRES_DB" \
+                  --database-user "$POSTGRES_USER" \
+                  --database-pass "$POSTGRES_PASSWORD" \
+                  --admin-user "$NEXTCLOUD_ADMIN_USER" \
+                  --admin-pass "$NEXTCLOUD_ADMIN_PASSWORD" \
+                  --data-dir /var/www/html/data; do
+                  sleep 5
+                done
               fi
-              rm -f config/config.php
-              touch config/CAN_INSTALL
-              until php occ maintenance:install \
-                --database pgsql \
-                --database-host "$POSTGRES_HOST" \
-                --database-name "$POSTGRES_DB" \
-                --database-user "$POSTGRES_USER" \
-                --database-pass "$POSTGRES_PASSWORD" \
-                --admin-user "$NEXTCLOUD_ADMIN_USER" \
-                --admin-pass "$NEXTCLOUD_ADMIN_PASSWORD" \
-                --data-dir /var/www/html/data; do
-                sleep 5
-              done
               php occ app:install user_oidc || php occ app:enable user_oidc
               php occ user_oidc:provider authentik \
                 --clientid="$NEXTCLOUD_OIDC_CLIENT_ID" \
