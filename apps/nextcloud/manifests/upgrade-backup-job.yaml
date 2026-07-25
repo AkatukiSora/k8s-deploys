@@ -86,7 +86,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: backup
-          image: docker.io/bitnami/kubectl:1.36.2
+          image: rancher/kubectl:v1.36.2
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
