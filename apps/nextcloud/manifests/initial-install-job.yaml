@@ -14,7 +14,7 @@ spec:
       containers:
         - name: install
           image: docker.io/library/nextcloud:33.0.5-apache
-          workingDir: /var/www/html
+          workingDir: /usr/src/nextcloud
           command:
             - sh
             - -ec
@@ -78,8 +78,11 @@ spec:
               value: https://auth.akatuki-host.com/application/o/nextcloud/.well-known/openid-configuration
           volumeMounts:
             - name: nextcloud-data
-              mountPath: /var/www/html/config
+              mountPath: /usr/src/nextcloud/config
               subPath: config
+            - name: nextcloud-data
+              mountPath: /usr/src/nextcloud/data
+              subPath: data
             - name: nextcloud-data
               mountPath: /var/www/html/data
               subPath: data
