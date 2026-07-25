@@ -3,10 +3,17 @@ redis:
 internalDatabase:
   enabled: false
 mariadb:
+  enabled: false
+externalDatabase:
   enabled: true
-  primary:
-    persistence:
-      enabled: true
+  type: postgresql
+  host: nextcloud-postgres-rw
+  database: nextcloud
+  existingSecret:
+    enabled: true
+    secretName: nextcloud-postgres-app
+    usernameKey: username
+    passwordKey: password
 persistence:
   storageClass: ceph-cephfs
   enabled: true

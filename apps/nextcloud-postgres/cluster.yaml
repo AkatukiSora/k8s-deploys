@@ -1,0 +1,22 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: nextcloud-postgres
+  namespace: nextcloud
+spec:
+  instances: 1
+  primaryUpdateStrategy: unsupervised
+  bootstrap:
+    initdb:
+      database: nextcloud
+      owner: nextcloud
+  storage:
+    size: 10Gi
+    storageClass: ceph-rbd
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: nextcloud-postgres-barman-store
+  monitoring:
+    enablePodMonitor: true
