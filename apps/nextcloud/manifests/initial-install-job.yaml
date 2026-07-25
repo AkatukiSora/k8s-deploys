@@ -14,6 +14,7 @@ spec:
       containers:
         - name: install
           image: docker.io/library/nextcloud:33.0.5-apache
+          workingDir: /var/www/html
           command:
             - sh
             - -ec
