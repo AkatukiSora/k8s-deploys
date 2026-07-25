@@ -48,7 +48,7 @@ nextcloud:
     - name: NEXTCLOUD_OIDC_DISCOVERY_URL
       value: "https://auth.akatuki-host.com/application/o/nextcloud/.well-known/openid-configuration"
   hooks:
-    before-starting: |
+    post-installation: |
       # Bootstrap the user_oidc app and provider idempotently for a fresh install.
       php occ app:install user_oidc || php occ app:enable user_oidc
       php occ user_oidc:provider authentik \
