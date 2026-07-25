@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: kube-prometheus-stack-kube-scheduler
+  namespace: kube-system
+subsets:
+  - addresses:
+      - ip: 10.0.40.11
+      - ip: 10.0.40.12
+      - ip: 10.0.40.13
+    ports:
+      - name: http-metrics
+        port: 10259
+        protocol: TCP
