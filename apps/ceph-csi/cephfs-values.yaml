@@ -433,7 +433,7 @@ volumeSnapshotClass:
   # Ensure to create an entry in the configmap named ceph-csi-config, based on
   # csi-config-map-sample.yaml, to accompany the string chosen to
   # represent the Ceph cluster in clusterID below
-  clusterID: <cluster-id>
+  clusterID: 5bef1c02-f871-4b70-ba18-c6cce8221916
 
   # Prefix to use for naming CephFS snapshots.
   # If omitted, defaults to "csi-snap-".
@@ -463,7 +463,7 @@ volumeGroupSnapshotClass:
   # Should be unique across all Ceph clusters in use for provisioning,
   # cannot be greater than 36 bytes in length, and should remain immutable for
   # the lifetime of the VolumeGroupSnapshotClass in use
-  clusterID: <cluster-id>
+  clusterID: 5bef1c02-f871-4b70-ba18-c6cce8221916
 
   # eg: fsName: myfs
   fsName: k8sfs
