@@ -387,15 +387,12 @@ data:
         attrs:
           scope_name: profile
           expression: |
-            nextcloud_groups = [group.name for group in request.user.all_groups() if group.name.startswith("app:nextcloud:")]
-            if "app:nextcloud:global:admin" in nextcloud_groups:
-                nextcloud_groups.append("admin")
             return {
                 "name": request.user.name,
                 "preferred_username": request.user.username,
                 "username": request.user.username,
                 "email": request.user.email,
-                "groups": nextcloud_groups,
+                "groups": [group.name for group in request.user.all_groups() if group.name.startswith("app:nextcloud:")],
             }
 
       - id: gitlab-profile-scope
