@@ -120,7 +120,11 @@ nextcloud:
 
       # Leave maintenance mode enabled on any failure for safe recovery.
       php occ upgrade
+      trap 'php occ maintenance:mode --on || true' EXIT
+      php occ maintenance:mode --off
       php occ app:update --all
+      php occ maintenance:mode --on
       php occ upgrade
       php occ maintenance:repair
       php occ maintenance:mode --off
+      trap - EXIT
