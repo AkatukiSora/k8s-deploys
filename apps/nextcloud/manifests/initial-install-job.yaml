@@ -71,6 +71,9 @@ spec:
                 --group-whitelist-regex='/^app:nextcloud:.*$/' \
                 --group-restrict-login-to-whitelist=1
               php occ config:app:set --type=string --value=0 user_oidc allow_multiple_user_backends
+              for app in serverinfo password_policy sharebymail support twofactor_totp weather_status; do
+                php occ app:disable "$app"
+              done
           env:
             - name: POSTGRES_HOST
               value: nextcloud-postgres-rw
