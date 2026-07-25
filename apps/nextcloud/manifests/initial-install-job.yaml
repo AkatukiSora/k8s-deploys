@@ -61,12 +61,14 @@ spec:
                 done
               fi
               php occ app:install user_oidc || php occ app:enable user_oidc
+              php occ app:install notes || php occ app:enable notes
+              php occ app:install groupfolders || php occ app:enable groupfolders
               php occ user_oidc:provider authentik \
                 --clientid="$NEXTCLOUD_OIDC_CLIENT_ID" \
                 --clientsecret="$NEXTCLOUD_OIDC_CLIENT_SECRET" \
                 --discoveryuri="$NEXTCLOUD_OIDC_DISCOVERY_URL" \
                 --group-provisioning=1 \
-                --group-whitelist-regex='/^(app:nextcloud:global:admin|app:nextcloud:global:user|app:nextcloud:global:group-admin)$/' \
+                --group-whitelist-regex='/^app:nextcloud:.*$/' \
                 --group-restrict-login-to-whitelist=1
               php occ config:app:set --type=string --value=0 user_oidc allow_multiple_user_backends
           env:
