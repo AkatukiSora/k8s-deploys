@@ -1,0 +1,138 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nextcloud-upgrade-backup
+  namespace: nextcloud
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-2"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nextcloud-upgrade-backup
+  namespace: nextcloud
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-2"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+rules:
+  - apiGroups: [""]
+    resources:
+      - persistentvolumeclaims
+    verbs:
+      - get
+  - apiGroups:
+      - snapshot.storage.k8s.io
+    resources:
+      - volumesnapshots
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - postgresql.cnpg.io
+    resources:
+      - backups
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nextcloud-upgrade-backup
+  namespace: nextcloud
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-2"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: nextcloud-upgrade-backup
+subjects:
+  - kind: ServiceAccount
+    name: nextcloud-upgrade-backup
+    namespace: nextcloud
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nextcloud-upgrade-backup
+  namespace: nextcloud
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-1"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 1800
+  template:
+    spec:
+      serviceAccountName: nextcloud-upgrade-backup
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: backup
+          image: docker.io/bitnami/kubectl:1.36.2
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          command:
+            - sh
+            - -ec
+            - |
+              if ! kubectl -n nextcloud get pvc nextcloud-nextcloud >/dev/null 2>&1; then
+                exit 0
+              fi
+
+              kubectl -n nextcloud delete volumesnapshot nextcloud-pre-upgrade \
+                --ignore-not-found
+              kubectl -n nextcloud delete backup nextcloud-pre-upgrade \
+                --ignore-not-found
+
+              kubectl -n nextcloud create -f - <<'EOF'
+              apiVersion: snapshot.storage.k8s.io/v1
+              kind: VolumeSnapshot
+              metadata:
+                name: nextcloud-pre-upgrade
+                namespace: nextcloud
+              spec:
+                volumeSnapshotClassName: csi-cephfsplugin-snapclass
+                source:
+                  persistentVolumeClaimName: nextcloud-nextcloud
+              EOF
+              kubectl -n nextcloud wait \
+                --for='jsonpath={.status.readyToUse}'=true \
+                --timeout=15m volumesnapshot/nextcloud-pre-upgrade
+
+              kubectl -n nextcloud create -f - <<'EOF'
+              apiVersion: postgresql.cnpg.io/v1
+              kind: Backup
+              metadata:
+                name: nextcloud-pre-upgrade
+                namespace: nextcloud
+              spec:
+                cluster:
+                  name: nextcloud-postgres
+                method: plugin
+                pluginConfiguration:
+                  name: barman-cloud.cloudnative-pg.io
+              EOF
+              kubectl -n nextcloud wait \
+                --for='jsonpath={.status.phase}'=completed \
+                --timeout=15m backup/nextcloud-pre-upgrade

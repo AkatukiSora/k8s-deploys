@@ -84,3 +84,37 @@ nextcloud:
           'use_pkce' => true,
         ),
       );
+  hooks:
+    post-installation: |
+      #!/bin/sh
+      set -eu
+
+      php occ app:install user_oidc || php occ app:enable user_oidc
+      php occ app:install notes || php occ app:enable notes
+      php occ app:install groupfolders || php occ app:enable groupfolders
+      php occ user_oidc:provider authentik \
+        --clientid="$NEXTCLOUD_OIDC_CLIENT_ID" \
+        --clientsecret="$NEXTCLOUD_OIDC_CLIENT_SECRET" \
+        --discoveryuri="$NEXTCLOUD_OIDC_DISCOVERY_URL" \
+        --group-provisioning=1 \
+        --group-whitelist-regex='/^app:nextcloud:.*$/' \
+        --group-restrict-login-to-whitelist=1
+      php occ config:app:set --type=string --value=0 user_oidc allow_multiple_user_backends
+      for app in serverinfo password_policy sharebymail support twofactor_totp weather_status; do
+        php occ app:disable "$app"
+      done
+    pre-upgrade: |
+      #!/bin/sh
+      set -eu
+
+      php occ maintenance:mode --on
+    post-upgrade: |
+      #!/bin/sh
+      set -eu
+
+      # Leave maintenance mode enabled on any failure for safe recovery.
+      php occ upgrade
+      php occ app:update --all
+      php occ upgrade
+      php occ maintenance:repair
+      php occ maintenance:mode --off
