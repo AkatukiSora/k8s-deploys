@@ -47,6 +47,16 @@ nextcloud:
           key: client-secret
     - name: NEXTCLOUD_OIDC_DISCOVERY_URL
       value: "https://auth.akatuki-host.com/application/o/nextcloud/.well-known/openid-configuration"
+  extraInitContainers:
+    - name: wait-for-postgres
+      image: ghcr.io/cloudnative-pg/postgresql:18.0-system-trixie
+      command:
+        - sh
+        - -ec
+        - |
+          until pg_isready -h nextcloud-postgres-rw -p 5432 -d nextcloud -U nextcloud; do
+            sleep 2
+          done
   hooks:
     post-installation: |
       # Bootstrap the user_oidc app and provider idempotently for a fresh install.
