@@ -651,7 +651,7 @@ data:
           sub_mode: hashed_user_id
           redirect_uris:
             - matching_mode: strict
-              url: https://nextcloud.akatuki-host.com/apps/user_oidc/code
+              url: https://nextcloud.akatuki-host.com/index.php/apps/user_oidc/code
           property_mappings:
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'openid'"]]
             - !Find [authentik_providers_oauth2.scopemapping, [name, "authentik default OAuth Mapping: OpenID 'offline_access'"]]
