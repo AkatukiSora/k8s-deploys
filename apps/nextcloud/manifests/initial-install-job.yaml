@@ -20,7 +20,10 @@ spec:
           command:
             - sh
             - -ec
-            - cp -an /usr/src/nextcloud/. /var/www/html/
+            - |
+              cp -an /usr/src/nextcloud/. /var/www/html/
+              chgrp 33 /var/www/html /var/www/html/config /var/www/html/data
+              chmod 2775 /var/www/html /var/www/html/config /var/www/html/data
           volumeMounts:
             - name: nextcloud-data
               mountPath: /var/www/html
