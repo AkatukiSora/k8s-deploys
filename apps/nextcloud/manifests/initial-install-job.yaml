@@ -11,6 +11,9 @@ spec:
   template:
     spec:
       restartPolicy: OnFailure
+      securityContext:
+        fsGroup: 33
+        fsGroupChangePolicy: OnRootMismatch
       initContainers:
         - name: populate-nextcloud-files
           image: docker.io/library/nextcloud:33.0.5-apache
