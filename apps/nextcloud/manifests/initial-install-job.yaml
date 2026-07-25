@@ -14,11 +14,12 @@ spec:
       containers:
         - name: install
           image: docker.io/library/nextcloud:33.0.5-apache
-          workingDir: /usr/src/nextcloud
+          workingDir: /var/www/html
           command:
             - sh
             - -ec
             - |
+              cp -an /usr/src/nextcloud/. /var/www/html/
               if php occ status --output=json | grep -q '"installed":true'; then
                 exit 0
               fi
@@ -78,14 +79,7 @@ spec:
               value: https://auth.akatuki-host.com/application/o/nextcloud/.well-known/openid-configuration
           volumeMounts:
             - name: nextcloud-data
-              mountPath: /usr/src/nextcloud/config
-              subPath: config
-            - name: nextcloud-data
-              mountPath: /usr/src/nextcloud/data
-              subPath: data
-            - name: nextcloud-data
-              mountPath: /var/www/html/data
-              subPath: data
+              mountPath: /var/www/html
       volumes:
         - name: nextcloud-data
           persistentVolumeClaim:
