@@ -27,7 +27,11 @@ kubeScheduler:
     insecureSkipVerify: true
 
 kubeEtcd:
-  enabled: false
+  # The chart only provisions its built-in etcd Grafana dashboard when enabled.
+  enabled: true
+  serviceMonitor:
+    # etcd-scrapeconfig.yaml scrapes all control-plane nodes directly.
+    enabled: false
 
 grafana:
   enabled: true
