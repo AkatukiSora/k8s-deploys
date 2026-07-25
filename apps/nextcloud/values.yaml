@@ -23,6 +23,12 @@ cronjob:
   enabled: true
 hpa:
   enabled: false
+startupProbe:
+  enabled: true
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 120
 ingress:
   enabled: true
   className: cloudflare-tunnel
