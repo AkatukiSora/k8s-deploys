@@ -1,0 +1,23 @@
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: ceph-mgr
+  namespace: monitoring
+  labels:
+    prometheus: kube-prometheus-stack-prometheus
+    release: kube-prometheus-stack
+spec:
+  jobName: ceph-mgr
+  scheme: HTTP
+  metricsPath: /metrics
+  scrapeInterval: 1m
+  scrapeTimeout: 30s
+  staticConfigs:
+    - labels:
+        endpoint: http-metrics
+        job: ceph-mgr
+        namespace: external-ceph
+        service: ceph-mgr
+      targets:
+        - 192.168.5.101:9283
+        - 192.168.5.102:9283

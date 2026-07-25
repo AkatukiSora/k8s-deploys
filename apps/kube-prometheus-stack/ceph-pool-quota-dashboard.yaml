@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ceph-pool-quota-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  ceph-pool-quota.json: |
+    {
+      "uid": "ceph-pool-quota",
+      "title": "Ceph Pool Quota",
+      "tags": ["ceph", "capacity"],
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "1m",
+      "time": {"from": "now-24h", "to": "now"},
+      "panels": [
+        {
+          "id": 1,
+          "title": "Ceph MGR Endpoint Status",
+          "type": "status-history",
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+          "targets": [{"expr": "up{job=\"ceph-mgr\"}", "legendFormat": "{{instance}}", "refId": "A"}],
+          "fieldConfig": {"defaults": {"mappings": [{"type": "value", "options": {"0": {"text": "DOWN", "color": "red"}, "1": {"text": "UP", "color": "green"}}}]}, "overrides": []},
+          "options": {"showValue": "always", "legend": {"displayMode": "table", "placement": "bottom"}}
+        },
+        {
+          "id": 2,
+          "title": "Pool Quota Utilization",
+          "type": "timeseries",
+          "gridPos": {"h": 9, "w": 12, "x": 0, "y": 8},
+          "targets": [{"expr": "ceph:pool_quota_utilization:ratio", "legendFormat": "{{name}}", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "percentunit", "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 0.8}, {"color": "red", "value": 0.9}]}}, "overrides": []},
+          "options": {"legend": {"displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi"}}
+        },
+        {
+          "id": 3,
+          "title": "Pool Quota Remaining",
+          "type": "timeseries",
+          "gridPos": {"h": 9, "w": 12, "x": 12, "y": 8},
+          "targets": [{"expr": "ceph:pool_quota_remaining_bytes", "legendFormat": "{{name}}", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "bytes"}, "overrides": []},
+          "options": {"legend": {"displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi"}}
+        },
+        {
+          "id": 4,
+          "title": "Pool Logical Usage and Quota",
+          "type": "timeseries",
+          "gridPos": {"h": 9, "w": 12, "x": 0, "y": 17},
+          "targets": [
+            {"expr": "max by (pool_id) (ceph_pool_stored{job=\"ceph-mgr\"}) * on (pool_id) group_left(name) max by (pool_id, name) (ceph_pool_metadata{job=\"ceph-mgr\",name=~\"k8s-rbd|k8s-cephfs-data\"})", "legendFormat": "{{name}} stored", "refId": "A"},
+            {"expr": "max by (pool_id) (ceph_pool_quota_bytes{job=\"ceph-mgr\"}) * on (pool_id) group_left(name) max by (pool_id, name) (ceph_pool_metadata{job=\"ceph-mgr\",name=~\"k8s-rbd|k8s-cephfs-data\"})", "legendFormat": "{{name}} quota", "refId": "B"}
+          ],
+          "fieldConfig": {"defaults": {"unit": "bytes"}, "overrides": []},
+          "options": {"legend": {"displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi"}}
+        },
+        {
+          "id": 5,
+          "title": "Pool Physical Usage",
+          "type": "timeseries",
+          "gridPos": {"h": 9, "w": 12, "x": 12, "y": 17},
+          "targets": [{"expr": "max by (pool_id) (ceph_pool_bytes_used{job=\"ceph-mgr\"}) * on (pool_id) group_left(name) max by (pool_id, name) (ceph_pool_metadata{job=\"ceph-mgr\",name=~\"k8s-rbd|k8s-cephfs-data\"})", "legendFormat": "{{name}}", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "bytes"}, "overrides": []},
+          "options": {"legend": {"displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi"}}
+        },
+        {
+          "id": 6,
+          "title": "Cluster Raw Capacity Utilization",
+          "type": "timeseries",
+          "gridPos": {"h": 9, "w": 12, "x": 0, "y": 26},
+          "targets": [{"expr": "max(ceph_cluster_total_used_raw_bytes{job=\"ceph-mgr\"}) / max(ceph_cluster_total_bytes{job=\"ceph-mgr\"})", "legendFormat": "raw usage", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "percentunit", "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 0.8}, {"color": "red", "value": 0.9}]}}, "overrides": []},
+          "options": {"legend": {"displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi"}}
+        },
+        {
+          "id": 7,
+          "title": "Pool Logical Usage Trend",
+          "type": "timeseries",
+          "gridPos": {"h": 9, "w": 12, "x": 12, "y": 26},
+          "targets": [{"expr": "max by (pool_id) (ceph_pool_stored{job=\"ceph-mgr\"}) * on (pool_id) group_left(name) max by (pool_id, name) (ceph_pool_metadata{job=\"ceph-mgr\",name=~\"k8s-rbd|k8s-cephfs-data\"})", "legendFormat": "{{name}}", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "bytes"}, "overrides": []},
+          "options": {"legend": {"displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi"}}
+        }
+      ]
+    }

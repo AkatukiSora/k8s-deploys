@@ -3,6 +3,10 @@ nameOverride: "kube-prometheus-stack"
 crds:
   enabled: true
 
+defaultRules:
+  disabled:
+    TargetDown: true
+
 kubeProxy:
   enabled: false
 
@@ -157,6 +161,12 @@ alertmanager:
           group_wait: 2m
           repeat_interval: 12h
     inhibit_rules:
+      - source_matchers:
+          - alertname="CephPoolQuotaUsageCritical"
+        target_matchers:
+          - alertname="CephPoolQuotaUsageHigh"
+        equal:
+          - name
       - source_matchers:
           - severity="critical"
         target_matchers:

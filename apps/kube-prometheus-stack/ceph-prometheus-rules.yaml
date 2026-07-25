@@ -1,0 +1,86 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ceph-rules
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: ceph.pool-quota.recording
+      rules:
+        - record: ceph:pool_quota_utilization:ratio
+          expr: |
+            (
+              (
+                max by (pool_id) (ceph_pool_stored{job="ceph-mgr"})
+                / max by (pool_id) (ceph_pool_quota_bytes{job="ceph-mgr"})
+              )
+              and on (pool_id)
+              (max by (pool_id) (ceph_pool_quota_bytes{job="ceph-mgr"}) > 0)
+            )
+            * on (pool_id) group_left(name)
+            max by (pool_id, name) (ceph_pool_metadata{job="ceph-mgr",name=~"k8s-rbd|k8s-cephfs-data"})
+        - record: ceph:pool_quota_remaining_bytes
+          expr: |
+            (
+              (
+                max by (pool_id) (ceph_pool_quota_bytes{job="ceph-mgr"})
+                - max by (pool_id) (ceph_pool_stored{job="ceph-mgr"})
+              )
+              and on (pool_id)
+              (max by (pool_id) (ceph_pool_quota_bytes{job="ceph-mgr"}) > 0)
+            )
+            * on (pool_id) group_left(name)
+            max by (pool_id, name) (ceph_pool_metadata{job="ceph-mgr",name=~"k8s-rbd|k8s-cephfs-data"})
+    - name: ceph.alerts
+      rules:
+        - alert: TargetDown
+          expr: |
+            100 * (
+              count(up{job!="ceph-mgr"} == 0) by (cluster, job, namespace, service)
+              / count(up{job!="ceph-mgr"}) by (cluster, job, namespace, service)
+            ) > 10
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: One or more targets are unreachable.
+            description: '{{ printf "%.4g" $value }}% of the {{ $labels.job }}/{{ $labels.service }} targets in {{ $labels.namespace }} namespace are down.'
+            runbook_url: https://runbooks.prometheus-operator.dev/runbooks/general/targetdown
+        - alert: CephPoolQuotaUsageHigh
+          expr: ceph:pool_quota_utilization:ratio >= 0.80
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: Ceph pool {{ $labels.name }} quota usage is high.
+            description: Pool {{ $labels.name }} is using {{ $value | humanizePercentage }} of its configured logical quota. Writes can fail when the quota is reached.
+            dashboard_url: https://grafana.akatuki-host.com/d/ceph-pool-quota/ceph-pool-quota
+        - alert: CephPoolQuotaUsageCritical
+          expr: ceph:pool_quota_utilization:ratio >= 0.90
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Ceph pool {{ $labels.name }} quota usage is critical.
+            description: Pool {{ $labels.name }} is using {{ $value | humanizePercentage }} of its configured logical quota. Writes can fail when the quota is reached.
+            dashboard_url: https://grafana.akatuki-host.com/d/ceph-pool-quota/ceph-pool-quota
+        - alert: CephMgrPrometheusUnavailable
+          expr: sum(up{job="ceph-mgr"}) < 1 or absent(up{job="ceph-mgr"})
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: No active Ceph MGR Prometheus endpoint is available.
+            description: Both Ceph MGR endpoints are unavailable to Prometheus, or the ceph-mgr job has disappeared.
+            dashboard_url: https://grafana.akatuki-host.com/d/ceph-pool-quota/ceph-pool-quota
+        - alert: CephMgrMultipleActiveEndpoints
+          expr: sum(up{job="ceph-mgr"}) > 1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Multiple Ceph MGR Prometheus endpoints are active.
+            description: More than one Ceph MGR endpoint is returning HTTP 200. Ceph metrics may be collected twice.
+            dashboard_url: https://grafana.akatuki-host.com/d/ceph-pool-quota/ceph-pool-quota
