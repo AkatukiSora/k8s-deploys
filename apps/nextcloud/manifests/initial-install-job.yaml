@@ -23,7 +23,8 @@ spec:
             - |
               cp -an /usr/src/nextcloud/. /var/www/html/
               chgrp 33 /var/www/html /var/www/html/config /var/www/html/data
-              chmod 2775 /var/www/html /var/www/html/config /var/www/html/data
+              chmod 2775 /var/www/html /var/www/html/config
+              chmod 0770 /var/www/html/data
           volumeMounts:
             - name: nextcloud-data
               mountPath: /var/www/html
@@ -42,6 +43,8 @@ spec:
               if php occ status --output=json | grep -q '"installed":true'; then
                 exit 0
               fi
+              rm -f config/config.php
+              touch config/CAN_INSTALL
               until php occ maintenance:install \
                 --database pgsql \
                 --database-host "$POSTGRES_HOST" \
