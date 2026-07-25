@@ -411,7 +411,7 @@ storageClass:
 
 volumeSnapshotClass:
   # Specifies whether the VolumeSnapshotClass should be created
-  create: false
+  create: true
   name: csi-cephfsplugin-snapclass
 
   # Annotations for the VolumeSnapshotClass
