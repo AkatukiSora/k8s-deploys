@@ -18,7 +18,7 @@ persistence:
   storageClass: ceph-cephfs
   enabled: true
   accessMode: ReadWriteMany
-  size: 100Gi
+  size: 500Gi
 cronjob:
   enabled: true
 hpa:

@@ -104,6 +104,11 @@ data:
         identifiers:
           name: "app:nextcloud:global:group-admin"
 
+      - id: app-nextcloud-team-g9k-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:nextcloud:team:g9k"
+
       - id: app-gitlab-global-admin-group
         model: authentik_core.group
         identifiers:
@@ -222,6 +227,15 @@ data:
           name: "team:storage-user"
         attrs:
           parents:
+            - !KeyOf app-nextcloud-global-user-group
+
+      - id: team-g9k-group
+        model: authentik_core.group
+        identifiers:
+          name: "team:g9k"
+        attrs:
+          parents:
+            - !KeyOf app-nextcloud-team-g9k-group
             - !KeyOf app-nextcloud-global-user-group
 
       # ---------------------------------------------------------------------
