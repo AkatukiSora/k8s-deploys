@@ -9,9 +9,7 @@ spec:
     schedule: "30 */6 * * *"
   restic:
     repository: volsync-restic-nextcloud-data
-    copyMethod: Snapshot
-    storageClassName: ceph-cephfs
-    volumeSnapshotClassName: csi-cephfsplugin-snapclass-v2
+    copyMethod: Direct
     cacheCapacity: 1Gi
     cacheStorageClassName: ceph-cephfs
     pruneIntervalDays: 7
