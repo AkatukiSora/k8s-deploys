@@ -1071,6 +1071,16 @@ data:
       name: Identification stage settings
     entries:
       - identifiers:
+          name: identification-webauthn-validation
+        id: identification-webauthn-validation
+        model: authentik_stages_authenticator_validate.authenticatorvalidatestage
+        attrs:
+          device_classes:
+            - webauthn
+          not_configured_action: deny
+          webauthn_user_verification: required
+
+      - identifiers:
           name: default-authentication-identification
         model: authentik_stages_identification.identificationstage
         attrs:
@@ -1082,27 +1092,7 @@ data:
           pretend_user_exists: true
           enable_remember_me: false
           show_source_labels: false
-          webauthn_stage: null
-
-  55-remove-passwordless-authentication-flow.yaml: |
-    version: 1
-    metadata:
-      name: Remove passwordless authentication flow
-    entries:
-      - identifiers:
-          slug: passwordless-authentication-flow
-        model: authentik_flows.flow
-        state: absent
-
-      - identifiers:
-          name: passwordless-authentication-webauthn-validation
-        model: authentik_stages_authenticator_validate.authenticatorvalidatestage
-        state: absent
-
-      - identifiers:
-          name: identification-webauthn-validation
-        model: authentik_stages_authenticator_validate.authenticatorvalidatestage
-        state: absent
+          webauthn_stage: !KeyOf identification-webauthn-validation
 
   60-invite-enrollment.yaml: |
     version: 1
