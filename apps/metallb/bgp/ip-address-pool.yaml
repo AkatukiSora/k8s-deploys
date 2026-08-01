@@ -10,8 +10,7 @@ metadata:
     app.kubernetes.io/component: bgp-pool
 spec:
   addresses:
-    - 192.168.10.10-192.168.10.254
+    - 10.127.0.1-10.127.0.254
   # autoAssign: false にすると、ServiceのannotationでPool名を指定した場合のみ割り当て
   # true にすると type: LoadBalancer のServiceに自動割り当て
   autoAssign: true
-  

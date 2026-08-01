@@ -4,12 +4,13 @@
 
 | 項目                  | 値                           |
 | --------------------- | ---------------------------- |
-| Kubernetes セグメント | 192.168.5.0/24               |
-| LB 払い出しプール     | 192.168.10.10-192.168.10.254 |
+| BGP peer ノード       | w1, w2, w3                   |
+| Kubernetes セグメント | 10.0.40.0/24                 |
+| LB 払い出しプール     | 10.127.0.1-10.127.0.254      |
 | UDM Pro IP            | 192.168.5.1                  |
 | UDM Pro ASN           | 65000                        |
-| Kubernetes ASN        | 65010                        |
-| BGP モード            | eBGP (FRR)                   |
+| Kubernetes ASN        | 65020                        |
+| BGP モード            | eBGP multihop (FRR)          |
 
 ## ファイル構成
 
@@ -22,8 +23,9 @@ apps/metallb/bgp/
 
 ## Service へのアドレス割り当て方法
 
-`ip-address-pool.yaml` では `autoAssign: false` としているため、
-Service に以下のアノテーションを付与したものだけに `bgp-pool` が割り当てられます。
+`ip-address-pool.yaml` では `autoAssign: true` としているため、
+すべての `type: LoadBalancer` Service に `bgp-pool` からアドレスが割り当てられます。
+特定の Pool を明示するには、Service に以下のアノテーションを付与します。
 
 ```yaml
 apiVersion: v1
@@ -37,7 +39,7 @@ spec:
   # ...
 ```
 
-`autoAssign: true` に変更すると、`type: LoadBalancer` の Service すべてに自動割り当てされます。
+アノテーション付きの Service だけへ払い出す場合は `autoAssign: false` に変更します。
 
 ## UDM Pro (UniFi OS) 側の BGP 設定
 
@@ -67,17 +69,31 @@ configure terminal
 
 router bgp 65000
  bgp router-id 192.168.5.1
- neighbor 192.168.5.0/24 peer-group
- neighbor 192.168.5.0/24 remote-as 65010
+ neighbor 10.0.40.51 remote-as 65020
+ neighbor 10.0.40.51 ebgp-multihop 2
+ neighbor 10.0.40.52 remote-as 65020
+ neighbor 10.0.40.52 ebgp-multihop 2
+ neighbor 10.0.40.53 remote-as 65020
+ neighbor 10.0.40.53 ebgp-multihop 2
  !
  address-family ipv4 unicast
-  neighbor 192.168.5.0/24 activate
-  neighbor 192.168.5.0/24 route-map ACCEPT_ALL in
-  neighbor 192.168.5.0/24 route-map ACCEPT_ALL out
+  neighbor 10.0.40.51 activate
+  neighbor 10.0.40.51 route-map K8S-METALLB-IN in
+  neighbor 10.0.40.52 activate
+  neighbor 10.0.40.52 route-map K8S-METALLB-IN in
+  neighbor 10.0.40.53 activate
+  neighbor 10.0.40.53 route-map K8S-METALLB-IN in
  exit-address-family
 exit
 
-route-map ACCEPT_ALL permit 10
+ip prefix-list METALLB-LB-POOL seq 5 permit 10.127.0.0/24 le 32
+ip prefix-list METALLB-LB-POOL seq 999 deny 0.0.0.0/0 le 32
+
+route-map K8S-METALLB-IN permit 10
+ match ip address prefix-list METALLB-LB-POOL
+exit
+
+route-map K8S-METALLB-IN deny 999
 exit
 
 end
@@ -94,13 +110,13 @@ vtysh -c "show bgp summary"
 vtysh -c "show ip bgp"
 ```
 
-Kubernetes 側の各 Node (speaker) との BGP セッションが `Established` になっていることを確認します。
+`w1`, `w2`, `w3` の speaker との BGP セッションが `Established` になっていることを確認します。
 
 ### 5. Kubernetes 側の確認
 
 ```bash
 # BGP セッション状態
-kubectl -n MetalLB get bgppeers
+kubectl -n metallb get bgppeers
 
 # 払い出し済み IP の確認
 kubectl get svc -A | grep LoadBalancer
@@ -113,10 +129,10 @@ kubectl get svc -A | grep LoadBalancer
 - UDM Pro と Kubernetes Node 間の TCP 179 ポートが開いているか確認
 - MetalLB speaker Pod のログを確認:
   ```bash
-  kubectl -n MetalLB logs -l app.kubernetes.io/component=speaker -c frr
+  kubectl -n metallb logs -l app.kubernetes.io/component=speaker -c frr
   ```
 
 ### IP が払い出されない場合
 
-- Service に `metallb.universe.tf/address-pool: bgp-pool` アノテーションが付いているか確認
-- `kubectl -n MetalLB get ipaddresspool` でプールの状態を確認
+- `autoAssign: true` のため、特別なアノテーションなしで払い出されることを確認
+- `kubectl -n metallb get ipaddresspool` でプールの状態を確認
