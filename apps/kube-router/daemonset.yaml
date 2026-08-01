@@ -75,10 +75,10 @@ spec:
               exit "$cleanup_status"
             - kube-router
             - --run-service-proxy=true
-              - --run-router=false
-              - --run-firewall=false
-              - --enable-cni=false
-              - --loadbalancer-ip-range=10.127.0.0/24
+            - --run-router=false
+            - --run-firewall=false
+            - --enable-cni=false
+            - --loadbalancer-ip-range=10.127.0.0/24
           livenessProbe:
             httpGet:
               host: 127.0.0.1
