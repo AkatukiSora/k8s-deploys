@@ -1,0 +1,22 @@
+apiVersion: metallb.io/v1beta2
+kind: BGPPeer
+metadata:
+  name: pve-node2
+  namespace: metallb
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  labels:
+    app.kubernetes.io/name: metallb
+    app.kubernetes.io/component: bgp-peer
+spec:
+  # Proxmox SDN の BGP controller が管理する node2 peer
+  peerAddress: 192.168.5.102
+  peerASN: 65010
+  myASN: 65020
+  nodeSelectors:
+    - matchExpressions:
+        - key: node-role.kubernetes.io/control-plane
+          operator: DoesNotExist
+  ebgpMultiHop: true
+  keepaliveTime: 30s
+  holdTime: 90s

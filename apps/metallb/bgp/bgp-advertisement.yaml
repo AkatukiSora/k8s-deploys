@@ -12,10 +12,10 @@ spec:
   # 広告対象の IPAddressPool を指定
   ipAddressPools:
     - bgp-pool
-  # BGP peer を明示的に指定 (全 peer に広告する場合は省略可)
+  # Proxmox 経由でのみ LoadBalancer IP を広告する
   peers:
-    - udm-pro
     - pve-node1
+    - pve-node2
   # アグリゲーション: /32 単位でなくプールのCIDR全体を広告する場合は設定
   # aggregationLength: 24
   # communities: []

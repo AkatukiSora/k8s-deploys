@@ -1,143 +1,124 @@
-# MetalLB BGP 設定 (UDM Pro + Kubernetes)
+# MetalLB BGP 設定 (Proxmox + UniFi)
 
-## 構成概要
+## 最終構成
 
-| 項目                  | 値                           |
-| --------------------- | ---------------------------- |
-| BGP peer ノード       | w1, w2, w3                   |
-| Kubernetes セグメント | 10.0.40.0/24                 |
-| LB 払い出しプール     | 10.127.0.1-10.127.0.254      |
-| UDM Pro IP            | 192.168.5.1                  |
-| UDM Pro ASN           | 65000                        |
-| Kubernetes ASN        | 65020                        |
-| BGP モード            | eBGP multihop (FRR)          |
+MetalLB は LoadBalancer IP の経路広告専用です。外部経路を受信して Kubernetes
+ノードのルーティングへ利用しません。MetalLB と UniFi は直接 peer を張りません。
 
-> `pve-node1` は Proxmox SDN の `bgpnode1` controller が管理します。移行中は
-> `udm-pro` と `pve-node1` の両方へ広告し、Proxmox 経由の経路確認後に
-> UniFi 直結 peer を削除します。
-
-## ファイル構成
-
+```text
+MetalLB / AS65020
+  | eBGP
+  +-- Proxmox node1 / AS65010 --+
+  |                              +-- eBGP -- UniFi / AS65000
+  +-- Proxmox node2 / AS65010 --+
 ```
+
+| 構成要素 | IP / ASN |
+| --- | --- |
+| UniFi / UDM Pro | `192.168.5.1` / AS65000 |
+| Proxmox node1 | `192.168.5.101` / AS65010 |
+| Proxmox node2 | `192.168.5.102` / AS65010 |
+| Kubernetes worker | `10.0.40.51`, `10.0.40.52`, `10.0.40.53` / AS65020 |
+| LoadBalancer pool | `10.127.0.1-10.127.0.254` |
+
+各 worker speaker は node1 と node2 の両方へ eBGP multihop 接続します。広告される
+LoadBalancer IP は通常 `/32` です。Proxmox での期待 AS Path は `65020`、UniFi
+での期待 AS Path は `65010 65020` です。
+
+## GitOps マニフェスト
+
+```text
 apps/metallb/bgp/
-├── ip-address-pool.yaml    # LB に払い出す IP プール
-├── bgp-peer.yaml           # 移行中の UDM Pro BGP peer
-├── bgp-peer-pve-node1.yaml # Proxmox SDN node1 BGP peer
-└── bgp-advertisement.yaml  # プールを BGP で広告する設定
+├── ip-address-pool.yaml        # LB に払い出す IP プール
+├── bgp-peer-pve-node1.yaml     # Proxmox node1 BGP peer
+├── bgp-peer-pve-node2.yaml     # Proxmox node2 BGP peer
+└── bgp-advertisement.yaml      # bgp-pool を両 Proxmox peer だけへ広告
 ```
 
-## Service へのアドレス割り当て方法
+`installs/metallb.yaml` はこのディレクトリを Argo CD の source として直接管理します。
+`bgp-peer.yaml` の UniFi 直結 peer は管理対象から削除済みです。同期では prune が有効なため、
+Argo CD が当該 `BGPPeer` を削除します。
 
-`ip-address-pool.yaml` では `autoAssign: true` としているため、
-すべての `type: LoadBalancer` Service に `bgp-pool` からアドレスが割り当てられます。
-特定の Pool を明示するには、Service に以下のアノテーションを付与します。
+`ip-address-pool.yaml` は `autoAssign: true` です。すべての `type: LoadBalancer`
+Service に `bgp-pool` からアドレスが割り当てられます。
 
-```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: my-service
-  annotations:
-    metallb.universe.tf/address-pool: bgp-pool
-spec:
-  type: LoadBalancer
-  # ...
+## Proxmox WebUI 設定
+
+このリポジトリは Proxmox の設定を変更しません。既存の EVPN 用 BGP Controller または
+BGP Fabric がある場合、追加前に default VRF の FRR 設定と競合しないことを確認します。
+BGP Controller は各ノード原則 1 個として扱います。
+
+`Datacenter -> SDN -> Controllers -> Add -> BGP` で node1 と node2 にそれぞれ
+Controller を作成します。
+
+| 項目 | node1 | node2 |
+| --- | --- | --- |
+| Node | `node1` | `node2` |
+| ASN | `65010` | `65010` |
+| Peers | `192.168.5.1,10.0.40.51,10.0.40.52,10.0.40.53` | `192.168.5.1,10.0.40.51,10.0.40.52,10.0.40.53` |
+| EBGP | 有効 | 有効 |
+| Loopback Interface | 空欄 | 空欄 |
+| eBGP Multihop | `10` | `10` |
+| BGP Multipath AS-Path Relax | 原則無効 | 原則無効 |
+
+設定後に SDN 画面で Apply を実行します。Proxmox の WebUI で route map または
+prefix list を利用できる場合だけ、`10.127.0.0/24 le 32` のみを UniFi へ広告します。
+利用できない場合は UniFi の受信フィルタで同じ制限を適用します。
+
+## UniFi 設定
+
+UniFi には Proxmox を peer として設定します。MetalLB worker を peer として設定しません。
+
+```text
+192.168.5.101 remote-as 65010
+192.168.5.102 remote-as 65010
 ```
 
-アノテーション付きの Service だけへ払い出す場合は `autoAssign: false` に変更します。
+可能であれば受信 prefix は `10.127.0.0/24 le 32` に制限します。`10.127.0.0/24`
+だけでなく、MetalLB が広告する `/32` を許可する必要があります。
 
-## UDM Pro (UniFi OS) 側の BGP 設定
+## 導入と確認
 
-UDM Pro は UniFi OS 上で動作する FRR (または独自 BGP 実装) を使って BGP を受け付けます。
-SSH でログインし、以下の設定を行ってください。
-
-### 1. SSH ログイン
+1. Proxmox node1/node2 の Controller を設定し、SDN で Apply します。
+2. UniFi と両 Proxmox ノードの eBGP peer を設定します。
+3. Argo CD がこのディレクトリを同期し、`udm-pro` BGPPeer が prune されることを確認します。
+4. MetalLB と両 Proxmox ノードのセッションが Established になることを確認します。
+5. Proxmox が `10.127.0.0/24` 配下の経路を受信し、UniFi へ再広告することを確認します。
+6. UniFi で AS Path が `65010 65020`、next hop が `192.168.5.101` または
+   `192.168.5.102` であることを確認します。
+7. テスト用 LoadBalancer IP へ UniFi 配下から疎通確認します。
 
 ```bash
-ssh root@<UDM-Pro-IP>
-```
-
-### 2. FRR の設定確認
-
-UDM Pro では `/etc/frr/frr.conf` を直接編集するか、`vtysh` を使います。
-
-```bash
-vtysh
-```
-
-### 3. BGP 設定投入
-
-`vtysh` のシェルで以下を実行します。
-
-```
-configure terminal
-
-router bgp 65000
- bgp router-id 192.168.5.1
- neighbor 10.0.40.51 remote-as 65020
- neighbor 10.0.40.51 ebgp-multihop 2
- neighbor 10.0.40.52 remote-as 65020
- neighbor 10.0.40.52 ebgp-multihop 2
- neighbor 10.0.40.53 remote-as 65020
- neighbor 10.0.40.53 ebgp-multihop 2
- !
- address-family ipv4 unicast
-  neighbor 10.0.40.51 activate
-  neighbor 10.0.40.51 route-map K8S-METALLB-IN in
-  neighbor 10.0.40.52 activate
-  neighbor 10.0.40.52 route-map K8S-METALLB-IN in
-  neighbor 10.0.40.53 activate
-  neighbor 10.0.40.53 route-map K8S-METALLB-IN in
- exit-address-family
-exit
-
-ip prefix-list METALLB-LB-POOL seq 5 permit 10.127.0.0/24 le 32
-ip prefix-list METALLB-LB-POOL seq 999 deny 0.0.0.0/0 le 32
-
-route-map K8S-METALLB-IN permit 10
- match ip address prefix-list METALLB-LB-POOL
-exit
-
-route-map K8S-METALLB-IN deny 999
-exit
-
-end
-write memory
-```
-
-> **注意**: UDM Pro の UniFi OS バージョンによっては、設定ファイルが再起動で上書きされる場合があります。
-> UniFi Network Application の「ネットワーク設定 > ルーティング > BGP」から GUI で設定することを推奨します（対応バージョンの場合）。
-
-### 4. BGP セッション確認
-
-```bash
-vtysh -c "show bgp summary"
-vtysh -c "show ip bgp"
-```
-
-`w1`, `w2`, `w3` の speaker との BGP セッションが `Established` になっていることを確認します。
-
-### 5. Kubernetes 側の確認
-
-```bash
-# BGP セッション状態
 kubectl -n metallb get bgppeers
-
-# 払い出し済み IP の確認
+kubectl -n metallb get bgpadvertisements
+kubectl -n metallb get ipaddresspools
 kubectl get svc -A | grep LoadBalancer
+kubectl -n metallb logs -l app.kubernetes.io/component=speaker -c frr
 ```
 
-## トラブルシューティング
+各 Proxmox ノードで実行します。
 
-### BGP セッションが上がらない場合
+```bash
+vtysh -c 'show bgp ipv4 unicast summary'
+vtysh -c 'show bgp ipv4 unicast'
+vtysh -c 'show bgp ipv4 unicast 10.127.0.10/32'
+ip route show proto bgp
+```
 
-- UDM Pro と Kubernetes Node 間の TCP 179 ポートが開いているか確認
-- MetalLB speaker Pod のログを確認:
-  ```bash
-  kubectl -n metallb logs -l app.kubernetes.io/component=speaker -c frr
-  ```
+Proxmox の peer は `192.168.5.1`, `10.0.40.51`, `10.0.40.52`, `10.0.40.53` です。
+UniFi では両 Proxmox セッションが Established であり、`10.127.x.x/32` を両方から
+受信していることを確認します。
 
-### IP が払い出されない場合
+## ロールバック
 
-- `autoAssign: true` のため、特別なアノテーションなしで払い出されることを確認
-- `kubectl -n metallb get ipaddresspool` でプールの状態を確認
+問題時は Git で本変更を戻し、Argo CD 同期後に desired state を確認します。UniFi 直結へ
+戻す必要がある場合は、`udm-pro` の `BGPPeer` を復元し、`BGPAdvertisement.spec.peers`
+に `udm-pro` を追加します。必要に応じて `pve-node1` と `pve-node2` を広告対象から外し、
+Proxmox WebUI の BGP Controller を無効化または削除します。IP pool は変更していないため、
+LoadBalancer Service の IP は原則維持されます。
+
+## BFD
+
+BFD は必須ではありません。通常の keepalive `30s` と hold `90s` で正常動作を確認してから、
+Proxmox が生成する FRR 設定、MetalLB `BFDProfile`、UniFi の対応状況、各 peer 状態と
+障害時の収束時間を実機で検証する別変更として導入します。
