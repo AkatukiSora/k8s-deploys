@@ -1,0 +1,23 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  // Terra is the normal user-facing agent.
+  "default_agent": "terra",
+
+  // depth 0: Terra, depth 1: Sol, depth 2: Luna
+  "subagent_depth": 2,
+
+  "share": "manual",
+
+  // AGENTS.md is loaded automatically. These files add modular context.
+  "instructions": [
+    ".opencode/context/architecture.md",
+    ".opencode/context/invariants.md",
+    ".opencode/context/validation.md",
+    ".opencode/context/operations.md"
+  ],
+
+  "permission": {
+    "external_directory": "deny"
+  }
+}
