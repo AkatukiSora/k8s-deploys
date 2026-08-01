@@ -16,7 +16,10 @@
 全ノード分のMachineConfigを生成し、kube-routerのDaemonSetを全ノードへ先に配備する。
 DaemonSetのinit containerが既存kube-proxyを検出して待機していることを確認してから、
 control planeとworkerを含む全ノードへMachineConfigを適用する。ServiceのIPVS/nftables
-動作を検証してから切り替え完了とする。
+動作を検証してから切り替え完了とする。`cluster.proxy.disabled: true`は既存のTalos
+bootstrap DaemonSetをpruneしないため、全ノードでproxy無効化が有効になったことを確認してから
+`kube-system/kube-proxy` DaemonSetを明示的に削除する。この削除でkube-routerのinit containerが
+nftables cleanupを実行し、service proxyを開始する。
 
 ロールバックは、まずkube-router ApplicationをGitでrevertまたは管理対象から外して
 DaemonSetを停止し、次に `talos/patches/common/proxy.yaml` の参照を

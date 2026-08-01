@@ -11,10 +11,14 @@ CNI management, and NetworkPolicy implementation remain outside this Application
 2. Review the Argo diff and sync this Application first. Confirm the kube-router DaemonSet is
    scheduled on every node, including control planes, with its init container waiting for the
    existing kube-proxy. Do not sync the staged MetalLB unmatched-UDP reject yet.
-3. Apply the generated Talos MachineConfigs to all nodes in a planned all-node cutover; the
-   waiting init containers then clean up kube-proxy nftables state and start kube-router.
-4. Confirm every kube-router pod is Ready and no host kube-proxy process remains.
-5. Validate Service traffic, nftables/IPVS state, and existing Flannel pod routing.
+3. Apply the generated Talos MachineConfigs to all nodes in a planned all-node cutover. Talos
+   prevents future kube-proxy management but does not prune an already-created bootstrap
+   DaemonSet.
+4. After confirming the proxy-disabled MachineConfig is active on every node, delete the existing
+   `kube-system/kube-proxy` DaemonSet. The waiting init containers then clean up kube-proxy
+   nftables state and start kube-router.
+5. Confirm every kube-router pod is Ready and no host kube-proxy process remains.
+6. Validate Service traffic, nftables/IPVS state, and existing Flannel pod routing.
    Only after post-IPVS validation may the staged MetalLB unmatched-UDP reject be deployed.
 
 ## Rollback
@@ -23,7 +27,10 @@ CNI management, and NetworkPolicy implementation remain outside this Application
    its termination cleanup removes kube-router service rules.
 2. Remove or revert the `proxy.yaml` reference in `talos/scripts/generate.sh`.
 3. Regenerate all MachineConfigs and apply them to all nodes to restore Talos-managed kube-proxy.
-4. Confirm kube-proxy is running and validate Service traffic before restoring any optional
+4. Confirm Talos has recreated `kube-system/kube-proxy` before validating Service traffic.
+   Use the captured pre-cutover DaemonSet only as an emergency recovery artifact if it does not
+   return after the Talos configuration is active.
+5. Confirm kube-proxy is running and validate Service traffic before restoring any optional
    MetalLB UDP-reject change.
 
 ## Validation
