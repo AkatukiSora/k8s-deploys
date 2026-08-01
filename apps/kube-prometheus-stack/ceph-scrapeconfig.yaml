@@ -19,5 +19,5 @@ spec:
         namespace: external-ceph
         service: ceph-mgr
       targets:
-        - 192.168.5.101:9283
-        - 192.168.5.102:9283
+        - 192.168.8.101:9283
+        - 192.168.8.102:9283

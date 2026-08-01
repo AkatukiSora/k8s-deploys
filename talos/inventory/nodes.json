@@ -15,6 +15,12 @@
           "mtu": 1500
         }
       ],
+      "ceph": {
+        "address": "192.168.8.11/24",
+        "interface": "ens20",
+        "mtu": 9000,
+        "macAddress": "BC:24:11:08:00:11"
+      },
       "installDisk": "/dev/sda",
       "patch": "patches/nodes/c1.yaml"
     },
@@ -33,6 +39,12 @@
           "mtu": 1500
         }
       ],
+      "ceph": {
+        "address": "192.168.8.12/24",
+        "interface": "ens20",
+        "mtu": 9000,
+        "macAddress": "BC:24:11:08:00:12"
+      },
       "installDisk": "/dev/sda",
       "patch": "patches/nodes/c2.yaml"
     },
@@ -51,6 +63,12 @@
           "mtu": 1500
         }
       ],
+      "ceph": {
+        "address": "192.168.8.13/24",
+        "interface": "ens20",
+        "mtu": 9000,
+        "macAddress": "BC:24:11:08:00:13"
+      },
       "installDisk": "/dev/sda",
       "patch": "patches/nodes/c3.yaml"
     },
@@ -64,6 +82,12 @@
         "macAddress": "bc:24:11:02:73:7c"
       },
       "dhcpInterfaces": [],
+      "ceph": {
+        "address": "192.168.8.51/24",
+        "interface": "ens19",
+        "mtu": 9000,
+        "macAddress": "BC:24:11:08:00:51"
+      },
       "installDisk": "/dev/sda",
       "patch": "patches/nodes/w1.yaml"
     },
@@ -77,6 +101,12 @@
         "macAddress": "bc:24:11:ad:9b:2c"
       },
       "dhcpInterfaces": [],
+      "ceph": {
+        "address": "192.168.8.52/24",
+        "interface": "ens19",
+        "mtu": 9000,
+        "macAddress": "BC:24:11:08:00:52"
+      },
       "installDisk": "/dev/sda",
       "patch": "patches/nodes/w2.yaml"
     },
@@ -90,6 +120,12 @@
         "macAddress": "bc:24:11:f6:a4:cc"
       },
       "dhcpInterfaces": [],
+      "ceph": {
+        "address": "192.168.8.53/24",
+        "interface": "ens19",
+        "mtu": 9000,
+        "macAddress": "BC:24:11:08:00:53"
+      },
       "installDisk": "/dev/sda",
       "patch": "patches/nodes/w3.yaml"
     }

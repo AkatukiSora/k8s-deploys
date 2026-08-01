@@ -36,6 +36,8 @@ jq -e '
   (.managementNetwork.dnsServers | length > 0)
 ' "$cluster_file" >/dev/null || fail "cluster configuration is incomplete"
 
+jq -e 'all(.nodes[]; .ceph.address != "" and .ceph.interface != "" and .ceph.mtu > 0)' "$inventory_file" >/dev/null || fail "Ceph network configuration is incomplete"
+
 if [[ -n "$requested_node" ]]; then
   jq -e --arg node "$requested_node" '.nodes[] | select(.name == $node)' "$inventory_file" >/dev/null || fail "unknown node: $requested_node"
   node_filter=(--arg node "$requested_node" '.nodes[] | select(.name == $node)')
@@ -85,12 +87,15 @@ EOF
 render_node_patch() {
   local node_json="$1"
   local output="$2"
-  local name address interface mtu disk
+  local name address interface mtu disk ceph_address ceph_interface ceph_mtu
   name=$(jq -r '.name' <<<"$node_json")
   address=$(jq -r '.management.address' <<<"$node_json")
   interface=$(jq -r '.management.interface' <<<"$node_json")
   mtu=$(jq -r '.management.mtu' <<<"$node_json")
   disk=$(jq -r '.installDisk' <<<"$node_json")
+  ceph_address=$(jq -r '.ceph.address' <<<"$node_json")
+  ceph_interface=$(jq -r '.ceph.interface' <<<"$node_json")
+  ceph_mtu=$(jq -r '.ceph.mtu' <<<"$node_json")
 
   cat >"$output" <<EOF
 machine:
@@ -113,6 +118,13 @@ EOF
         dhcp: true
 EOF
     done
+
+  cat >>"$output" <<EOF
+      - interface: $ceph_interface
+        mtu: $ceph_mtu
+        addresses:
+          - $ceph_address
+EOF
 
   cat >>"$output" <<EOF
   install:

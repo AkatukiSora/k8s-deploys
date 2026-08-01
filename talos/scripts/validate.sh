@@ -18,6 +18,8 @@ vip=$(jq -r '.vip' "$cluster_file")
 qemu_guest_agent_schematic=$(jq -r '.proxmox.qemuGuestAgentSchematic' "$cluster_file")
 [[ $(jq -r '([.nodes[].name] | length) == ([.nodes[].name] | unique | length)' "$inventory_file") == true ]] || fail "duplicate hostname in inventory"
 [[ $(jq -r '([.nodes[].management.address] | length) == ([.nodes[].management.address] | unique | length)' "$inventory_file") == true ]] || fail "duplicate management IP in inventory"
+[[ $(jq -r '([.nodes[].ceph.address] | length) == ([.nodes[].ceph.address] | unique | length)' "$inventory_file") == true ]] || fail "duplicate Ceph IP in inventory"
+[[ $(jq -r '([.nodes[].ceph.macAddress] | length) == ([.nodes[].ceph.macAddress] | unique | length)' "$inventory_file") == true ]] || fail "duplicate Ceph MAC in inventory"
 
 [[ $(jq -r --arg vip "$vip" '[.nodes[].management.address | split("/")[0]] | index($vip) == null' "$inventory_file") == true ]] || fail "VIP duplicates a node IP"
 [[ $(jq -r '.kubernetesEndpoint | contains("c.k8s.internal")' "$cluster_file") == true ]] || fail "Kubernetes endpoint must use c.k8s.internal"
@@ -25,6 +27,8 @@ qemu_guest_agent_schematic=$(jq -r '.proxmox.qemuGuestAgentSchematic' "$cluster_
 [[ $(jq -r '[.nodes[] | select(.role == "controlplane") | .management.interface] | unique | length == 1' "$inventory_file") == true ]] || fail "control plane VIP interfaces differ"
 [[ $(jq -r '(.managementNetwork.dnsServers | length) == (.managementNetwork.dnsServers | unique | length)' "$cluster_file") == true ]] || fail "duplicate DNS server in common configuration"
 [[ $(jq -r 'all(.nodes[]; ([.dhcpInterfaces[].interface] | length) == ([.dhcpInterfaces[].interface] | unique | length))' "$inventory_file") == true ]] || fail "duplicate DHCP interface in node configuration"
+[[ $(jq -r 'all(.nodes[]; .ceph.address | startswith("192.168.8."))' "$inventory_file") == true ]] || fail "Ceph IPs must use 192.168.8.0/24"
+[[ $(jq -r 'all(.nodes[]; . as $node | .ceph.mtu == 9000 and .ceph.interface != .management.interface and ([.dhcpInterfaces[].interface] | index($node.ceph.interface) | not))' "$inventory_file") == true ]] || fail "invalid Ceph interface configuration"
 
 expected_nodes=$(jq -r '.nodes | length' "$inventory_file")
 controlplanes=$(jq -r '[.nodes[] | select(.role == "controlplane")] | length' "$inventory_file")
@@ -42,6 +46,10 @@ for config in "$root"/talos/generated/*.yaml; do
   else
     [[ "$content" != *"Layer2VIPConfig"* ]] || fail "$name must not contain a VIP"
   fi
+  node=${name%.yaml}
+  ceph_address=$(jq -r --arg node "$node" '.nodes[] | select(.name == $node) | .ceph.address' "$inventory_file")
+  ceph_interface=$(jq -r --arg node "$node" '.nodes[] | select(.name == $node) | .ceph.interface' "$inventory_file")
+  [[ "$content" == *"- $ceph_address"* && "$content" == *"interface: $ceph_interface"* ]] || fail "$name is missing the Ceph interface"
 done
 
 [[ -f "$root/talos/generated/talosconfig" ]] || fail "talosconfig was not generated"
