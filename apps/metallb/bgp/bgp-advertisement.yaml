@@ -15,6 +15,7 @@ spec:
   # BGP peer を明示的に指定 (全 peer に広告する場合は省略可)
   peers:
     - udm-pro
+    - pve-node1
   # アグリゲーション: /32 単位でなくプールのCIDR全体を広告する場合は設定
   # aggregationLength: 24
   # communities: []

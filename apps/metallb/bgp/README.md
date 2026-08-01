@@ -12,12 +12,17 @@
 | Kubernetes ASN        | 65020                        |
 | BGP モード            | eBGP multihop (FRR)          |
 
+> `pve-node1` は Proxmox SDN の `bgpnode1` controller が管理します。移行中は
+> `udm-pro` と `pve-node1` の両方へ広告し、Proxmox 経由の経路確認後に
+> UniFi 直結 peer を削除します。
+
 ## ファイル構成
 
 ```
 apps/metallb/bgp/
 ├── ip-address-pool.yaml    # LB に払い出す IP プール
-├── bgp-peer.yaml           # UDM Pro を BGP peer として登録
+├── bgp-peer.yaml           # 移行中の UDM Pro BGP peer
+├── bgp-peer-pve-node1.yaml # Proxmox SDN node1 BGP peer
 └── bgp-advertisement.yaml  # プールを BGP で広告する設定
 ```
 
