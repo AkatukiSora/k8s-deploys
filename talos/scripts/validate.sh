@@ -45,6 +45,7 @@ for config in "$root"/talos/generated/*.yaml; do
   name=${config##*/}
   content=$(<"$config")
   [[ "$content" == version:\ v1alpha1* && "$content" == *$'\nmachine:'* ]] || fail "$name is not a generated MachineConfig"
+  [[ "$content" == *$'\n    proxy:\n        disabled: true'* ]] || fail "$name does not disable the Talos cluster proxy"
   [[ "$content" == *"factory.talos.dev/installer/$qemu_guest_agent_schematic"* ]] || fail "$name is missing the QEMU guest-agent installer image"
   if [[ $name == c*.yaml ]]; then
     [[ "$content" == *"kind: Layer2VIPConfig"* && "$content" == *"name: $vip"* ]] || fail "$name is missing the control plane VIP"
