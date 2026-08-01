@@ -16,6 +16,12 @@ spec:
   peers:
     - pve-node1
     - pve-node2
+    - w1-pve-node1
+    - w1-pve-node2
+    - w2-pve-node1
+    - w2-pve-node2
+    - w3-pve-node1
+    - w3-pve-node2
   # アグリゲーション: /32 単位でなくプールのCIDR全体を広告する場合は設定
   # aggregationLength: 24
   # communities: []

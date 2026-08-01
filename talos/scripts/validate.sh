@@ -29,6 +29,11 @@ qemu_guest_agent_schematic=$(jq -r '.proxmox.qemuGuestAgentSchematic' "$cluster_
 [[ $(jq -r 'all(.nodes[]; ([.dhcpInterfaces[].interface] | length) == ([.dhcpInterfaces[].interface] | unique | length))' "$inventory_file") == true ]] || fail "duplicate DHCP interface in node configuration"
 [[ $(jq -r 'all(.nodes[]; .ceph.address | startswith("192.168.8."))' "$inventory_file") == true ]] || fail "Ceph IPs must use 192.168.8.0/24"
 [[ $(jq -r 'all(.nodes[]; . as $node | .ceph.mtu == 9000 and .ceph.interface != .management.interface and ([.dhcpInterfaces[].interface] | index($node.ceph.interface) | not))' "$inventory_file") == true ]] || fail "invalid Ceph interface configuration"
+[[ $(jq -r 'all(.nodes[]; if .role == "worker" then (.transit.address != null and .transit.interface != null and .transit.mtu == 9000) else (.transit == null) end)' "$inventory_file") == true ]] || fail "transit is required only for workers and must use MTU 9000"
+[[ $(jq -r 'all(.nodes[]; if .role == "worker" then (.transit.address | startswith("192.168.10.") and endswith("/24")) else true end)' "$inventory_file") == true ]] || fail "transit IPs must use 192.168.10.0/24"
+[[ $(jq -r '([.nodes[] | select(.role == "worker") | .transit.address] | length) == ([.nodes[] | select(.role == "worker") | .transit.address] | unique | length)' "$inventory_file") == true ]] || fail "duplicate transit IP in inventory"
+[[ $(jq -r '([.nodes[] | select(.role == "worker") | (.transit.macAddress | ascii_downcase)] | length) == ([.nodes[] | select(.role == "worker") | (.transit.macAddress | ascii_downcase)] | unique | length)' "$inventory_file") == true ]] || fail "duplicate transit MAC in inventory"
+[[ $(jq -r 'all(.nodes[]; . as $node | if .role == "worker" then (.transit.interface != .management.interface and .transit.interface != .ceph.interface and ([.dhcpInterfaces[].interface] | index($node.transit.interface) | not)) else true end)' "$inventory_file") == true ]] || fail "transit interface conflicts with another network interface"
 
 expected_nodes=$(jq -r '.nodes | length' "$inventory_file")
 controlplanes=$(jq -r '[.nodes[] | select(.role == "controlplane")] | length' "$inventory_file")
@@ -50,6 +55,13 @@ for config in "$root"/talos/generated/*.yaml; do
   ceph_address=$(jq -r --arg node "$node" '.nodes[] | select(.name == $node) | .ceph.address' "$inventory_file")
   ceph_interface=$(jq -r --arg node "$node" '.nodes[] | select(.name == $node) | .ceph.interface' "$inventory_file")
   [[ "$content" == *"- $ceph_address"* && "$content" == *"interface: $ceph_interface"* ]] || fail "$name is missing the Ceph interface"
+  transit_address=$(jq -r --arg node "$node" '.nodes[] | select(.name == $node) | .transit.address // empty' "$inventory_file")
+  transit_interface=$(jq -r --arg node "$node" '.nodes[] | select(.name == $node) | .transit.interface // empty' "$inventory_file")
+  if [[ -n "$transit_address" ]]; then
+    [[ "$content" == *"- $transit_address"* && "$content" == *"interface: $transit_interface"* ]] || fail "$name is missing the transit interface"
+  else
+    [[ "$content" != *"192.168.10."* ]] || fail "$name must not contain the worker transit address"
+  fi
 done
 
 [[ -f "$root/talos/generated/talosconfig" ]] || fail "talosconfig was not generated"

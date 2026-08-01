@@ -88,6 +88,12 @@
         "mtu": 9000,
         "macAddress": "BC:24:11:08:00:51"
       },
+      "transit": {
+        "address": "192.168.10.51/24",
+        "interface": "ens20",
+        "mtu": 9000,
+        "macAddress": "BC:24:11:10:00:51"
+      },
       "installDisk": "/dev/sda",
       "patch": "patches/nodes/w1.yaml"
     },
@@ -107,6 +113,12 @@
         "mtu": 9000,
         "macAddress": "BC:24:11:08:00:52"
       },
+      "transit": {
+        "address": "192.168.10.52/24",
+        "interface": "ens20",
+        "mtu": 9000,
+        "macAddress": "BC:24:11:10:00:52"
+      },
       "installDisk": "/dev/sda",
       "patch": "patches/nodes/w2.yaml"
     },
@@ -125,6 +137,12 @@
         "interface": "ens19",
         "mtu": 9000,
         "macAddress": "BC:24:11:08:00:53"
+      },
+      "transit": {
+        "address": "192.168.10.53/24",
+        "interface": "ens20",
+        "mtu": 9000,
+        "macAddress": "BC:24:11:10:00:53"
       },
       "installDisk": "/dev/sda",
       "patch": "patches/nodes/w3.yaml"

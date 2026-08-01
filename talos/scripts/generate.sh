@@ -87,8 +87,9 @@ EOF
 render_node_patch() {
   local node_json="$1"
   local output="$2"
-  local name address interface mtu disk ceph_address ceph_interface ceph_mtu
+  local name role address interface mtu disk ceph_address ceph_interface ceph_mtu
   name=$(jq -r '.name' <<<"$node_json")
+  role=$(jq -r '.role' <<<"$node_json")
   address=$(jq -r '.management.address' <<<"$node_json")
   interface=$(jq -r '.management.interface' <<<"$node_json")
   mtu=$(jq -r '.management.mtu' <<<"$node_json")
@@ -125,6 +126,19 @@ EOF
         addresses:
           - $ceph_address
 EOF
+
+  if [[ "$role" == worker && "$(jq -r 'has("transit")' <<<"$node_json")" == true ]]; then
+    local transit_address transit_interface transit_mtu
+    transit_address=$(jq -r '.transit.address' <<<"$node_json")
+    transit_interface=$(jq -r '.transit.interface' <<<"$node_json")
+    transit_mtu=$(jq -r '.transit.mtu' <<<"$node_json")
+    cat >>"$output" <<EOF
+      - interface: $transit_interface
+        mtu: $transit_mtu
+        addresses:
+          - $transit_address
+EOF
+  fi
 
   cat >>"$output" <<EOF
   install:
