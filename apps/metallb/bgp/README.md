@@ -3,7 +3,7 @@
 ## 共存フェーズ構成
 
 MetalLB は LoadBalancer IP の経路広告専用です。外部経路を受信して Kubernetes
-ノードのルーティングへ利用しません。MetalLB と UniFi は直接 peer を張りません。
+ノードのルーティングへ利用しません。VLAN 10 では MetalLB worker と UniFi が直接 peer を張ります。
 移行中は既存の共有ネットワーク peer (`192.168.5.101/.102`) を残したまま、worker
 専用 VLAN 10 に同じ Proxmox peer への6セッションを追加します。
 
@@ -14,11 +14,12 @@ MetalLB / AS65020
   |                              +-- eBGP -- UniFi / AS65000
   +-- Proxmox node2 / AS65010 --+  (既存: 192.168.5.102)
   +-- VLAN 10: workers / AS65020 -- Proxmox VLAN 10 / AS65010
+  +-- VLAN 10: workers / AS65020 -- UniFi / AS65000
 ```
 
 | 構成要素 | IP / ASN |
 | --- | --- |
-| UniFi / UDM Pro | `192.168.5.1` / AS65000 |
+| UniFi / UDM Pro | `192.168.5.1`, `192.168.10.1` / AS65000 |
 | Proxmox node1 | `192.168.5.101` / AS65010 |
 | Proxmox node2 | `192.168.5.102` / AS65010 |
 | Kubernetes worker | `10.0.40.51`, `10.0.40.52`, `10.0.40.53` / AS65020 |
@@ -31,7 +32,8 @@ MetalLB / AS65020
 
 各 worker speaker は VLAN 10 上で node1 と node2 の両方へ直接 eBGP 接続します。広告される
 LoadBalancer IP は通常 `/32` です。Proxmox での期待 AS Path は `65020`、UniFi
-での期待 AS Path は `65010 65020` です。
+のVLAN 10直結経路では `65020`、Proxmox経由では `65010 65020` です。UniFiは
+直結経路を優先し、Proxmox経由を冗長経路として維持します。
 
 ## GitOps マニフェスト
 
@@ -41,7 +43,8 @@ apps/metallb/bgp/
 ├── bgp-peer-pve-node1.yaml     # Proxmox node1 BGP peer
 ├── bgp-peer-pve-node2.yaml     # Proxmox node2 BGP peer
 ├── bgp-peer-w{1,2,3}-pve-node{1,2}.yaml # VLAN 10 worker-specific peers
-└── bgp-advertisement.yaml      # bgp-pool を両 Proxmox peer だけへ広告
+├── bgp-peer-w{1,2,3}-unifi.yaml # VLAN 10 worker-specific UniFi peers
+└── bgp-advertisement.yaml      # bgp-pool をProxmoxとUniFiへ広告
 ```
 
 `installs/metallb.yaml` はこのディレクトリを Argo CD の source として直接管理します。
@@ -83,11 +86,15 @@ prefix list を利用できる場合だけ、`10.127.0.0/24 le 32` のみを Uni
 Proxmox VM に `ens20` を追加し、worker では上表の MAC、VLAN tag `10`、MTU `9000` を
 設定します。worker は VLAN 10 に gateway、route、DHCP を設定しません。control-plane
 には transit NIC を追加しません。UniFi には引き続き Proxmox の共有ネットワーク peer
-のみを設定し、MetalLB worker を UniFi の peer として設定しません。
+とVLAN 10のMetalLB workerをpeerとして設定します。VLAN 10の直結peerは
+`192.168.10.51-.53`、remote AS `65020`、eBGP multihop無効です。
 
 ```text
 192.168.5.101 remote-as 65010
 192.168.5.102 remote-as 65010
+192.168.10.51 remote-as 65020
+192.168.10.52 remote-as 65020
+192.168.10.53 remote-as 65020
 ```
 
 可能であれば受信 prefix は `10.127.0.0/24 le 32` に制限します。`10.127.0.0/24`
@@ -98,11 +105,11 @@ Proxmox VM に `ens20` を追加し、worker では上表の MAC、VLAN tag `10`
 1. Proxmox/UniFi で VLAN 10、worker NIC、`.101/.102` を設定し、既存共有 peer が維持されることを確認します。
 2. Proxmox node1/node2 の Controller を設定し、SDN で Apply します。
 3. `TALOS_SECRETS_FILE=/secure/path/secrets.yaml mise run talos-validate` を実行します。
-4. Argo CD の差分で6つの新 peerと advertisementの peer listだけを確認して同期します。
-5. MetalLB と各 Proxmox worker peer の6セッションが Established になることを確認します。
+4. Argo CD の差分で6つのProxmox peer、3つのUniFi peerとadvertisementの peer listを確認して同期します。
+5. MetalLB と各 Proxmox worker peerの6セッション、およびUniFi直結3セッションがEstablishedになることを確認します。
 6. Proxmox が `10.127.0.0/24` 配下の経路を受信し、UniFi へ再広告することを確認します。
-7. UniFi で AS Path が `65010 65020`、next hop が `192.168.5.101` または
-   `192.168.5.102` であることを確認します。
+7. UniFiで直結経路のAS Pathが`65020`、next hopが`192.168.10.51-.53`となり、
+   Proxmox経由のAS Pathが`65010 65020`として冗長経路に残ることを確認します。
 8. テスト用 LoadBalancer IP へ UniFi 配下から疎通確認します。
 
 ```bash
@@ -129,8 +136,8 @@ Proxmox node1 の peer は `192.168.5.1`, `10.0.40.51-.53`, `192.168.8.51-.53`,
 
 ## ロールバック
 
-問題時は新しい6 peerと advertisementの新 peer名を除去する Git 差分を Argo CD で同期し、
-Proxmox の VLAN 10 peer を無効化します。既存の `pve-node1`/`pve-node2` peer と pool は
+問題時は新しい9 peerと advertisementの新 peer名を除去する Git 差分を Argo CD で同期し、
+Proxmox とUniFiのVLAN 10 peerを無効化します。既存の `pve-node1`/`pve-node2` peer と pool は
 残るため、共有ネットワーク経由の広告へ戻せます。IP pool は変更していないため、
 LoadBalancer Service の IP は原則維持されます。
 

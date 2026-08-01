@@ -1,0 +1,21 @@
+apiVersion: metallb.io/v1beta2
+kind: BGPPeer
+metadata:
+  name: w1-unifi
+  namespace: metallb
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  labels:
+    app.kubernetes.io/name: metallb
+    app.kubernetes.io/component: bgp-peer
+spec:
+  peerAddress: 192.168.10.1
+  peerASN: 65000
+  myASN: 65020
+  sourceAddress: 192.168.10.51
+  ebgpMultiHop: false
+  nodeSelectors:
+    - matchLabels:
+        kubernetes.io/hostname: w1
+  keepaliveTime: 30s
+  holdTime: 90s

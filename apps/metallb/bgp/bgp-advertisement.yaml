@@ -12,7 +12,7 @@ spec:
   # 広告対象の IPAddressPool を指定
   ipAddressPools:
     - bgp-pool
-  # Proxmox 経由でのみ LoadBalancer IP を広告する
+  # Proxmox 経由と VLAN 10 の UniFi 直結へ LoadBalancer IP を広告する
   peers:
     - pve-node1
     - pve-node2
@@ -22,6 +22,9 @@ spec:
     - w2-pve-node2
     - w3-pve-node1
     - w3-pve-node2
+    - w1-unifi
+    - w2-unifi
+    - w3-unifi
   # アグリゲーション: /32 単位でなくプールのCIDR全体を広告する場合は設定
   # aggregationLength: 24
   # communities: []
