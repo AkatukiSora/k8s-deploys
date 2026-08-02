@@ -3,9 +3,14 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - onepassworditem.yaml
+  - hls-proxy-onepassworditem.yaml
   - configmap.yaml
+  - hls-proxy-configmap.yaml
   - networkpolicy.yaml
+  - hls-proxy-networkpolicy.yaml
   - deployment.yaml
+  - hls-proxy-deployment.yaml
   - service.yaml
+  - hls-proxy-service.yaml
   - servicemonitor.yaml
   - ingress.yaml

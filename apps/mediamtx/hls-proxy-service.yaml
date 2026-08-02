@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  labels:
+    app.kubernetes.io/name: mediamtx-hls-proxy
+  name: mediamtx-hls-proxy
+  namespace: mediamtx
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: mediamtx-hls-proxy
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: http

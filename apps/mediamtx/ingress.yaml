@@ -15,6 +15,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: mediamtx-hls
+                name: mediamtx-hls-proxy
                 port:
-                  name: hls
+                  name: http

@@ -35,3 +35,14 @@ audio, 30 fps, and a one-second keyframe interval.
 The current compatibility trial uses standard fMP4 HLS with one-second
 segments. LL-HLS parts are intentionally disabled. Changing the HLS variant
 restarts the single replica and interrupts the current stream.
+
+## HLS proxy
+
+Cloudflare Tunnel routes HLS requests through `mediamtx-hls-proxy`. The proxy
+adds an internal CDN header so MediaMTX does not require client cookies or
+session query parameters on HLS child playlists and segments.
+
+`mediamtx-hls-cdn` is synced by the 1Password Operator and must contain a
+non-empty `secret` field. It is an internal routing value, not a viewer
+credential. Rotate it as maintenance: update the 1Password item, wait for both
+the proxy and MediaMTX Deployments to restart, then verify the public playlist.

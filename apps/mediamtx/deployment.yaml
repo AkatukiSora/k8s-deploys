@@ -15,7 +15,7 @@ spec:
   template:
     metadata:
       annotations:
-        mediamtx.akatuki-host.com/config-version: fmp4-v1
+        mediamtx.akatuki-host.com/config-version: fmp4-cdn-v1
       labels:
         app.kubernetes.io/name: mediamtx
     spec:
@@ -35,6 +35,11 @@ spec:
                 secretKeyRef:
                   name: mediamtx-rtmp-auth
                   key: password
+            - name: MTX_HLSCDNSECRET
+              valueFrom:
+                secretKeyRef:
+                  name: mediamtx-hls-cdn
+                  key: secret
           ports:
             - name: rtmp
               containerPort: 1935

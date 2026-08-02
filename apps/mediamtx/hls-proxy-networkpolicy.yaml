@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+  name: mediamtx-hls-proxy-ingress
+  namespace: mediamtx
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: mediamtx-hls-proxy
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: cloudflare-tunnel-ingress-controller
+      ports:
+        - protocol: TCP
+          port: 8080

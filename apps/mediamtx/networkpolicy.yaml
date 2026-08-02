@@ -26,6 +26,13 @@ spec:
         - protocol: TCP
           port: 8888
     - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: mediamtx-hls-proxy
+      ports:
+        - protocol: TCP
+          port: 8888
+    - from:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: monitoring
