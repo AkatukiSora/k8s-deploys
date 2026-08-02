@@ -41,8 +41,8 @@ data:
     hlsAddress: :8888
     hlsAlwaysRemux: true
     hlsVariant: mpegts
-    hlsSegmentDuration: 1s
-    hlsSegmentCount: 7
+    hlsSegmentDuration: 500ms
+    hlsSegmentCount: 6
     webrtc: false
     srt: false
     moq: false
