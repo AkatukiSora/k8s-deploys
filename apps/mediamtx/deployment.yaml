@@ -14,6 +14,8 @@ spec:
       app.kubernetes.io/name: mediamtx
   template:
     metadata:
+      annotations:
+        mediamtx.akatuki-host.com/config-version: mpegts-v1
       labels:
         app.kubernetes.io/name: mediamtx
     spec:
