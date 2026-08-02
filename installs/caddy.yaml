@@ -3,11 +3,13 @@ kind: Application
 metadata:
   name: caddy-test
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: caddy-test
-  project: default
+  project: soras-tenant
   source:
     path: apps/caddy
     repoURL: https://github.com/AkatukiSora/k8s-deploys.git

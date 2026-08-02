@@ -3,6 +3,8 @@ kind: Kustomization
 commonAnnotations:
   argocd.argoproj.io/sync-wave: "10"
 resources:
+  - enforce/disallow-tenant-argocd-apps.yaml
+  - enforce/disallow-tenant-onepassworditems.yaml
   - audit/disallow-privileged.yaml
   - audit/disallow-host-namespaces.yaml
   - audit/disallow-latest-tag.yaml

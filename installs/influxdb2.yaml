@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: influx-db
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   destination:
     namespace: influxdb
@@ -20,7 +22,7 @@ spec:
     - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
       targetRevision: master
       ref: repo
-  project: default
+  project: soras-tenant
   syncPolicy:
     automated:
       prune: true

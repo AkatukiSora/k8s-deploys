@@ -1,0 +1,28 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: enforce-disallow-tenant-argocd-apps
+  annotations:
+    policies.kyverno.io/category: Multi Tenancy
+spec:
+  admission: true
+  validationFailureAction: Enforce
+  background: true
+  emitWarning: false
+  rules:
+    - name: tenant-argocd-apps-disallowed
+      skipBackgroundRequests: true
+      match:
+        any:
+          - resources:
+              kinds:
+                - argoproj.io/v1alpha1/Application
+                - argoproj.io/v1alpha1/ApplicationSet
+              namespaceSelector:
+                matchExpressions:
+                  - key: capsule.clastix.io/tenant
+                    operator: Exists
+      validate:
+        allowExistingViolations: true
+        message: "Tenant namespaces cannot manage Argo CD Application or ApplicationSet resources."
+        deny: {}
