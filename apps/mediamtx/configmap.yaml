@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+  name: mediamtx-config
+  namespace: mediamtx
+data:
+  mediamtx.yml: |
+    logLevel: info
+    logDestinations: [stdout]
+
+    authMethod: internal
+    authInternalUsers:
+      - user: any
+        permissions:
+          - action: read
+            path: live
+      - user: any
+        permissions:
+          - action: metrics
+      # The container replaces these empty values from the Secret before
+      # MediaMTX starts.
+      - user: ""
+        pass: ""
+        permissions:
+          - action: publish
+            path: live
+
+    api: true
+    apiAddress: :9997
+    metrics: true
+    metricsAddress: :9998
+    pprof: false
+    playback: false
+
+    rtsp: false
+    rtmp: true
+    rtmpAddress: :1935
+    hls: true
+    hlsAddress: :8888
+    hlsAlwaysRemux: true
+    hlsVariant: lowLatency
+    hlsSegmentDuration: 1s
+    hlsPartDuration: 200ms
+    hlsSegmentCount: 7
+    webrtc: false
+    srt: false
+    moq: false
+
+    pathDefaults:
+      record: false
+      overridePublisher: false
+    paths:
+      live:
+        source: publisher

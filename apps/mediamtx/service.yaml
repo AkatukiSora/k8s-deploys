@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  labels:
+    app.kubernetes.io/name: mediamtx
+  name: mediamtx-rtmp
+  namespace: mediamtx
+spec:
+  type: LoadBalancer
+  loadBalancerSourceRanges:
+    - 192.168.9.0/24
+  selector:
+    app.kubernetes.io/name: mediamtx
+  ports:
+    - name: rtmp
+      port: 1935
+      protocol: TCP
+      targetPort: rtmp
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  labels:
+    app.kubernetes.io/name: mediamtx
+  name: mediamtx-hls
+  namespace: mediamtx
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: mediamtx
+  ports:
+    - name: hls
+      port: 8888
+      protocol: TCP
+      targetPort: hls
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  labels:
+    app.kubernetes.io/name: mediamtx
+  name: mediamtx-management
+  namespace: mediamtx
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: mediamtx
+  ports:
+    - name: api
+      port: 9997
+      protocol: TCP
+      targetPort: api
+    - name: metrics
+      port: 9998
+      protocol: TCP
+      targetPort: metrics
