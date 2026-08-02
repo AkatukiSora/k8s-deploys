@@ -32,9 +32,9 @@ audio, 30 fps, and a one-second keyframe interval.
 
 ## HLS profile
 
-The current compatibility trial uses standard fMP4 HLS with one-second
-segments. LL-HLS parts are intentionally disabled. Changing the HLS variant
-restarts the single replica and interrupts the current stream.
+The current compatibility trial uses MPEG-TS HLS with one-second segments.
+LL-HLS parts are intentionally disabled. Changing the HLS variant restarts the
+single replica and interrupts the current stream.
 
 ## HLS proxy
 

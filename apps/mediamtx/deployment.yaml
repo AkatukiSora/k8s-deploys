@@ -15,7 +15,7 @@ spec:
   template:
     metadata:
       annotations:
-        mediamtx.akatuki-host.com/config-version: fmp4-cdn-v1
+        mediamtx.akatuki-host.com/config-version: mpegts-cdn-v1
       labels:
         app.kubernetes.io/name: mediamtx
     spec:

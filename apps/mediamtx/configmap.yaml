@@ -40,7 +40,7 @@ data:
     hls: true
     hlsAddress: :8888
     hlsAlwaysRemux: true
-    hlsVariant: fmp4
+    hlsVariant: mpegts
     hlsSegmentDuration: 1s
     hlsSegmentCount: 7
     webrtc: false
