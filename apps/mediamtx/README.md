@@ -32,9 +32,9 @@ audio, 30 fps, and a one-second keyframe interval.
 
 ## HLS profile
 
-The current low-latency compatibility trial uses MPEG-TS HLS with 500ms
-segments and six retained segments. LL-HLS parts are intentionally disabled.
-Changing the HLS profile restarts the single replica and interrupts the stream.
+The current compatibility profile uses MPEG-TS HLS with one-second segments
+and seven retained segments. LL-HLS parts are intentionally disabled. Changing
+the HLS profile restarts the single replica and interrupts the stream.
 
 ## HLS proxy
 
