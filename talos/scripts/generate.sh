@@ -67,7 +67,6 @@ cleanup() {
 trap cleanup EXIT HUP INT TERM
 
 common_patch="$root/talos/patches/common/network.yaml"
-proxy_patch="$root/talos/patches/common/proxy.yaml"
 oidc_patch="$root/talos/patches/controlplane/oidc.yaml"
 controlplane_patch="$root/talos/patches/controlplane/kubernetes.yaml"
 worker_patch="$root/talos/patches/worker/common.yaml"
@@ -171,7 +170,6 @@ generate_node() {
         --with-docs=false \
         --with-examples=false \
         --config-patch "@$common_patch" \
-        --config-patch "@$proxy_patch" \
         --config-patch "@$proxmox_patch" \
         --config-patch-control-plane "@$oidc_patch" \
         --config-patch-control-plane "@$controlplane_patch" \
@@ -190,7 +188,6 @@ generate_node() {
         --with-docs=false \
         --with-examples=false \
         --config-patch "@$common_patch" \
-        --config-patch "@$proxy_patch" \
         --config-patch "@$proxmox_patch" \
         --config-patch-worker "@$worker_patch" \
         --config-patch "@$node_patch" \
