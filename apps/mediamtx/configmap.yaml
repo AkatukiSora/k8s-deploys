@@ -40,9 +40,8 @@ data:
     hls: true
     hlsAddress: :8888
     hlsAlwaysRemux: true
-    hlsVariant: lowLatency
+    hlsVariant: mpegts
     hlsSegmentDuration: 1s
-    hlsPartDuration: 200ms
     hlsSegmentCount: 7
     webrtc: false
     srt: false

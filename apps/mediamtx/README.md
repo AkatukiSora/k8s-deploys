@@ -30,8 +30,8 @@ audio, 30 fps, and a one-second keyframe interval.
 - The Control API has no remote NetworkPolicy exception. Metrics is available
   only to the `monitoring` namespace.
 
-## MPEG-TS fallback
+## HLS profile
 
-If VRChat cannot reliably play LL-HLS, change `hlsVariant` to `mpegts` and
-remove `hlsPartDuration` from `configmap.yaml`, then sync the application.
-This restarts the single replica and interrupts the current stream.
+The current compatibility-first profile uses MPEG-TS HLS with one-second
+segments. LL-HLS parts are intentionally disabled. Changing the HLS variant
+restarts the single replica and interrupts the current stream.
