@@ -19,13 +19,6 @@ spec:
         - protocol: TCP
           port: 1935
     - from:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: cloudflare-tunnel-ingress-controller
-      ports:
-        - protocol: TCP
-          port: 8888
-    - from:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: mediamtx-hls-proxy
