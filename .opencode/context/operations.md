@@ -1,35 +1,24 @@
 # Operational review guidance
 
-For operationally material changes, determine:
+For material changes determine:
 
 - expected reconciliation sequence;
 - temporary coexistence requirements;
-- observable success signals;
-- failure signals;
-- rollback trigger;
-- rollback action;
-- data-loss, lockout or connectivity risk;
-- which facts require live-cluster observation.
+- observable success and failure signals;
+- rollback trigger and action;
+- data-loss, lockout, or connectivity risk;
+- runtime-only facts requiring observation.
 
-## Escalate to Sol
+## Send to General/Sol
 
-Terra should normally use Sol when one or more of these applies:
+Use General/Sol for:
 
-- storage, backup or recovery design changes;
+- storage, backup, database, or recovery design;
 - networking or routing migration;
-- authentication, authorization or Secret-management architecture;
-- Argo CD hierarchy, multi-source reference, or prune-impact changes;
-- multiple valid designs with materially different failure modes;
-- an irreversible or difficult rollback;
-- contradictory investigation results;
-- a task that remains unresolved after bounded Luna implementation and verification.
+- authentication, authorization, certificates, or secret-management design;
+- Argo CD hierarchy, source path, sync order, or prune-impact changes;
+- multiple valid approaches with materially different failure modes;
+- difficult rollback or irreversible effects;
+- contradictory evidence or cross-component architecture decisions.
 
-Routine changes that follow an existing pattern should normally remain Terra -> Luna.
-
-## Live-cluster operations
-
-`luna-cluster-operator` is the only agent with Kubernetes write permission. Terra
-may invoke it only for an explicitly requested live operation with the target
-context, namespace, exact command intent, success criteria, and rollback or
-recovery action. All other agents may use the permitted read-only Kubernetes
-commands for scoped runtime investigation.
+Routine changes following an established pattern do not require Sol.

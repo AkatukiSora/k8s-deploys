@@ -2,16 +2,17 @@
 
 ## Baseline
 
-Always inspect:
+Inspect:
 
 - `git status --short`;
-- the complete relevant `git diff`;
+- the complete relevant diff;
 - changed resource identities and paths;
-- references to changed names, namespaces and files.
+- references to changed names, namespaces, files, ports, labels, selectors,
+  Secrets, PVCs, and Application sources.
 
-## YAML and Kubernetes
+## Typical static checks
 
-Use tools available in the repository or environment. Typical checks include:
+Select only relevant installed tools:
 
 ```bash
 git diff --check
@@ -19,25 +20,21 @@ yamllint <changed paths>
 kubectl kustomize <affected directory>
 kustomize build <affected directory>
 helm template <release> <chart> -f <values>
-kubeconform -summary -strict -ignore-missing-schemas <rendered or changed manifests>
+kubeconform -summary -strict -ignore-missing-schemas <manifests>
 ```
 
-Do not run commands merely because they are listed here. Select commands relevant to the changed files and installed tools. The repository's current CI workflow only lints and schema-validates `installs/security-*.yaml`, `apps/security`, and the workflow itself; it does not validate general application manifests.
-
-## Limitations to report
+## Report limitations
 
 Explicitly report:
 
 - ignored or unavailable CRD schemas;
-- upstream charts that were not downloaded or rendered;
-- Argo CD multi-source rendering behavior not evaluated;
-- references that can only be resolved in the cluster;
-- runtime metrics, DNS, BGP, storage, identity-provider or backup behavior not observed;
-- validation commands skipped because tools were unavailable.
+- charts not downloaded or rendered;
+- ApplicationSet or templating behavior not evaluated;
+- references resolvable only in the cluster;
+- runtime DNS, BGP, storage, identity-provider, metrics, or backup behavior not observed;
+- checks skipped because tools were unavailable.
 
-## Result vocabulary
-
-Use these distinctions:
+Use precise terms:
 
 - static syntax validated;
 - rendered output validated;

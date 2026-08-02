@@ -1,87 +1,70 @@
 # `k8s-deploys` agent rules
 
-## Repository purpose
+This repository is an Argo CD GitOps source. Treat repository changes as
+operational changes, not merely text edits.
 
-This repository is a GitOps source for a Kubernetes environment reconciled by Argo CD. Treat repository changes as operational changes, not merely text edits.
+## Agent routing
 
-## High-level structure
+- Build and Plan own the user conversation, task scope, final judgment, and final response.
+- Explore uses Luna for high-volume read-only investigation.
+- General uses Sol for non-trivial architecture and design decisions.
+- Luna Implement performs one coarse-grained, already-decided change.
+- Luna Verify independently checks high-risk changes.
+
+Use the shortest safe path. Do not invoke every agent by default.
+
+Delegate high-I/O work when it requires broad cross-file searches, substantial
+history or documentation review, large logs or rendered output, or repetitive
+coherent edits across several files. Keep isolated one- or two-file work in the
+primary agent when delegation overhead would be larger than the work.
+
+Send architecture decisions to General/Sol. Do not ask Luna to invent a design.
+
+## Repository shape
 
 - `apps-root.yaml` is the root Argo CD Application and points to `installs/`.
 - `installs/*.yaml` primarily defines child Argo CD Applications.
-- `apps/<component>/` contains component manifests, Helm values, Kustomize resources, policies, dashboards, scripts, or documentation.
-- Many Applications use Argo CD multi-source: an upstream Helm chart plus this repository as a `ref` source for `$repo/...` or `$values/...` Helm value files, and sometimes a repository path containing additional manifests.
-- Some areas use Kustomize, so inclusion in `kustomization.yaml` is part of correctness.
-- OnePassword `OnePasswordItem` resources are used for Secret material; do not introduce plaintext secret values.
+- `apps/<component>/` contains component manifests, Helm values, Kustomize
+  resources, policies, dashboards, scripts, or documentation.
+- Some Applications combine an upstream Helm chart with files in this repository.
+- Some components use Kustomize; inclusion in `kustomization.yaml` is part of correctness.
 
-Inspect the current repository before relying on these summaries. Current files are authoritative.
+Inspect current files before relying on this summary.
 
 ## GitOps safety
 
-Argo CD automated reconciliation commonly includes `prune` and `selfHeal`. Therefore:
+Automated reconciliation may include prune and self-heal. Treat deletion,
+rename, namespace or kind change, Application source-path change, and rendered
+resource removal as potentially destructive.
 
-- deletion, rename, namespace change, `kind` change, or Application source-path change may delete live resources;
-- a file move is not automatically a harmless refactor;
-- temporary coexistence and migration ordering must be explicit for networking, storage, authentication, backup, and database changes;
-- identify rollback requirements before implementing a potentially destructive change.
+Networking, storage, authentication, backup, and database changes require
+explicit migration ordering, observability, and rollback where material.
 
-## Secret handling
+## Secrets
 
-- Never add plaintext passwords, access tokens, private keys, recovery keys, or secret values.
-- Follow existing external-secret or Secret-reference patterns.
-- Do not print secret values in reports or validation output.
+Never add or print plaintext passwords, tokens, private keys, recovery keys, or
+secret values. Follow existing external-secret and secret-reference patterns.
 
-## Working-tree discipline
+## Working tree
 
 - Preserve unrelated user changes.
 - Inspect `git status` and the relevant diff before editing.
-- Do not commit, push, reset, switch branches, rebase, or rewrite history unless the user explicitly requests it.
-- Only one implementation agent may write to the same working tree at a time.
+- Only one writer agent may modify a working tree at a time.
+- Do not commit, push, reset, switch branches, or rewrite history unless the user explicitly requests it.
 
 ## Cluster interaction
 
-The normal workflow is repository-only and static-validation-only. Read-only
-cluster inspection is permitted when task scope and credentials are appropriate.
-Live-cluster writes are permitted only through the dedicated
-`luna-cluster-operator` agent invoked explicitly by Terra for a stated live
-operation.
+Default to repository-only work and static validation. Do not mutate the live
+cluster with `kubectl apply/delete/patch/edit`, Helm install/upgrade/uninstall,
+or Argo CD sync operations unless explicitly requested and separately scoped.
 
-Do not run live-cluster mutation commands outside `luna-cluster-operator`, including:
+Static manifests do not prove runtime behavior.
 
-- `kubectl apply`, `create`, `replace`, `delete`, `patch`, or `edit`;
-- `helm upgrade`, `install`, or `uninstall`;
-- `argocd app sync` or destructive Argo CD operations.
+## Context files
 
-The dedicated operator must receive the target context, namespace, exact intended
-operation, success criteria, and rollback or recovery action before a mutation.
-Do not claim runtime verification from static manifests.
+Load these only when relevant:
 
-## Validation principles
-
-Use the narrowest relevant validation and expand when appropriate:
-
-1. inspect the semantic diff;
-2. run `git diff --check`;
-3. parse or lint modified YAML;
-4. run `kubectl kustomize` or `kustomize build` for affected Kustomizations;
-5. run `helm template` for affected chart/value combinations where practical;
-6. run `kubeconform` when schemas are available;
-7. search for dangling resource names, paths, namespaces, ports, labels, selectors, Secret references, PVC references, and Application source references.
-
-The repository CI workflow, `.github/workflows/security-ci.yaml`, runs `yamllint` and `kubeconform` only for security manifests. It is not repository-wide validation. A validator passing with missing CRD schemas does not prove that custom resources are correct.
-
-## Agent responsibilities
-
-- Terra owns user intent, task scope, final judgment, and final response.
-- Sol handles difficult decisions, but normally delegates changes to Luna or returns `DELEGATION_REQUIRED` to Terra.
-- Luna Context gathers and compresses evidence without editing.
-- Luna Implement performs one bounded, decided implementation contract.
-- Luna Verify independently reviews the working-tree diff without editing.
-- Luna Cluster Operator performs explicitly requested live-cluster reads or
-  writes without modifying repository files.
-
-When an agent without cluster write permission identifies a necessary live
-mutation, it must complete remaining safe non-mutating work and return a
-`DELEGATION_REQUIRED` packet to Terra. Only Terra can then invoke the dedicated
-cluster operator.
-
-The detailed behavior of each agent is defined in `.opencode/agents/`.
+- `.opencode/context/architecture.md`
+- `.opencode/context/invariants.md`
+- `.opencode/context/validation.md`
+- `.opencode/context/operations.md`

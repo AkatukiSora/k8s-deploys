@@ -1,23 +1,67 @@
 {
   "$schema": "https://opencode.ai/config.json",
 
-  // Terra is the normal user-facing agent.
-  "default_agent": "terra",
-
-  // depth 0: Terra, depth 1: Sol, depth 2: Luna
-  "subagent_depth": 2,
-
+  // Build and Plan remain OpenCode's built-in primary agents. Their model is
+  // intentionally left to the user's selected primary model.
+  "subagent_depth": 1,
   "share": "manual",
-
-  // AGENTS.md is loaded automatically. These files add modular context.
-  "instructions": [
-    ".opencode/context/architecture.md",
-    ".opencode/context/invariants.md",
-    ".opencode/context/validation.md",
-    ".opencode/context/operations.md"
-  ],
 
   "permission": {
     "external_directory": "deny"
+  },
+
+  "agent": {
+    "build": {
+      "prompt": "{file:./.opencode/prompts/build.md}",
+      "permission": { "task": { "*": "deny", "explore": "allow", "general": "allow", "luna-implement": "allow", "luna-verify": "allow" } }
+    },
+    "plan": {
+      "prompt": "{file:./.opencode/prompts/plan.md}",
+      "permission": { "task": { "*": "deny", "explore": "allow", "general": "allow" } }
+    },
+    "explore": {
+      "description": "High-volume read-only repository investigation with compact evidence output",
+      "mode": "subagent",
+      "model": "openai/gpt-5.6-luna",
+      "prompt": "{file:./.opencode/prompts/luna-explore.md}",
+      "temperature": 0.1,
+      "steps": 35,
+      "permission": {
+        "read": "allow", "glob": "allow", "grep": "allow", "list": "allow", "lsp": "allow", "edit": "deny", "external_directory": "deny", "question": "deny", "todowrite": "deny", "webfetch": "allow", "websearch": "allow",
+        "bash": { "*": "ask", "git *": "deny", "kubectl *": "deny", "helm *": "deny", "argocd *": "deny", "git status*": "allow", "git diff*": "allow", "git log*": "allow", "git show*": "allow", "git blame*": "allow", "git ls-files*": "allow", "rg *": "allow", "grep *": "allow", "find *": "allow", "yamllint *": "allow", "kubeconform *": "allow", "helm template*": "allow", "kubectl kustomize*": "allow" },
+        "task": { "*": "deny" }
+      }
+    },
+    "general": {
+      "description": "Architecture and design decision specialist operating on compressed evidence",
+      "mode": "subagent",
+      "model": "openai/gpt-5.6-sol",
+      "prompt": "{file:./.opencode/prompts/sol-architect.md}",
+      "temperature": 0.1,
+      "steps": 30,
+      "permission": {
+        "read": "allow", "glob": "allow", "grep": "allow", "list": "allow", "lsp": "allow", "edit": "deny", "external_directory": "deny", "question": "deny", "todowrite": "deny", "webfetch": "allow", "websearch": "allow",
+        "bash": { "*": "ask", "git *": "deny", "kubectl *": "deny", "helm *": "deny", "argocd *": "deny", "git status*": "allow", "git diff*": "allow", "git log*": "allow", "git show*": "allow", "rg *": "allow", "grep *": "allow" },
+        "task": { "*": "deny" }
+      }
+    },
+    "luna-implement": {
+      "description": "Implements one coarse-grained, bounded, already-decided repository change",
+      "mode": "subagent", "hidden": true, "model": "openai/gpt-5.6-luna", "prompt": "{file:./.opencode/prompts/luna-implement.md}", "temperature": 0.1, "steps": 45,
+      "permission": {
+        "read": "allow", "glob": "allow", "grep": "allow", "list": "allow", "lsp": "allow", "edit": "allow", "external_directory": "deny", "question": "deny", "todowrite": "deny", "webfetch": "allow", "websearch": "allow",
+        "bash": { "*": "ask", "git *": "deny", "kubectl *": "deny", "helm *": "deny", "argocd *": "deny", "git status*": "allow", "git diff*": "allow", "git diff --check*": "allow", "git log*": "allow", "git show*": "allow", "git ls-files*": "allow", "rg *": "allow", "grep *": "allow", "find *": "allow", "yamllint *": "allow", "kubeconform *": "allow", "helm template*": "allow", "kubectl kustomize*": "allow", "kustomize build*": "allow" },
+        "task": { "*": "deny" }
+      }
+    },
+    "luna-verify": {
+      "description": "Independently verifies a high-risk working-tree change against its contract",
+      "mode": "subagent", "hidden": true, "model": "openai/gpt-5.6-luna", "prompt": "{file:./.opencode/prompts/luna-verify.md}", "temperature": 0.1, "steps": 30,
+      "permission": {
+        "read": "allow", "glob": "allow", "grep": "allow", "list": "allow", "lsp": "allow", "edit": "deny", "external_directory": "deny", "question": "deny", "todowrite": "deny", "webfetch": "allow", "websearch": "allow",
+        "bash": { "*": "ask", "git *": "deny", "kubectl *": "deny", "helm *": "deny", "argocd *": "deny", "git status*": "allow", "git diff*": "allow", "git diff --check*": "allow", "git log*": "allow", "git show*": "allow", "git ls-files*": "allow", "rg *": "allow", "grep *": "allow", "find *": "allow", "yamllint *": "allow", "kubeconform *": "allow", "helm template*": "allow", "kubectl kustomize*": "allow", "kustomize build*": "allow" },
+        "task": { "*": "deny" }
+      }
+    }
   }
 }
