@@ -12,6 +12,8 @@ fail() {
 
 command -v jq >/dev/null 2>&1 || fail "required command is not available: jq"
 command -v talosctl >/dev/null 2>&1 || fail "required command is not available: talosctl"
+command -v python3 >/dev/null 2>&1 || fail "required command is not available: python3"
+python3 -c 'import yaml' >/dev/null 2>&1 || fail "python3 PyYAML module is required for RoutingRuleConfig validation"
 
 jq -e '(.nodes | length) > 0' "$inventory_file" >/dev/null || fail "inventory has no nodes"
 vip=$(jq -r '.vip' "$cluster_file")
@@ -40,6 +42,97 @@ controlplanes=$(jq -r '[.nodes[] | select(.role == "controlplane")] | length' "$
 [[ $controlplanes -eq 3 ]] || fail "exactly three control planes are required"
 
 TALOS_SECRETS_FILE="${TALOS_SECRETS_FILE:-}" bash "$root/talos/scripts/generate.sh"
+
+python3 - "$root" <<'PY'
+import ipaddress
+import sys
+from pathlib import Path
+
+import yaml
+
+root = Path(sys.argv[1])
+common_file = root / "talos/patches/worker/common.yaml"
+pool_file = root / "apps/metallb/bgp/ip-address-pool.yaml"
+inventory_file = root / "talos/inventory/nodes.json"
+generated = root / "talos/generated"
+
+expected = [
+    (1000, "10.127.0.0/24", "ens20"),
+    (1001, "10.127.0.0/24", "ens18"),
+]
+
+def fail(message):
+    raise SystemExit(f"error: {message}")
+
+def docs(path):
+    try:
+        return [doc for doc in yaml.safe_load_all(path.read_text()) if doc is not None]
+    except (OSError, yaml.YAMLError) as error:
+        fail(f"cannot parse YAML {path}: {error}")
+
+def rules(path):
+    return [doc for doc in docs(path) if doc.get("kind") == "RoutingRuleConfig"]
+
+def rule_values(rule, generated=False):
+    allowed = {"apiVersion", "kind", "name", "dst", "iifName", "action"}
+    if generated:
+        allowed.add("table")
+    if set(rule) - allowed:
+        fail(f"RoutingRuleConfig has unexpected fields: {rule.get('name', '<unnamed>')}")
+    if rule.get("apiVersion") != "v1alpha1" or rule.get("kind") != "RoutingRuleConfig":
+        fail(f"invalid RoutingRuleConfig identity: {rule}")
+    if not rule.get("name") or rule.get("action") != "unreachable":
+        fail(f"invalid RoutingRuleConfig name/action: {rule.get('name', '<unnamed>')}")
+    if not generated and "table" in rule:
+        fail(f"RoutingRuleConfig source must not set table: {rule['name']}")
+    if generated and rule.get("table") != "unspec":
+        fail(f"generated RoutingRuleConfig must use Talos default table unspec: {rule['name']}")
+    try:
+        priority = int(rule["name"])
+    except (KeyError, TypeError, ValueError):
+        fail(f"RoutingRuleConfig name must be a numeric priority: {rule.get('name', '<unnamed>')}")
+    return (priority, rule.get("dst"), rule.get("iifName"))
+
+common_rules = rules(common_file)
+if len(common_rules) != 2:
+    fail(f"worker patch must contain 2 RoutingRuleConfig documents, found {len(common_rules)}")
+if len({rule.get("name") for rule in common_rules}) != len(common_rules):
+    fail("duplicate RoutingRuleConfig priority in worker patch")
+if sorted(rule_values(rule) + (rule.get("action"),) for rule in common_rules) != sorted(
+    (priority, dst, interface, "unreachable") for priority, dst, interface in expected
+):
+    fail("worker RoutingRuleConfig values do not match the required priorities, destinations, interfaces, and action")
+
+pool_docs = docs(pool_file)
+pools = [doc for doc in pool_docs if doc.get("kind") == "IPAddressPool" and doc.get("metadata", {}).get("name") == "bgp-pool"]
+if len(pools) != 1 or pools[0].get("spec", {}).get("addresses") != ["10.127.0.1-10.127.0.254"]:
+    fail("MetalLB bgp-pool must remain the exact 10.127.0.1-10.127.0.254 range")
+start_text, end_text = pools[0]["spec"]["addresses"][0].split("-")
+pool_addresses = set(range(int(ipaddress.ip_address(start_text)), int(ipaddress.ip_address(end_text)) + 1))
+rule_networks = {ipaddress.ip_network(cidr) for _, cidr, _ in expected}
+if rule_networks != {ipaddress.ip_network("10.127.0.0/24")} or not all(
+    any(ipaddress.ip_address(address) in network for network in rule_networks)
+    for address in pool_addresses
+):
+    fail("RoutingRuleConfig CIDR does not contain the MetalLB pool")
+
+import json
+inventory = json.loads(inventory_file.read_text())
+for node in inventory["nodes"]:
+    path = generated / f"{node['name']}.yaml"
+    node_rules = rules(path)
+    if node["role"] == "controlplane":
+        if node_rules:
+            fail(f"control-plane config contains RoutingRuleConfig: {path.name}")
+    elif len(node_rules) != 2:
+        fail(f"worker config must contain 2 RoutingRuleConfig documents: {path.name}")
+    elif len({rule.get("name") for rule in node_rules}) != len(node_rules):
+        fail(f"duplicate RoutingRuleConfig priority in generated config: {path.name}")
+    elif sorted(rule_values(rule, generated=True) + (rule.get("action"),) for rule in node_rules) != sorted(
+        (priority, dst, interface, "unreachable") for priority, dst, interface in expected
+    ):
+        fail(f"generated worker RoutingRuleConfig values differ: {path.name}")
+PY
 
 for config in "$root"/talos/generated/*.yaml; do
   name=${config##*/}

@@ -1,1 +1,15 @@
 machine: {}
+---
+apiVersion: v1alpha1
+kind: RoutingRuleConfig
+name: "1000"
+dst: 10.127.0.0/24
+iifName: ens20
+action: unreachable
+---
+apiVersion: v1alpha1
+kind: RoutingRuleConfig
+name: "1001"
+dst: 10.127.0.0/24
+iifName: ens18
+action: unreachable

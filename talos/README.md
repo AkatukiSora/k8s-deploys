@@ -10,6 +10,18 @@
 - `patches/nodes`: ノード固有ラベル、Taint、デバイス、ボリューム設定用Patch
 - `secrets`: 1Passwordに保管する平文Secretの扱いを説明する。平文は保存しない
 
+Workerの`RoutingRuleConfig`はMetalLB VIP範囲を`ens20`（VLAN 10直結）と
+`ens18`（旧BGP経路）の両方で`unreachable`にする。kube-proxy nftablesのDNATが
+RPDB判定より先に行われる前提で、Pod宛に変換された有効な通信は遮断せず、未変換の
+VIP宛通信がデフォルト経路へ戻るループを防ぐ。`ens19`、cni0、flannel.1、loopback、
+Control Planeにはルールを追加しない。
+
+`10.127.0.0/24`を両interfaceに適用し、優先度1000（ens20）と1001（ens18）を
+既存RPDBと衝突しない値として使う。Poolの範囲を変更する場合は、このCIDRと検証も
+同時に更新すること。適用はまず一台で
+`try`相当の確認を行い、疎通とループ停止を確認してから一台ずつ順序立てて展開する。
+問題時はRoutingRuleConfigをGitから戻して再生成・同期し、元のルーティングへ戻す。
+
 ## Proxmox QEMU Guest Agent
 
 `cluster/config.json`のImage Factory schematicは`siderolabs/qemu-guest-agent`拡張を含む。生成時に全ノードのinstaller imageへ設定される。
