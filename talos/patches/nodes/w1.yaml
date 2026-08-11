@@ -1,1 +1,25 @@
-machine: {}
+machine:
+  network:
+    interfaces:
+      - interface: ens18
+        mtu: 1450
+        addresses:
+          - 10.0.40.51/24
+        routes:
+          - network: 0.0.0.0/0
+            gateway: 10.0.40.1
+      - interface: ens19
+        mtu: 9000
+        addresses:
+          - 192.168.8.51/24
+      - interface: ens20
+        mtu: 9000
+        addresses:
+          - 192.168.10.51/24
+  install:
+    disk: /dev/sda
+---
+apiVersion: v1alpha1
+kind: HostnameConfig
+hostname: w1
+auto: off

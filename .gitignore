@@ -1,3 +1,4 @@
 /talos/generated/
 /talos/.tmp/
+/talos/secrets/secret.yaml
 /talos/secrets/secrets.yaml

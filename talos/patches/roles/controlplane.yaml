@@ -1,0 +1,24 @@
+cluster:
+  apiServer:
+    extraArgs:
+      oidc-client-id: kubernetes-cluster
+      oidc-issuer-url: https://auth.akatuki-host.com/application/o/kubernetes/
+      oidc-username-claim: username
+      oidc-groups-claim: groups
+      oidc-groups-prefix: "oidc:"
+  controllerManager:
+    extraArgs:
+      bind-address: 0.0.0.0
+  scheduler:
+    extraArgs:
+      bind-address: 0.0.0.0
+  etcd:
+    extraArgs:
+      listen-metrics-urls: http://0.0.0.0:2381
+      backend-batch-interval: "100ms"
+      backend-batch-limit: "10000"
+---
+apiVersion: v1alpha1
+kind: Layer2VIPConfig
+name: 10.0.40.99
+link: ens18

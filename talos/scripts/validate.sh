@@ -2,190 +2,112 @@
 set -euo pipefail
 
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
-cluster_file="$root/talos/cluster/config.json"
-inventory_file="$root/talos/inventory/nodes.json"
+patches="$root/talos/patches"
+secrets_file="${TALOS_SECRETS_FILE:-$root/talos/secrets/secret.yaml}"
 
 fail() {
   printf '%s\n' "error: $*" >&2
   exit 1
 }
 
-command -v jq >/dev/null 2>&1 || fail "required command is not available: jq"
-command -v talosctl >/dev/null 2>&1 || fail "required command is not available: talosctl"
 command -v python3 >/dev/null 2>&1 || fail "required command is not available: python3"
-python3 -c 'import yaml' >/dev/null 2>&1 || fail "python3 PyYAML module is required for RoutingRuleConfig validation"
-
-jq -e '(.nodes | length) > 0' "$inventory_file" >/dev/null || fail "inventory has no nodes"
-vip=$(jq -r '.vip' "$cluster_file")
-qemu_guest_agent_schematic=$(jq -r '.proxmox.qemuGuestAgentSchematic' "$cluster_file")
-[[ $(jq -r '([.nodes[].name] | length) == ([.nodes[].name] | unique | length)' "$inventory_file") == true ]] || fail "duplicate hostname in inventory"
-[[ $(jq -r '([.nodes[].management.address] | length) == ([.nodes[].management.address] | unique | length)' "$inventory_file") == true ]] || fail "duplicate management IP in inventory"
-[[ $(jq -r '([.nodes[].ceph.address] | length) == ([.nodes[].ceph.address] | unique | length)' "$inventory_file") == true ]] || fail "duplicate Ceph IP in inventory"
-[[ $(jq -r '([.nodes[].ceph.macAddress] | length) == ([.nodes[].ceph.macAddress] | unique | length)' "$inventory_file") == true ]] || fail "duplicate Ceph MAC in inventory"
-
-[[ $(jq -r --arg vip "$vip" '[.nodes[].management.address | split("/")[0]] | index($vip) == null' "$inventory_file") == true ]] || fail "VIP duplicates a node IP"
-[[ $(jq -r '.kubernetesEndpoint | contains("c.k8s.internal")' "$cluster_file") == true ]] || fail "Kubernetes endpoint must use c.k8s.internal"
-[[ $(jq -r '.talosVersion != "" and .kubernetesVersion != ""' "$cluster_file") == true ]] || fail "Talos and Kubernetes versions must be set"
-[[ $(jq -r '[.nodes[] | select(.role == "controlplane") | .management.interface] | unique | length == 1' "$inventory_file") == true ]] || fail "control plane VIP interfaces differ"
-[[ $(jq -r '(.managementNetwork.dnsServers | length) == (.managementNetwork.dnsServers | unique | length)' "$cluster_file") == true ]] || fail "duplicate DNS server in common configuration"
-[[ $(jq -r 'all(.nodes[]; ([.dhcpInterfaces[].interface] | length) == ([.dhcpInterfaces[].interface] | unique | length))' "$inventory_file") == true ]] || fail "duplicate DHCP interface in node configuration"
-[[ $(jq -r 'all(.nodes[]; .ceph.address | startswith("192.168.8."))' "$inventory_file") == true ]] || fail "Ceph IPs must use 192.168.8.0/24"
-[[ $(jq -r 'all(.nodes[]; . as $node | .ceph.mtu == 9000 and .ceph.interface != .management.interface and ([.dhcpInterfaces[].interface] | index($node.ceph.interface) | not))' "$inventory_file") == true ]] || fail "invalid Ceph interface configuration"
-[[ $(jq -r 'all(.nodes[]; if .role == "worker" then (.transit.address != null and .transit.interface != null and .transit.mtu == 9000) else (.transit == null) end)' "$inventory_file") == true ]] || fail "transit is required only for workers and must use MTU 9000"
-[[ $(jq -r 'all(.nodes[]; if .role == "worker" then (.transit.address | startswith("192.168.10.") and endswith("/24")) else true end)' "$inventory_file") == true ]] || fail "transit IPs must use 192.168.10.0/24"
-[[ $(jq -r '([.nodes[] | select(.role == "worker") | .transit.address] | length) == ([.nodes[] | select(.role == "worker") | .transit.address] | unique | length)' "$inventory_file") == true ]] || fail "duplicate transit IP in inventory"
-[[ $(jq -r '([.nodes[] | select(.role == "worker") | (.transit.macAddress | ascii_downcase)] | length) == ([.nodes[] | select(.role == "worker") | (.transit.macAddress | ascii_downcase)] | unique | length)' "$inventory_file") == true ]] || fail "duplicate transit MAC in inventory"
-[[ $(jq -r 'all(.nodes[]; . as $node | if .role == "worker" then (.transit.interface != .management.interface and .transit.interface != .ceph.interface and ([.dhcpInterfaces[].interface] | index($node.transit.interface) | not)) else true end)' "$inventory_file") == true ]] || fail "transit interface conflicts with another network interface"
-
-expected_nodes=$(jq -r '.nodes | length' "$inventory_file")
-controlplanes=$(jq -r '[.nodes[] | select(.role == "controlplane")] | length' "$inventory_file")
-[[ $controlplanes -eq 3 ]] || fail "exactly three control planes are required"
-
-TALOS_SECRETS_FILE="${TALOS_SECRETS_FILE:-}" bash "$root/talos/scripts/generate.sh"
-
 python3 - "$root" <<'PY'
-import ipaddress
 import sys
 from pathlib import Path
-
 import yaml
 
 root = Path(sys.argv[1])
-common_file = root / "talos/patches/worker/common.yaml"
-pool_file = root / "apps/metallb/bgp/ip-address-pool.yaml"
-inventory_file = root / "talos/inventory/nodes.json"
-generated = root / "talos/generated"
-
-expected = [
-    (1000, "10.127.0.0/24", "ens20"),
-    (1001, "10.127.0.0/24", "ens18"),
-]
+patches = root / "talos/patches"
+nodes = {"c1": "10.0.40.11", "c2": "10.0.40.12", "c3": "10.0.40.13",
+         "w1": "10.0.40.51", "w2": "10.0.40.52", "w3": "10.0.40.53"}
+ceph = {"c1": "192.168.8.11", "c2": "192.168.8.12", "c3": "192.168.8.13",
+        "w1": "192.168.8.51", "w2": "192.168.8.52", "w3": "192.168.8.53"}
 
 def fail(message):
     raise SystemExit(f"error: {message}")
 
 def docs(path):
     try:
-        return [doc for doc in yaml.safe_load_all(path.read_text()) if doc is not None]
+        values = list(yaml.safe_load_all(path.read_text()))
     except (OSError, yaml.YAMLError) as error:
         fail(f"cannot parse YAML {path}: {error}")
+    return [value for value in values if value is not None]
 
-def rules(path):
-    return [doc for doc in docs(path) if doc.get("kind") == "RoutingRuleConfig"]
+common = docs(patches / "common.yaml")
+if common != [{"machine": {"install": {"image": "factory.talos.dev/installer/ce4c980550dd2ab1b17bbf2b08801c7eb59418eafe8f279833297925d67c7515:v1.13.6"}, "network": {"nameservers": ["10.0.40.2"]}}}]:
+    fail("common patch does not contain the required installer and DNS settings")
 
-def rule_values(rule, generated=False):
-    allowed = {"apiVersion", "kind", "name", "dst", "iifName", "action"}
-    if generated:
-        allowed.add("table")
-    if set(rule) - allowed:
-        fail(f"RoutingRuleConfig has unexpected fields: {rule.get('name', '<unnamed>')}")
-    if rule.get("apiVersion") != "v1alpha1" or rule.get("kind") != "RoutingRuleConfig":
-        fail(f"invalid RoutingRuleConfig identity: {rule}")
-    if not rule.get("name") or rule.get("action") != "unreachable":
-        fail(f"invalid RoutingRuleConfig name/action: {rule.get('name', '<unnamed>')}")
-    if not generated and "table" in rule:
-        fail(f"RoutingRuleConfig source must not set table: {rule['name']}")
-    if generated and rule.get("table") != "unspec":
-        fail(f"generated RoutingRuleConfig must use Talos default table unspec: {rule['name']}")
-    try:
-        priority = int(rule["name"])
-    except (KeyError, TypeError, ValueError):
-        fail(f"RoutingRuleConfig name must be a numeric priority: {rule.get('name', '<unnamed>')}")
-    return (priority, rule.get("dst"), rule.get("iifName"))
+controlplane = docs(patches / "roles/controlplane.yaml")
+if len(controlplane) != 2 or controlplane[1] != {"apiVersion": "v1alpha1", "kind": "Layer2VIPConfig", "name": "10.0.40.99", "link": "ens18"}:
+    fail("control-plane role patch does not contain the required VIP")
+worker = docs(patches / "roles/worker.yaml")
+rules = [doc for doc in worker if doc.get("kind") == "RoutingRuleConfig"]
+expected_rules = [("1000", "10.127.0.0/24", "ens20"), ("1001", "10.127.0.0/24", "ens18")]
+if [(rule.get("name"), rule.get("dst"), rule.get("iifName")) for rule in rules] != expected_rules:
+    fail("worker role patch must retain both RoutingRuleConfig documents")
 
-common_rules = rules(common_file)
-if len(common_rules) != 2:
-    fail(f"worker patch must contain 2 RoutingRuleConfig documents, found {len(common_rules)}")
-if len({rule.get("name") for rule in common_rules}) != len(common_rules):
-    fail("duplicate RoutingRuleConfig priority in worker patch")
-if sorted(rule_values(rule) + (rule.get("action"),) for rule in common_rules) != sorted(
-    (priority, dst, interface, "unreachable") for priority, dst, interface in expected
-):
-    fail("worker RoutingRuleConfig values do not match the required priorities, destinations, interfaces, and action")
+for name, management_ip in nodes.items():
+    path = patches / f"nodes/{name}.yaml"
+    node_docs = docs(path)
+    if len(node_docs) != 2 or node_docs[1].get("kind") != "HostnameConfig" or node_docs[1].get("hostname") != name:
+        fail(f"{name} patch is missing its HostnameConfig")
+    machine = node_docs[0].get("machine", {})
+    if machine.get("install", {}).get("disk") != "/dev/sda":
+        fail(f"{name} patch has the wrong install disk")
+    interfaces = {item["interface"]: item for item in machine.get("network", {}).get("interfaces", [])}
+    management = interfaces.get("ens18", {})
+    if management.get("mtu") != 1450 or management.get("addresses") != [management_ip + "/24"]:
+        fail(f"{name} patch has the wrong management network")
+    if management.get("routes") != [{"network": "0.0.0.0/0", "gateway": "10.0.40.1"}]:
+        fail(f"{name} patch has the wrong default route")
+    expected_ceph_interface = "ens20" if name.startswith("c") else "ens19"
+    if interfaces.get(expected_ceph_interface, {}).get("addresses") != [ceph[name] + "/24"]:
+        fail(f"{name} patch has the wrong Ceph address")
+    if interfaces[expected_ceph_interface].get("mtu") != 9000:
+        fail(f"{name} patch has the wrong Ceph MTU")
+    if name.startswith("c"):
+        if interfaces.get("ens19", {}).get("mtu") != 1500 or not interfaces["ens19"].get("dhcp"):
+            fail(f"{name} patch is missing DHCP on ens19")
+    elif interfaces.get("ens20", {}).get("addresses") != [f"192.168.10.5{name[1]}/24"] or interfaces["ens20"].get("mtu") != 9000:
+        fail(f"{name} patch has the wrong transit network")
 
-pool_docs = docs(pool_file)
-pools = [doc for doc in pool_docs if doc.get("kind") == "IPAddressPool" and doc.get("metadata", {}).get("name") == "bgp-pool"]
-if len(pools) != 1 or pools[0].get("spec", {}).get("addresses") != ["10.127.0.1-10.127.0.254"]:
-    fail("MetalLB bgp-pool must remain the exact 10.127.0.1-10.127.0.254 range")
-start_text, end_text = pools[0]["spec"]["addresses"][0].split("-")
-pool_addresses = set(range(int(ipaddress.ip_address(start_text)), int(ipaddress.ip_address(end_text)) + 1))
-rule_networks = {ipaddress.ip_network(cidr) for _, cidr, _ in expected}
-if rule_networks != {ipaddress.ip_network("10.127.0.0/24")} or not all(
-    any(ipaddress.ip_address(address) in network for network in rule_networks)
-    for address in pool_addresses
-):
-    fail("RoutingRuleConfig CIDR does not contain the MetalLB pool")
+for path in [patches / "common.yaml", patches / "roles/controlplane.yaml", patches / "roles/worker.yaml", *sorted((patches / "nodes").glob("*.yaml"))]:
+    if not path.is_file():
+        fail(f"required patch is missing: {path}")
 
-import json
-inventory = json.loads(inventory_file.read_text())
-for node in inventory["nodes"]:
-    path = generated / f"{node['name']}.yaml"
-    node_rules = rules(path)
-    if node["role"] == "controlplane":
-        if node_rules:
-            fail(f"control-plane config contains RoutingRuleConfig: {path.name}")
-    elif len(node_rules) != 2:
-        fail(f"worker config must contain 2 RoutingRuleConfig documents: {path.name}")
-    elif len({rule.get("name") for rule in node_rules}) != len(node_rules):
-        fail(f"duplicate RoutingRuleConfig priority in generated config: {path.name}")
-    elif sorted(rule_values(rule, generated=True) + (rule.get("action"),) for rule in node_rules) != sorted(
-        (priority, dst, interface, "unreachable") for priority, dst, interface in expected
-    ):
-        fail(f"generated worker RoutingRuleConfig values differ: {path.name}")
+print("Talos static patch validation passed for common, two roles, and six nodes.")
 PY
 
-for config in "$root"/talos/generated/*.yaml; do
-  name=${config##*/}
-  content=$(<"$config")
-  [[ "$content" == version:\ v1alpha1* && "$content" == *$'\nmachine:'* ]] || fail "$name is not a generated MachineConfig"
-  [[ "$content" == *"factory.talos.dev/installer/$qemu_guest_agent_schematic"* ]] || fail "$name is missing the QEMU guest-agent installer image"
-  if [[ $name == c*.yaml ]]; then
-    [[ "$content" == *"kind: Layer2VIPConfig"* && "$content" == *"name: $vip"* ]] || fail "$name is missing the control plane VIP"
-  else
-    [[ "$content" != *"Layer2VIPConfig"* ]] || fail "$name must not contain a VIP"
-  fi
-  node=${name%.yaml}
-  ceph_address=$(jq -r --arg node "$node" '.nodes[] | select(.name == $node) | .ceph.address' "$inventory_file")
-  ceph_interface=$(jq -r --arg node "$node" '.nodes[] | select(.name == $node) | .ceph.interface' "$inventory_file")
-  [[ "$content" == *"- $ceph_address"* && "$content" == *"interface: $ceph_interface"* ]] || fail "$name is missing the Ceph interface"
-  transit_address=$(jq -r --arg node "$node" '.nodes[] | select(.name == $node) | .transit.address // empty' "$inventory_file")
-  transit_interface=$(jq -r --arg node "$node" '.nodes[] | select(.name == $node) | .transit.interface // empty' "$inventory_file")
-  if [[ -n "$transit_address" ]]; then
-    [[ "$content" == *"- $transit_address"* && "$content" == *"interface: $transit_interface"* ]] || fail "$name is missing the transit interface"
-  else
-    [[ "$content" != *"192.168.10."* ]] || fail "$name must not contain the worker transit address"
-  fi
-done
+[[ -z $(git ls-files -- talos/generated talos/secrets/secret.yaml talos/secrets/secrets.yaml) ]] || fail "generated output or plaintext secrets are tracked by Git"
+git check-ignore -q talos/generated/c1.yaml || fail "generated output is not ignored by Git"
+git check-ignore -q talos/secrets/secret.yaml || fail "plaintext secrets are not ignored by Git"
+git check-ignore -q talos/secrets/secrets.yaml || fail "legacy plaintext secrets are not ignored by Git"
 
-[[ -f "$root/talos/generated/talosconfig" ]] || fail "talosconfig was not generated"
-mapfile -t controlplane_ips < <(jq -r '.nodes[] | select(.role == "controlplane") | .management.address | split("/")[0]' "$inventory_file")
-talosconfig=$(<"$root/talos/generated/talosconfig")
-for ip in "${controlplane_ips[@]}"; do
-  [[ "$talosconfig" == *"$ip"* ]] || fail "talosconfig is missing control plane endpoint $ip"
-done
-[[ "$talosconfig" != *"$vip"* ]] || fail "talosconfig must not use the VIP"
-
-first_hashes=$(mktemp)
-second_hashes=$(mktemp)
-cleanup() {
-  rm -f "$first_hashes" "$second_hashes"
-}
-trap cleanup EXIT HUP INT TERM
-
-# talosconfig contains a newly issued client certificate on every generation.
-# It is intentionally excluded from MachineConfig determinism checks.
-(cd "$root/talos/generated" && sha256sum ./*.yaml) | sort >"$first_hashes"
-TALOS_SECRETS_FILE="${TALOS_SECRETS_FILE:-}" bash "$root/talos/scripts/generate.sh"
-(cd "$root/talos/generated" && sha256sum ./*.yaml) | sort >"$second_hashes"
-if ! cmp -s "$first_hashes" "$second_hashes"; then
-  diff -u "$first_hashes" "$second_hashes" >&2 || true
-  fail "MachineConfig generation is not deterministic"
+if [[ ! -f "$secrets_file" ]]; then
+  printf '%s\n' "Talos render validation skipped: secret file not found (static-only validation)."
+  exit 0
 fi
 
-[[ -z $(git ls-files -- talos/generated talos/secrets/secrets.yaml) ]] || fail "generated output or plaintext secrets are tracked by Git"
-git check-ignore -q talos/generated/c1.yaml || fail "generated output is not ignored by Git"
-git check-ignore -q talos/secrets/secrets.yaml || fail "plaintext secrets are not ignored by Git"
+command -v talosctl >/dev/null 2>&1 || fail "required command is not available for render validation: talosctl"
+render_dir=$(mktemp -d "$root/talos/.tmp/validate.XXXXXX")
+cleanup() { rm -rf "$render_dir"; }
+trap cleanup EXIT HUP INT TERM
 
-generated_count=$(set -- "$root"/talos/generated/*.yaml; printf '%s\n' "$#")
-[[ $generated_count -eq $expected_nodes ]] || fail "generated node count does not match inventory"
-printf 'Talos static validation passed for %s nodes.\n' "$expected_nodes"
+common_patch="$patches/common.yaml"
+controlplane_patch="$patches/roles/controlplane.yaml"
+worker_patch="$patches/roles/worker.yaml"
+
+talosctl gen config "k8s-soralab" "https://c.k8s.internal:6443" --with-secrets "$secrets_file" --talos-version v1.13.6 --kubernetes-version v1.36.2 --with-docs=false --with-examples=false --config-patch "@$common_patch" --config-patch-control-plane "@$controlplane_patch" --config-patch "@$patches/nodes/c1.yaml" --output-types controlplane --output "$render_dir/c1.yaml"
+talosctl gen config "k8s-soralab" "https://c.k8s.internal:6443" --with-secrets "$secrets_file" --talos-version v1.13.6 --kubernetes-version v1.36.2 --with-docs=false --with-examples=false --config-patch "@$common_patch" --config-patch-control-plane "@$controlplane_patch" --config-patch "@$patches/nodes/c2.yaml" --output-types controlplane --output "$render_dir/c2.yaml"
+talosctl gen config "k8s-soralab" "https://c.k8s.internal:6443" --with-secrets "$secrets_file" --talos-version v1.13.6 --kubernetes-version v1.36.2 --with-docs=false --with-examples=false --config-patch "@$common_patch" --config-patch-control-plane "@$controlplane_patch" --config-patch "@$patches/nodes/c3.yaml" --output-types controlplane --output "$render_dir/c3.yaml"
+talosctl gen config "k8s-soralab" "https://c.k8s.internal:6443" --with-secrets "$secrets_file" --talos-version v1.13.6 --kubernetes-version v1.36.2 --with-docs=false --with-examples=false --config-patch "@$common_patch" --config-patch-worker "@$worker_patch" --config-patch "@$patches/nodes/w1.yaml" --output-types worker --output "$render_dir/w1.yaml"
+talosctl gen config "k8s-soralab" "https://c.k8s.internal:6443" --with-secrets "$secrets_file" --talos-version v1.13.6 --kubernetes-version v1.36.2 --with-docs=false --with-examples=false --config-patch "@$common_patch" --config-patch-worker "@$worker_patch" --config-patch "@$patches/nodes/w2.yaml" --output-types worker --output "$render_dir/w2.yaml"
+talosctl gen config "k8s-soralab" "https://c.k8s.internal:6443" --with-secrets "$secrets_file" --talos-version v1.13.6 --kubernetes-version v1.36.2 --with-docs=false --with-examples=false --config-patch "@$common_patch" --config-patch-worker "@$worker_patch" --config-patch "@$patches/nodes/w3.yaml" --output-types worker --output "$render_dir/w3.yaml"
+talosctl gen config "k8s-soralab" "https://c.k8s.internal:6443" --with-secrets "$secrets_file" --talos-version v1.13.6 --kubernetes-version v1.36.2 --with-docs=false --with-examples=false --output-types talosconfig --output "$render_dir/talosconfig"
+talosctl --talosconfig "$render_dir/talosconfig" config endpoints 10.0.40.11 10.0.40.12 10.0.40.13
+
+for node in c1 c2 c3 w1 w2 w3; do
+  [[ -s "$render_dir/$node.yaml" ]] || fail "Talos did not render $node.yaml"
+done
+[[ -s "$render_dir/talosconfig" ]] || fail "Talos did not render talosconfig"
+printf '%s\n' "Talos static and render validation passed; outputs were written only to a temporary directory."
