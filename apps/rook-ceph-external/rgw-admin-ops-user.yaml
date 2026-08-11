@@ -1,0 +1,9 @@
+apiVersion: onepassword.com/v1
+kind: OnePasswordItem
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  name: rgw-admin-ops-user
+  namespace: rook-ceph
+spec:
+  itemPath: "vaults/ehfcjhym4ifnf5qu634gng55mi/items/kyw5lbshmyde4udmoquk5sya7a"

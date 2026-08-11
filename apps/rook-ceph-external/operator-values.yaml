@@ -1,0 +1,15 @@
+crds:
+  enabled: true
+
+currentNamespaceOnly: true
+enableDiscoveryDaemon: false
+
+# Existing ceph-csi charts own RBD and CephFS provisioning in this cluster.
+csi:
+  rookUseCsiOperator: false
+  enableRbdDriver: false
+  enableCephfsDriver: false
+  disableCsiDriver: "true"
+
+rbacAggregate:
+  enableOBCs: true
