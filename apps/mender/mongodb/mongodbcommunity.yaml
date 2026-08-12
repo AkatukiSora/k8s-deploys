@@ -28,6 +28,10 @@ spec:
           db: mender
   statefulSet:
     spec:
+      template:
+        spec:
+          nodeSelector:
+            workload.sora-lab.dev/mongodb-avx2: "true"
       volumeClaimTemplates:
         - metadata:
             name: data-volume

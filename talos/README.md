@@ -45,6 +45,21 @@ Proxmox VM設定でもQEMU Guest Agentを有効にする。VirtIO NIC・ディ�
 
 `mise run talos-validate`は、Secretがある場合に各Patchを`talosctl gen config`で一時ディレクトリへレンダリングする。生成済みMachineConfigはGitへ保存しない。
 
+特定ノードの適用用 MachineConfig は以下で生成する。出力先は Git ignore 済みの
+`talos/generated/<node>.yaml` であり、既存クラスタの `secret.yaml` を使用する。
+
+```bash
+mise run talos-generate -- w4
+```
+
+既定以外の Secret または出力先を使う場合:
+
+```bash
+TALOS_SECRETS_FILE=/secure/path/secrets.yaml \
+TALOS_OUTPUT_DIR=/secure/output \
+mise run talos-generate -- w4
+```
+
 ## Validate
 
 ```bash

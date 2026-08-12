@@ -8,6 +8,10 @@ talosctl = "1.13.6"
 description = "Validate Talos YAML patches and optionally render MachineConfigs"
 run = "bash talos/scripts/validate.sh"
 
+[tasks.talos-generate]
+description = "Render one untracked Talos MachineConfig: mise run talos-generate -- <node>"
+run = "bash talos/scripts/generate.sh"
+
 [hooks.enter]
 shell = "bash"
 script = "source <(talosctl completion bash)"
