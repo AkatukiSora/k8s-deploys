@@ -20,6 +20,13 @@ Control Planeにはルールを追加しない。
 `try`相当の確認を行い、疎通とループ停止を確認してから一台ずつ順序立てて展開する。
 問題時はRoutingRuleConfigをGitから戻して再生成・同期し、元のルーティングへ戻す。
 
+## MongoDB worker
+
+`w4` は Proxmox の `x86-64-v3` CPU type を前提とする MongoDB 専用 worker
+である。Talos patch は `workload.sora-lab.dev/mongodb-avx2=true` Kubernetes
+node label を設定する。MongoDB workloads はこの label を nodeSelector で
+選択し、AVX を公開しない既存 worker へ再配置してはならない。
+
 ## Proxmox QEMU Guest Agent
 
 `patches/common.yaml`のImage Factory schematicは`siderolabs/qemu-guest-agent`拡張を含み、全ノードのinstaller imageへ設定される。

@@ -19,9 +19,9 @@ import yaml
 root = Path(sys.argv[1])
 patches = root / "talos/patches"
 nodes = {"c1": "10.0.40.11", "c2": "10.0.40.12", "c3": "10.0.40.13",
-         "w1": "10.0.40.51", "w2": "10.0.40.52", "w3": "10.0.40.53"}
+         "w1": "10.0.40.51", "w2": "10.0.40.52", "w3": "10.0.40.53", "w4": "10.0.40.54"}
 ceph = {"c1": "192.168.8.11", "c2": "192.168.8.12", "c3": "192.168.8.13",
-        "w1": "192.168.8.51", "w2": "192.168.8.52", "w3": "192.168.8.53"}
+         "w1": "192.168.8.51", "w2": "192.168.8.52", "w3": "192.168.8.53", "w4": "192.168.8.54"}
 
 def fail(message):
     raise SystemExit(f"error: {message}")
@@ -70,12 +70,14 @@ for name, management_ip in nodes.items():
             fail(f"{name} patch is missing DHCP on ens19")
     elif interfaces.get("ens20", {}).get("addresses") != [f"192.168.10.5{name[1]}/24"] or interfaces["ens20"].get("mtu") != 9000:
         fail(f"{name} patch has the wrong transit network")
+    if name == "w4" and machine.get("kubelet", {}).get("extraArgs", {}).get("node-labels") != "workload.sora-lab.dev/mongodb-avx2=true":
+        fail("w4 patch is missing the MongoDB AVX2 workload label")
 
 for path in [patches / "common.yaml", patches / "roles/controlplane.yaml", patches / "roles/worker.yaml", *sorted((patches / "nodes").glob("*.yaml"))]:
     if not path.is_file():
         fail(f"required patch is missing: {path}")
 
-print("Talos static patch validation passed for common, two roles, and six nodes.")
+print("Talos static patch validation passed for common, two roles, and seven nodes.")
 PY
 
 [[ -z $(git ls-files -- talos/generated talos/secrets/secret.yaml talos/secrets/secrets.yaml) ]] || fail "generated output or plaintext secrets are tracked by Git"
@@ -103,10 +105,11 @@ talosctl gen config "k8s-soralab" "https://c.k8s.internal:6443" --with-secrets "
 talosctl gen config "k8s-soralab" "https://c.k8s.internal:6443" --with-secrets "$secrets_file" --talos-version v1.13.6 --kubernetes-version v1.36.2 --with-docs=false --with-examples=false --config-patch "@$common_patch" --config-patch-worker "@$worker_patch" --config-patch "@$patches/nodes/w1.yaml" --output-types worker --output "$render_dir/w1.yaml"
 talosctl gen config "k8s-soralab" "https://c.k8s.internal:6443" --with-secrets "$secrets_file" --talos-version v1.13.6 --kubernetes-version v1.36.2 --with-docs=false --with-examples=false --config-patch "@$common_patch" --config-patch-worker "@$worker_patch" --config-patch "@$patches/nodes/w2.yaml" --output-types worker --output "$render_dir/w2.yaml"
 talosctl gen config "k8s-soralab" "https://c.k8s.internal:6443" --with-secrets "$secrets_file" --talos-version v1.13.6 --kubernetes-version v1.36.2 --with-docs=false --with-examples=false --config-patch "@$common_patch" --config-patch-worker "@$worker_patch" --config-patch "@$patches/nodes/w3.yaml" --output-types worker --output "$render_dir/w3.yaml"
+talosctl gen config "k8s-soralab" "https://c.k8s.internal:6443" --with-secrets "$secrets_file" --talos-version v1.13.6 --kubernetes-version v1.36.2 --with-docs=false --with-examples=false --config-patch "@$common_patch" --config-patch-worker "@$worker_patch" --config-patch "@$patches/nodes/w4.yaml" --output-types worker --output "$render_dir/w4.yaml"
 talosctl gen config "k8s-soralab" "https://c.k8s.internal:6443" --with-secrets "$secrets_file" --talos-version v1.13.6 --kubernetes-version v1.36.2 --with-docs=false --with-examples=false --output-types talosconfig --output "$render_dir/talosconfig"
 talosctl --talosconfig "$render_dir/talosconfig" config endpoints 10.0.40.11 10.0.40.12 10.0.40.13
 
-for node in c1 c2 c3 w1 w2 w3; do
+for node in c1 c2 c3 w1 w2 w3 w4; do
   [[ -s "$render_dir/$node.yaml" ]] || fail "Talos did not render $node.yaml"
 done
 [[ -s "$render_dir/talosconfig" ]] || fail "Talos did not render talosconfig"
