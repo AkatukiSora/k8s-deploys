@@ -36,6 +36,32 @@ blueprints:
     - authentik-blueprints
 
 server:
+  replicas: 2
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: DoNotSchedule
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: server
+              app.kubernetes.io/instance: authentik
+              app.kubernetes.io/name: authentik
+          topologyKey: kubernetes.io/hostname
+  deploymentStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
   securityContext:
     runAsNonRoot: true
   containerSecurityContext:
@@ -55,7 +81,32 @@ server:
       - auth.akatuki-host.com
 
 worker:
-  replicas: 1
+  replicas: 2
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: DoNotSchedule
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: worker
+              app.kubernetes.io/instance: authentik
+              app.kubernetes.io/name: authentik
+          topologyKey: kubernetes.io/hostname
+  deploymentStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
   securityContext:
     runAsNonRoot: true
   containerSecurityContext:

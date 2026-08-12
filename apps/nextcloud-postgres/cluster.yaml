@@ -4,8 +4,17 @@ metadata:
   name: nextcloud-postgres
   namespace: nextcloud
 spec:
-  instances: 1
+  instances: 3
   primaryUpdateStrategy: unsupervised
+  affinity:
+    enablePodAntiAffinity: true
+    topologyKey: kubernetes.io/hostname
+    podAntiAffinityType: required
+  postgresql:
+    synchronous:
+      method: any
+      number: 1
+      failoverQuorum: true
   bootstrap:
     initdb:
       database: nextcloud

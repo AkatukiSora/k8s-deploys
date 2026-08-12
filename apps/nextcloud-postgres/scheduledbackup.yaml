@@ -10,5 +10,6 @@ spec:
   cluster:
     name: nextcloud-postgres
   method: plugin
+  target: prefer-standby
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io

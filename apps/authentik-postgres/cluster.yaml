@@ -4,9 +4,18 @@ metadata:
   name: authentik-postgres
   namespace: authentik
 spec:
-  instances: 1
+  instances: 3
   primaryUpdateStrategy: unsupervised
   enableSuperuserAccess: true
+  affinity:
+    enablePodAntiAffinity: true
+    topologyKey: kubernetes.io/hostname
+    podAntiAffinityType: required
+  postgresql:
+    synchronous:
+      method: any
+      number: 1
+      failoverQuorum: true
   bootstrap:
     recovery:
       source: backup

@@ -1,5 +1,26 @@
 redis:
   enabled: true
+replicaCount: 2
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: DoNotSchedule
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/component: app
+            app.kubernetes.io/instance: nextcloud
+            app.kubernetes.io/name: nextcloud
+        topologyKey: kubernetes.io/hostname
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1
+    memory: 1Gi
 internalDatabase:
   enabled: false
 mariadb:
@@ -21,6 +42,15 @@ persistence:
   size: 500Gi
 cronjob:
   enabled: true
+  type: cronjob
+  cronjob:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
 hpa:
   enabled: false
 startupProbe:
@@ -35,6 +65,11 @@ ingress:
   annotations:
     kubernetes.io/ingress.class: cloudflare-tunnel
 nextcloud:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   host: "nextcloud.akatuki-host.com"
   existingSecret:
     enabled: true
