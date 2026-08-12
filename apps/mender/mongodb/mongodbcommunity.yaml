@@ -20,6 +20,7 @@ spec:
       passwordSecretRef:
         name: mender-mongodb-password
         key: password
+      scramCredentialsSecretName: mender-mongodb-scram-credentials
       connectionStringSecretName: mender-mongodb-connection
       connectionStringSecretNamespace: mender
       roles:
