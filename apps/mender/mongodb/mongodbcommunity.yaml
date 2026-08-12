@@ -6,7 +6,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "1"
 spec:
-  members: 1
+  members: 0
   type: ReplicaSet
   # MongoDB 8.0 is supported by the pinned Community Operator v0.13.0.
   version: "8.0.12"
