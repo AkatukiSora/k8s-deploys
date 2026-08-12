@@ -1,0 +1,10 @@
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: mender-artifacts
+  namespace: mender
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  generateBucketName: mender-artifacts-
+  storageClassName: rook-ceph-external-rgw
