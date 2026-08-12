@@ -3,4 +3,5 @@ kind: Kustomization
 resources:
   - password.yaml
   - serviceaccount.yaml
+  - agent-rbac.yaml
   - mongodbcommunity.yaml
