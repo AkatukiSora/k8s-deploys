@@ -1,0 +1,39 @@
+apiVersion: mongodbcommunity.mongodb.com/v1
+kind: MongoDBCommunity
+metadata:
+  name: mender-mongodb
+  namespace: mender
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  members: 1
+  type: ReplicaSet
+  # MongoDB 8.0 is supported by the pinned Community Operator v0.13.0.
+  version: "8.0.12"
+  security:
+    authentication:
+      modes:
+        - SCRAM
+  users:
+    - name: mender
+      db: admin
+      passwordSecretRef:
+        name: mender-mongodb-password
+        key: password
+      connectionStringSecretName: mender-mongodb-connection
+      connectionStringSecretNamespace: mender
+      roles:
+        - name: readWrite
+          db: mender
+  statefulSet:
+    spec:
+      volumeClaimTemplates:
+        - metadata:
+            name: data-volume
+          spec:
+            storageClassName: ceph-rbd
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 20Gi

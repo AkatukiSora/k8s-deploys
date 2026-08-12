@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mender-core
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "30"
+spec:
+  project: default
+  sources:
+    - repoURL: https://charts.mender.io
+      chart: mender
+      targetRevision: 8.2.0
+      helm:
+        valueFiles:
+          - $repo/apps/mender/core/values.yaml
+    - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
+      targetRevision: master
+      ref: repo
+      path: apps/mender/core
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: mender
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
