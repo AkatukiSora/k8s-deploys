@@ -3,6 +3,8 @@ kind: Cluster
 metadata:
   name: nextcloud-postgres
   namespace: nextcloud
+  annotations:
+    alpha.cnpg.io/failoverQuorum: "true"
 spec:
   instances: 3
   primaryUpdateStrategy: unsupervised
@@ -14,7 +16,7 @@ spec:
     synchronous:
       method: any
       number: 1
-      failoverQuorum: true
+      dataDurability: required
   bootstrap:
     initdb:
       database: nextcloud
