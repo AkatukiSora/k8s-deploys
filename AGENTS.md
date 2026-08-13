@@ -51,6 +51,7 @@ secret values. Follow existing external-secret and secret-reference patterns.
 - Inspect `git status` and the relevant diff before editing.
 - Only one writer agent may modify a working tree at a time.
 - Do not commit, push, reset, switch branches, or rewrite history unless the user explicitly requests it.
+- Never bypass commit signing or create an unsigned commit unless the user explicitly authorizes that exception. If signing is unavailable, stage intended repository changes, continue independent safe work, and leave the repository ready for a later signed commit; do not reset, amend, or otherwise rewrite history without explicit approval.
 
 ## Cluster interaction
 
@@ -59,6 +60,25 @@ cluster with `kubectl apply/delete/patch/edit`, Helm install/upgrade/uninstall,
 or Argo CD sync operations unless explicitly requested and separately scoped.
 
 Static manifests do not prove runtime behavior.
+
+For temporary runtime or diagnostic changes, use explicitly scoped cluster commands rather than committing transient desired-state changes to Git. Record the command, observed result, and required reconciliation before ending the task.
+
+### Temporary live-cluster changes
+
+Argo CD self-heal overwrites out-of-band changes. When a temporary `kubectl`
+change is necessary, temporarily disable self-heal **only** for the affected
+Application, apply and verify the change, then restore self-heal before ending
+the operation. Record the Application, exact commands, purpose, observed
+result, restoration confirmation, and the Git-managed reconciliation required.
+Do not disable automated prune unless the operation specifically requires it
+and its deletion risk has been reviewed.
+
+Before treating a live change as risky, inspect the deployed workload and its
+data path rather than assuming its impact from the manifest alone. For example,
+an uninitialised service with no users, devices, or application data may permit
+a disruptive restart or reset; a deployed service with persistent data requires
+an explicit impact assessment, backup/recovery consideration, and a rollback
+plan. Record the observed basis for that decision.
 
 ## Context files
 
