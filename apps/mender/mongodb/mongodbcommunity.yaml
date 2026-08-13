@@ -25,7 +25,21 @@ spec:
       connectionStringSecretNamespace: mender
       roles:
         - name: readWrite
-          db: mender
+          db: deployments
+        - name: readWrite
+          db: deviceauth
+        - name: readWrite
+          db: deviceconfig
+        - name: readWrite
+          db: deviceconnect
+        - name: readWrite
+          db: inventory
+        - name: readWrite
+          db: iot_manager
+        - name: readWrite
+          db: useradm
+        - name: readWrite
+          db: workflows
   statefulSet:
     spec:
       template:
