@@ -25,7 +25,7 @@ spec:
       connectionStringSecretNamespace: mender
       roles:
         - name: readWrite
-          db: deployments
+          db: deployment_service
         - name: readWrite
           db: deviceauth
         - name: readWrite
