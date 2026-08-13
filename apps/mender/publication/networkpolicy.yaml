@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mender-api-gateway-cloudflare
+  namespace: mender
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: mender-core-api-gateway
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: cloudflare-tunnel-ingress-controller
+      ports:
+        - protocol: TCP
+          port: 9080

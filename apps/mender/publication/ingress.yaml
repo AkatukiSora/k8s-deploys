@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mender
+  namespace: mender
+spec:
+  ingressClassName: cloudflare-tunnel
+  rules:
+    - host: mender.sora-lab.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mender-api-gateway
+                port:
+                  number: 80
