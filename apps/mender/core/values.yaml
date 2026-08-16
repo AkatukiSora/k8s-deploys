@@ -5,11 +5,11 @@ global:
   mongodb:
     existingSecret: mender-mongodb-connection
   s3:
-    existingSecret: mender-artifacts
-    AWS_URI: http://192.168.8.102:7480
-    AWS_EXTERNAL_URI: https://s3.sora-lab.dev
-    AWS_BUCKET: mender-artifacts
-    AWS_REGION: us-east-1
+    existingSecret: mender-artifacts-b2
+    AWS_URI: https://s3.us-west-004.backblazeb2.com
+    AWS_EXTERNAL_URI: https://s3.us-west-004.backblazeb2.com
+    AWS_BUCKET: sora-lab-mender
+    AWS_REGION: us-west-004
     AWS_ACCESS_KEY_ID: ""
     AWS_SECRET_ACCESS_KEY: ""
     AWS_FORCE_PATH_STYLE: "true"
@@ -38,29 +38,29 @@ deployments:
     - name: DEPLOYMENTS_AWS_AUTH_KEY
       valueFrom:
         secretKeyRef:
-          name: mender-artifacts
+          name: mender-artifacts-b2
           key: AWS_ACCESS_KEY_ID
     - name: DEPLOYMENTS_AWS_AUTH_SECRET
       valueFrom:
         secretKeyRef:
-          name: mender-artifacts
+          name: mender-artifacts-b2
           key: AWS_SECRET_ACCESS_KEY
     - name: DEPLOYMENTS_AWS_BUCKET
       valueFrom:
         configMapKeyRef:
-          name: mender-artifacts
+          name: mender-artifacts-b2
           key: BUCKET_NAME
     - name: DEPLOYMENTS_STORAGE_BUCKET
       valueFrom:
         configMapKeyRef:
-          name: mender-artifacts
+          name: mender-artifacts-b2
           key: BUCKET_NAME
     - name: DEPLOYMENTS_AWS_URI
-      value: http://192.168.8.102:7480
+      value: https://s3.us-west-004.backblazeb2.com
     - name: DEPLOYMENTS_AWS_EXTERNAL_URI
-      value: https://s3.sora-lab.dev
+      value: https://s3.us-west-004.backblazeb2.com
     - name: DEPLOYMENTS_AWS_REGION
-      value: us-east-1
+      value: us-west-004
     - name: DEPLOYMENTS_AWS_FORCE_PATH_STYLE
       value: "true"
     - name: DEPLOYMENTS_STORAGE_ENABLE_DIRECT_UPLOAD

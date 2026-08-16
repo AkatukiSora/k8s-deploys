@@ -14,7 +14,7 @@ Run the free production Mender Server with the open-source mode of the Mender He
 Internet
   |
   +-- mender.sora-lab.dev ----> Cloudflare Tunnel -> API gateway -> Mender
-  +-- s3.sora-lab.dev --------> Cloudflare Tunnel -> private Ceph RGW
+  +-- Artifact downloads -----> Backblaze B2 S3 endpoint
   +-- auth.example.com --------> Authentik
                                   ^
                                   |
@@ -23,14 +23,15 @@ Internet
 
 Use durable external services for MongoDB and artifact storage in production. Do not use the evaluation Compose defaults, including the bundled storage, demo credentials, or self-signed certificate.
 
-Both the Mender hostname and the public S3 endpoint are Cloudflare-Tunnel
-proxied. A 309 MB Artifact upload through the Mender OSS GUI fails at the
-Cloudflare request-size limit. Mender's direct signed-upload workflow is an
-Enterprise feature, so production-size Artifact upload requires a separately
-designed OSS-compatible upload path or Cloudflare mitigation.
+The Mender hostname is Cloudflare-Tunnel proxied; Artifact storage uses the
+private Backblaze B2 bucket through its S3-compatible endpoint. A 309 MB
+Artifact upload through the Mender OSS GUI still fails at Cloudflare's
+request-size limit before it reaches B2. Mender's direct signed-upload workflow
+is an Enterprise feature, so production-size Artifact upload requires a
+separately designed OSS-compatible upload path or Cloudflare mitigation.
 
-RGW infrastructure, credentials, and ObjectBucketClaim operations are documented
-in the [Ceph RGW runbook](../ceph-rgw-runbook.md).
+The retained RGW ObjectBucketClaim is a protected rollback path; its operations
+are documented in the [Ceph RGW runbook](../ceph-rgw-runbook.md).
 
 ## Public certificate
 
@@ -122,7 +123,7 @@ Enterprise is not required to deploy Mender on Kubernetes. The open-source Helm 
 - Whether to use free OSS Helm with local Mender authentication, or purchase Enterprise for OIDC/SAML.
 - Public DNS domain and DNS provider used by the DNS-01 solver.
 - Whether cert-manager runs in the same Kubernetes cluster as Mender.
-- Private Ceph RGW endpoint, `s3.sora-lab.dev` Cloudflare Tunnel configuration, and Artifact transfer limits.
+- Backblaze B2 retention, backup/restore, and Artifact transfer limits.
 - Yocto release/layer branch to pin after checking the Mender compatibility matrix.
 - 32-bit or arm64 Raspberry Pi image.
 - Separate `rpi3-firmware` repository or this repository as the GitHub Actions source.
