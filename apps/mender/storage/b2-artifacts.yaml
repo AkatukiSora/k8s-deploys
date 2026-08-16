@@ -1,0 +1,19 @@
+apiVersion: onepassword.com/v1
+kind: OnePasswordItem
+metadata:
+  name: mender-artifacts-b2
+  namespace: mender
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  itemPath: vaults/ehfcjhym4ifnf5qu634gng55mi/items/nawgquho7gnvndohb4iixwfvra
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mender-artifacts-b2
+  namespace: mender
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+data:
+  BUCKET_NAME: sora-lab-mender
