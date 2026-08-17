@@ -128,6 +128,7 @@ kubectl --user=oidc auth can-i --list
 ## 5. 注意
 
 - 本番では `cluster-admin` binding ではなく、必要最小限の `ClusterRole` / `RoleBinding` に置き換えてください。
+- Capsule を使う multi-tenant 構成では、`oidc:app:k8s:cluster:admin` は platform admin 用に残しつつ、tenant ごとに `oidc:app:k8s:tenant:<tenant>:owner` と `oidc:app:k8s:tenant:<tenant>:user` を使い分けます。
 
 ## 6. 配布用 kubeconfig
 

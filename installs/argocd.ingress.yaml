@@ -6,7 +6,8 @@ metadata:
 spec:
   destination:
     server: https://kubernetes.default.svc
-  project: default
+    namespace: argocd
+  project: platform
   source:
     path: apps/argocd
     repoURL: https://github.com/AkatukiSora/k8s-deploys.git

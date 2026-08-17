@@ -1,0 +1,9 @@
+apiVersion: capsule.clastix.io/v1beta2
+kind: TenantOwner
+metadata:
+  name: __TENANT__-owners
+  labels:
+    projectcapsule.dev/tenant: __TENANT__
+spec:
+  kind: Group
+  name: oidc:app:k8s:tenant:__TENANT__:owner

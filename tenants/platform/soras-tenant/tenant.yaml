@@ -1,0 +1,13 @@
+apiVersion: capsule.clastix.io/v1beta2
+kind: Tenant
+metadata:
+  name: soras-tenant
+spec:
+  # Existing namespaces predate the cluster-wide prefix policy and use 1Password.
+  forceTenantPrefix: false
+  additionalRoleBindings:
+    - clusterRoleName: edit
+      subjects:
+        - apiGroup: rbac.authorization.k8s.io
+          kind: Group
+          name: oidc:app:k8s:tenant:soras-tenant:user

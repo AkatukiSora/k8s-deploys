@@ -7,7 +7,7 @@ spec:
   destination:
     namespace: volsync-system
     server: https://kubernetes.default.svc
-  project: default
+  project: platform
   sources:
     - repoURL: https://backube.github.io/helm-charts
       chart: volsync
