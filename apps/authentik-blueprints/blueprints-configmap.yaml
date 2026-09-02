@@ -209,6 +209,15 @@ data:
             - !KeyOf app-cloudflare-resource-argocd-access-group
             - !KeyOf app-cloudflare-resource-proxmox-access-group
 
+      - id: team-pek-member-group
+        model: authentik_core.group
+        identifiers:
+          name: "team:pek-member"
+        attrs:
+          parents:
+            - !KeyOf app-proxmox-cluster-main-pek-members-group
+            - !KeyOf app-cloudflare-resource-proxmox-access-group
+
       - id: team-dev-user-group
         model: authentik_core.group
         identifiers:
