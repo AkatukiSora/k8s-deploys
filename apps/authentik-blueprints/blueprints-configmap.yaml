@@ -29,6 +29,11 @@ data:
         identifiers:
           name: "app:proxmox:cluster:main:auditor"
 
+      - id: app-proxmox-cluster-main-pek-members-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:proxmox:cluster:main:pek-members"
+
       - id: app-argocd-global-admin-group
         model: authentik_core.group
         identifiers:
@@ -290,6 +295,7 @@ data:
             group_mapping = {
                 "app:proxmox:cluster:main:admin": "proxmox-admins",
                 "app:proxmox:cluster:main:auditor": "proxmox-auditors",
+                "app:proxmox:cluster:main:pek-members": "proxmox-pek-members",
                 # Future example:
                 # "app:proxmox:cluster:main:user": "proxmox-users",
             }
@@ -904,6 +910,15 @@ data:
           order: 1
         attrs:
           group: !Find [authentik_core.group, [name, "app:proxmox:cluster:main:auditor"]]
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, proxmox]]
+          order: 2
+        attrs:
+          group: !Find
+            - authentik_core.group
+            - [name, "app:proxmox:cluster:main:pek-members"]
 
       - model: authentik_policies.policybinding
         identifiers:
