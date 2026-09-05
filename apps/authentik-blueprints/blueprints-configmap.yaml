@@ -144,6 +144,11 @@ data:
         identifiers:
           name: "app:cloudflare:resource:proxmox:access"
 
+      - id: app-cloudflare-one-regist-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:cloudflare:one:regist"
+
       - id: app-vikunja-team-personal-member-group
         model: authentik_core.group
         identifiers:
@@ -208,6 +213,7 @@ data:
             - !KeyOf app-gitlab-global-admin-group
             - !KeyOf app-cloudflare-resource-argocd-access-group
             - !KeyOf app-cloudflare-resource-proxmox-access-group
+            - !KeyOf app-cloudflare-one-regist-group
 
       - id: team-pek-member-group
         model: authentik_core.group
