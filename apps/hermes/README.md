@@ -24,6 +24,10 @@ must review and synchronize its resources before the workload starts.
   container copies `config.yaml` and `SOUL.md` to the PVC only when each file
   is absent. Thereafter the writable PVC is authoritative, so slash and CLI
   configuration changes persist across pod restarts and Git reconciliation.
+- The first recovery migration archives the existing files under
+  `/opt/data/.hermes-bootstrap-recovery-v1/` before atomically installing the
+  Git bootstrap files. A missing or malformed completion marker blocks startup
+  rather than guessing whether an interrupted migration is safe to resume.
 
 The official image starts its s6 supervisor as root to prepare `/opt/data` and
 then runs Hermes services as UID/GID 10000. The container is not privileged,

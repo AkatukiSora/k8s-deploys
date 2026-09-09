@@ -30,23 +30,86 @@ spec:
             - /bin/sh
             - -ec
             - |
+              set -eu
+              umask 077
+              state=/opt/data/.hermes-bootstrap-recovery-v1
+              token=hermes-bootstrap-recovery-v1
+
               for file in config.yaml SOUL.md; do
+                source="/bootstrap/$file"
                 destination="/opt/data/$file"
-                if [ -L "$destination" ]; then
-                  echo "refusing to bootstrap through symlink: $destination" >&2
+                if [ ! -r "$source" ] || [ ! -f "$source" ]; then
+                  echo "missing bootstrap file: $source" >&2
                   exit 1
                 fi
-                if [ -e "$destination" ]; then
-                  chown 10000:10000 "$destination"
-                  chmod 0640 "$destination"
-                  continue
+                if [ -L "$destination" ] || [ ! -f "$destination" ]; then
+                  echo "destination must be a regular non-symlink file:" >&2
+                  echo "$destination" >&2
+                  exit 1
                 fi
-                temporary="$destination.bootstrap.$$"
-                cp "/bootstrap/$file" "$temporary"
-                chmod 0640 "$temporary"
-                chown 10000:10000 "$temporary"
-                mv "$temporary" "$destination"
               done
+
+              if [ -e "$state" ] || [ -L "$state" ]; then
+                if [ -L "$state" ] || [ ! -d "$state" ]; then
+                  echo "migration state must be a directory" >&2
+                  exit 1
+                fi
+                for file in config.yaml SOUL.md; do
+                  backup="$state/$file.before"
+                  if [ -L "$backup" ] || [ ! -f "$backup" ]; then
+                    echo "missing regular migration backup: $backup" >&2
+                    exit 1
+                  fi
+                done
+                if [ -L "$state/.complete" ] || [ ! -f "$state/.complete" ] || \
+                  ! printf '%s\n' "$token" | cmp -s - "$state/.complete"; then
+                  echo "migration state is incomplete or malformed" >&2
+                  exit 1
+                fi
+                for entry in "$state"/* "$state"/.[!.]* "$state"/..?*; do
+                  [ -e "$entry" ] || continue
+                  case "$entry" in
+                    "$state/config.yaml.before"|\
+                    "$state/SOUL.md.before"|\
+                    "$state/.complete") ;;
+                    *)
+                      echo "unexpected migration state entry: $entry" >&2
+                      exit 1
+                      ;;
+                  esac
+                done
+                exit 0
+              fi
+
+              mkdir "$state"
+              chown 10000:10000 "$state"
+              chmod 0700 "$state"
+
+              for file in config.yaml SOUL.md; do
+                destination="/opt/data/$file"
+                backup_tmp="$state/$file.backup.tmp"
+                cp "$destination" "$backup_tmp"
+                chown 10000:10000 "$backup_tmp"
+                chmod 0600 "$backup_tmp"
+                mv "$backup_tmp" "$state/$file.before"
+              done
+
+              for file in config.yaml SOUL.md; do
+                install_tmp="$state/$file.install.tmp"
+                cp "/bootstrap/$file" "$install_tmp"
+                chown 10000:10000 "$install_tmp"
+                chmod 0640 "$install_tmp"
+              done
+
+              mv "$state/config.yaml.install.tmp" /opt/data/config.yaml
+              mv "$state/SOUL.md.install.tmp" /opt/data/SOUL.md
+              sync
+
+              printf '%s\n' "$token" > "$state/.complete.tmp"
+              chown 10000:10000 "$state/.complete.tmp"
+              chmod 0440 "$state/.complete.tmp"
+              mv "$state/.complete.tmp" "$state/.complete"
+              sync
           image: "nousresearch/hermes-agent@sha256:\
             63bfb6d732f49a55d453e801057273785cc61e0f6ee43db3fa2f2a79846301b7"
           imagePullPolicy: IfNotPresent
