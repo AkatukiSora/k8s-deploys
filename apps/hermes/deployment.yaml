@@ -169,14 +169,20 @@ spec:
               name: gateway
               protocol: TCP
           livenessProbe:
-            tcpSocket:
-              port: gateway
+            exec:
+              command:
+                - /bin/sh
+                - -ec
+                - curl -fsS --max-time 3 http://127.0.0.1:8642/health >/dev/null
             failureThreshold: 3
             periodSeconds: 20
             timeoutSeconds: 3
           readinessProbe:
-            tcpSocket:
-              port: gateway
+            exec:
+              command:
+                - /bin/sh
+                - -ec
+                - curl -fsS --max-time 3 http://127.0.0.1:8642/health >/dev/null
             failureThreshold: 3
             periodSeconds: 10
             timeoutSeconds: 3
@@ -206,8 +212,11 @@ spec:
           startupProbe:
             failureThreshold: 30
             periodSeconds: 10
-            tcpSocket:
-              port: gateway
+            exec:
+              command:
+                - /bin/sh
+                - -ec
+                - curl -fsS --max-time 3 http://127.0.0.1:8642/health >/dev/null
             timeoutSeconds: 3
           volumeMounts:
             - mountPath: /opt/data
