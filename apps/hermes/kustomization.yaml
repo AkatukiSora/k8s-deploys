@@ -14,7 +14,9 @@ configMapGenerator:
   - name: hermes-config
     files:
       - config.yaml
+      - SOUL.md
 generatorOptions:
+  disableNameSuffixHash: true
   annotations:
     argocd.argoproj.io/sync-wave: "-2"
   labels:

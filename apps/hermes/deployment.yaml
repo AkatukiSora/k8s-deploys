@@ -24,6 +24,59 @@ spec:
         app.kubernetes.io/name: hermes
     spec:
       automountServiceAccountToken: false
+      initContainers:
+        - name: bootstrap-config
+          command:
+            - /bin/sh
+            - -ec
+            - |
+              for file in config.yaml SOUL.md; do
+                destination="/opt/data/$file"
+                if [ -L "$destination" ]; then
+                  echo "refusing to bootstrap through symlink: $destination" >&2
+                  exit 1
+                fi
+                if [ -e "$destination" ]; then
+                  chown 10000:10000 "$destination"
+                  chmod 0640 "$destination"
+                  continue
+                fi
+                temporary="$destination.bootstrap.$$"
+                cp "/bootstrap/$file" "$temporary"
+                chmod 0640 "$temporary"
+                chown 10000:10000 "$temporary"
+                mv "$temporary" "$destination"
+              done
+          image: "nousresearch/hermes-agent@sha256:\
+            63bfb6d732f49a55d453e801057273785cc61e0f6ee43db3fa2f2a79846301b7"
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: 250m
+              memory: 256Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              add:
+                - CHOWN
+                - DAC_OVERRIDE
+                - FOWNER
+              drop:
+                - ALL
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 0
+            runAsNonRoot: false
+            runAsUser: 0
+          volumeMounts:
+            - mountPath: /bootstrap
+              name: config
+              readOnly: true
+            - mountPath: /opt/data
+              name: data
       securityContext:
         seccompProfile:
           type: RuntimeDefault
@@ -94,10 +147,6 @@ spec:
               port: gateway
             timeoutSeconds: 3
           volumeMounts:
-            - mountPath: /opt/data/config.yaml
-              name: config
-              readOnly: true
-              subPath: config.yaml
             - mountPath: /opt/data
               name: data
       volumes:

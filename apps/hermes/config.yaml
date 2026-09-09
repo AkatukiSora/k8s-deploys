@@ -2,14 +2,29 @@ _config_version: 37
 model:
   default: gpt-5.6-terra
   provider: openai-codex
+agent:
+  reasoning_effort: medium
 database:
   journal_mode: wal
+display:
+  language: ja
+delegation:
+  provider: openai-codex
+  model: gpt-5.6-luna
+  reasoning_effort: max
+  max_iterations: 120
+  max_concurrent_children: 1
+  max_spawn_depth: 1
+  orchestrator_enabled: false
+  subagent_auto_approve: false
+  child_timeout_seconds: 0
 group_sessions_per_user: true
 thread_sessions_per_user: true
 discord:
   require_mention: true
   thread_require_mention: true
-  free_response_channels: []
+  free_response_channels:
+    - "1547192421287469066"
   auto_thread: false
   reactions: false
   history_backfill: false
