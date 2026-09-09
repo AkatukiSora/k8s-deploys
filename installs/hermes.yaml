@@ -1,0 +1,14 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hermes
+  namespace: argocd
+spec:
+  destination:
+    namespace: hermes
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    path: apps/hermes
+    repoURL: https://github.com/AkatukiSora/k8s-deploys.git
+    targetRevision: master

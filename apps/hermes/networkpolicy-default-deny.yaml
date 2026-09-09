@@ -1,0 +1,12 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+  name: default-deny
+  namespace: hermes
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
