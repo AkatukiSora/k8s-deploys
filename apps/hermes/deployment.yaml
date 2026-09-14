@@ -166,26 +166,55 @@ spec:
                   ;;
               esac
 
-              helper=/opt/github-bin/git-credential-github-app
-              curl -fsSL --retry 3 --retry-all-errors \
-                -o "$helper" \
-                "https://github.com/ericnorris/git-credential-github-app/releases/download/v${helper_version}/git-credential-github-app_${helper_version}_linux_${arch}"
-              printf '%s  %s\n' "$helper_sha" "$helper" | sha256sum -c -
-              chmod 0555 "$helper"
+              download_verified() {
+                url="$1"
+                digest="$2"
+                destination="$3"
+                temporary="${destination}.tmp"
 
-              archive=/opt/github-bin/gh.tar.gz
-              extract=/opt/github-bin/.gh-extract
-              curl -fsSL --retry 3 --retry-all-errors \
-                -o "$archive" \
-                "https://github.com/cli/cli/releases/download/v${gh_version}/gh_${gh_version}_linux_${arch}.tar.gz"
-              printf '%s  %s\n' "$gh_sha" "$archive" | sha256sum -c -
-              rm -rf "$extract"
-              mkdir "$extract"
-              tar -xzf "$archive" -C "$extract"
-              install -m 0555 \
-                "$extract/gh_${gh_version}_linux_${arch}/bin/gh" \
-                /opt/github-bin/gh
-              rm -rf "$archive" "$extract"
+                rm -f "$temporary"
+                curl -fsSL --retry 3 --retry-all-errors -o "$temporary" "$url"
+                printf '%s  %s\n' "$digest" "$temporary" | sha256sum -c -
+                mv "$temporary" "$destination"
+              }
+
+              has_expected_sha() {
+                test -f "$2" &&
+                  printf '%s  %s\n' "$1" "$2" | sha256sum -c - >/dev/null 2>&1
+              }
+
+              has_expected_gh_version() {
+                test -x "$1" &&
+                  "$1" --version | grep -Fq "gh version $2 "
+              }
+
+              helper=/opt/github-bin/git-credential-github-app
+              if ! has_expected_sha "$helper_sha" "$helper"; then
+                download_verified \
+                  "https://github.com/ericnorris/git-credential-github-app/releases/download/v${helper_version}/git-credential-github-app_${helper_version}_linux_${arch}" \
+                  "$helper_sha" \
+                  "$helper"
+                chmod 0555 "$helper"
+              fi
+
+              gh=/opt/github-bin/gh
+              if ! has_expected_gh_version "$gh" "$gh_version"; then
+                archive=/opt/github-bin/gh.tar.gz
+                extract=/opt/github-bin/.gh-extract
+                gh_tmp="${gh}.tmp"
+                download_verified \
+                  "https://github.com/cli/cli/releases/download/v${gh_version}/gh_${gh_version}_linux_${arch}.tar.gz" \
+                  "$gh_sha" \
+                  "$archive"
+                rm -rf "$extract" "$gh_tmp"
+                mkdir "$extract"
+                tar -xzf "$archive" -C "$extract"
+                install -m 0555 \
+                  "$extract/gh_${gh_version}_linux_${arch}/bin/gh" \
+                  "$gh_tmp"
+                mv "$gh_tmp" "$gh"
+                rm -rf "$archive" "$extract"
+              fi
           image: "nousresearch/hermes-agent@sha256:\
             63bfb6d732f49a55d453e801057273785cc61e0f6ee43db3fa2f2a79846301b7"
           imagePullPolicy: IfNotPresent
