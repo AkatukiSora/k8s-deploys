@@ -338,6 +338,20 @@ spec:
             requests:
               cpu: 5m
               memory: 16Mi
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -ec
+                - |
+                  test -s /var/run/github-token/token
+                  test -s /var/run/github-token/expires_at
+                  now="$(date +%s)"
+                  expiry="$(cat /var/run/github-token/expires_at)"
+                  test "$expiry" -gt "$((now + 60))"
+            failureThreshold: 3
+            periodSeconds: 10
+            timeoutSeconds: 3
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
