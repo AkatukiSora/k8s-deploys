@@ -311,6 +311,8 @@ spec:
               value: /var/run/github-token/token
             - name: KUBECONFIG
               value: /etc/hermes-kubernetes/kubeconfig
+            - name: BASH_ENV
+              value: /opt/hermes-tools/terminal-path.sh
             - name: PATH
               value: /opt/hermes-tools:/opt/github-bin:/opt/kubernetes-bin:/opt/hermes/bin:/opt/hermes/.venv/bin:/opt/data/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
             - name: GIT_CONFIG_COUNT
