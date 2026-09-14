@@ -208,7 +208,7 @@ spec:
                   "$archive"
                 rm -rf "$extract" "$gh_tmp"
                 mkdir "$extract"
-                tar -xzf "$archive" -C "$extract"
+                tar --no-same-owner -xzf "$archive" -C "$extract"
                 install -m 0555 \
                   "$extract/gh_${gh_version}_linux_${arch}/bin/gh" \
                   "$gh_tmp"
