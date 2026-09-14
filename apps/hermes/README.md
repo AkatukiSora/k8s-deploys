@@ -58,22 +58,21 @@ mutating the Kubernetes desired state directly. The GitHub App credentials are
 stored in a 1Password item named `hermes-github-app` in the same vault used by
 Hermes. Before synchronization, create that item with these exact fields:
 
-- `clientId`: the GitHub App Client ID.
+- `appId`: the numeric GitHub App ID (not the Client ID).
 - `installationId`: the installation ID for the App installation that contains
   the repositories Hermes may operate on.
 - `privateKey`: the PEM-encoded GitHub App private key.
 
 The private key is mounted only into the `github-token-broker` container.
-Hermes never receives it. The broker uses the pinned MIT-licensed
-`git-credential-github-app` v1.0.1 helper to mint an installation access token,
-writes the token to a memory-backed `emptyDir`, and refreshes it ten minutes
-before expiry. A refresh failure leaves the previous token in place and retries
-once per minute. The token volume is read-only in the Hermes container.
+Hermes never receives it. The broker signs a short-lived JWT whose `iss` claim
+is the numeric App ID, mints an installation access token, writes the token to
+a memory-backed `emptyDir`, and refreshes it ten minutes before expiry. A
+refresh failure leaves the previous token in place and retries once per minute.
+The token volume is read-only in the Hermes container.
 
-The init container also installs pinned, checksum-verified copies of
-`git-credential-github-app` v1.0.1 and GitHub CLI v2.100.0 into an ephemeral
-volume. No custom container registry is required. The immutable ConfigMap
-provides these commands to Hermes:
+The init container installs a pinned, checksum-verified GitHub CLI v2.100.0
+into an ephemeral volume. No custom container registry is required. The
+immutable ConfigMap provides these commands to Hermes:
 
 - `gh`: wraps GitHub CLI and reads the current installation token on every
   invocation. Use it for Issues, pull requests, checks, comments, and API
