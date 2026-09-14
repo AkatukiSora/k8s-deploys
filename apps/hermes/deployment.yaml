@@ -236,9 +236,7 @@ spec:
             - name: HERMES_GITHUB_TOKEN_FILE
               value: /var/run/github-token/token
             - name: PATH
-              value: >-
-                /opt/hermes-tools:/opt/github-bin:/opt/hermes/bin:/opt/hermes/.venv/bin:
-                /opt/data/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+              value: /opt/hermes-tools:/opt/github-bin:/opt/hermes/bin:/opt/hermes/.venv/bin:/opt/data/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
             - name: GIT_CONFIG_COUNT
               value: "2"
             - name: GIT_CONFIG_KEY_0
