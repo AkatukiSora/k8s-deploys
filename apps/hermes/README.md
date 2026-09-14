@@ -14,11 +14,13 @@ must review and synchronize its resources before the workload starts.
   1Password-managed `hermes-discord` Secret.
 - Kubernetes API observation is deliberately separate from GitHub access. The
   ServiceAccount remains `automountServiceAccountToken: false`; only the Hermes
-  container receives an explicit short-lived projected token. Its custom
-  ClusterRole is read-only and excludes Secrets, ConfigMaps, RBAC resources,
-  exec/attach/port-forward/proxy subresources, arbitrary CRDs, and all mutation
-  verbs. `kubectl` is installed into an ephemeral volume by a checksum-verified
-  init container and is available through `PATH`.
+  container receives an explicit short-lived projected token. Pod `fsGroup: 10000`
+  makes that token readable by the non-root Hermes process without exposing it to
+  other containers. Its custom ClusterRole is read-only and excludes Secrets,
+  ConfigMaps, RBAC resources, exec/attach/port-forward/proxy subresources,
+  arbitrary CRDs, and all mutation verbs. `kubectl` is installed into an
+  ephemeral volume by a checksum-verified init container and is available through
+  `PATH`.
 - NetworkPolicy denies all ingress and egress by default. Hermes may resolve
   DNS through `kube-system`, make TCP/443 connections only to public IPv4
   addresses, and reach the documented Kubernetes API VIP only on TCP/6443. It

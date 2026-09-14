@@ -282,6 +282,8 @@ spec:
             - mountPath: /opt/kubernetes-bin
               name: kubernetes-bin
       securityContext:
+        fsGroup: 10000
+        fsGroupChangePolicy: OnRootMismatch
         seccompProfile:
           type: RuntimeDefault
       serviceAccountName: hermes
