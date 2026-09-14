@@ -4,7 +4,7 @@ metadata:
   name: ceph-csi
   namespace: argocd
 spec:
-  project: default
+  project: platform
   sources:
     - repoURL: https://ceph.github.io/csi-charts
       chart: ceph-csi-rbd

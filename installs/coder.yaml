@@ -3,11 +3,13 @@ kind: Application
 metadata:
   name: coder
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   destination:
     namespace: coder
     server: https://kubernetes.default.svc
-  project: default
+  project: soras-tenant
   sources:
     - repoURL: https://helm.coder.com/v2
       chart: coder

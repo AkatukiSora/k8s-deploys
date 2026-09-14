@@ -9,7 +9,7 @@ spec:
   destination:
     namespace: metrics-server
     server: https://kubernetes.default.svc
-  project: default
+  project: platform
   sources:
     - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
       targetRevision: master

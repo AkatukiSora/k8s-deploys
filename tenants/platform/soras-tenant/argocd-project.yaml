@@ -1,0 +1,58 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: soras-tenant
+  namespace: argocd
+spec:
+  sourceRepos:
+    - https://github.com/AkatukiSora/k8s-deploys.git
+    - https://helm.coder.com/v2
+    - https://github.com/immich-app/immich-charts.git
+    - https://github.com/go-vikunja/helm-chart.git
+    - https://helm.influxdata.com/
+    - https://github.com/AkatukiSora/pjserver-sys.git
+  destinations:
+    - namespace: caddy-test
+      server: https://kubernetes.default.svc
+    - namespace: coder
+      server: https://kubernetes.default.svc
+    - namespace: immich
+      server: https://kubernetes.default.svc
+    - namespace: immich-postgres
+      server: https://kubernetes.default.svc
+    - namespace: influxdb
+      server: https://kubernetes.default.svc
+    - namespace: pjserver-sys
+      server: https://kubernetes.default.svc
+    - namespace: vikunja
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist: []
+  namespaceResourceBlacklist:
+    - group: argoproj.io
+      kind: Application
+    - group: argoproj.io
+      kind: ApplicationSet
+  roles:
+    - name: admin
+      description: Admin access for soras-tenant applications.
+      groups:
+        - app:argocd:project:soras-tenant:admin
+      policies:
+        - p, proj:soras-tenant:admin, applications, get, soras-tenant/*, allow
+        - p, proj:soras-tenant:admin, applications, sync, soras-tenant/*, allow
+        - p, proj:soras-tenant:admin, logs, get, soras-tenant/*, allow
+    - name: sync
+      description: Sync access for soras-tenant applications.
+      groups:
+        - app:argocd:project:soras-tenant:sync
+      policies:
+        - p, proj:soras-tenant:sync, applications, get, soras-tenant/*, allow
+        - p, proj:soras-tenant:sync, applications, sync, soras-tenant/*, allow
+        - p, proj:soras-tenant:sync, logs, get, soras-tenant/*, allow
+    - name: readonly
+      description: Read-only access for soras-tenant applications.
+      groups:
+        - app:argocd:project:soras-tenant:readonly
+      policies:
+        - p, proj:soras-tenant:readonly, applications, get, soras-tenant/*, allow
+        - p, proj:soras-tenant:readonly, logs, get, soras-tenant/*, allow

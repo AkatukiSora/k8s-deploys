@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: __TENANT__
+  namespace: argocd
+spec:
+  sourceRepos:
+    - https://github.com/ORG/REPO.git
+  destinations:
+    - namespace: __TENANT__-*
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist: []
+  namespaceResourceBlacklist:
+    - group: onepassword.com
+      kind: OnePasswordItem
+    - group: argoproj.io
+      kind: Application
+    - group: argoproj.io
+      kind: ApplicationSet
+  roles:
+    - name: admin
+      description: Admin access for platform-managed applications in project __TENANT__
+      groups:
+        - app:argocd:project:__TENANT__:admin
+      policies:
+        - p, proj:__TENANT__:admin, applications, get, __TENANT__/*, allow
+        - p, proj:__TENANT__:admin, applications, sync, __TENANT__/*, allow
+        - p, proj:__TENANT__:admin, logs, get, __TENANT__/*, allow
+    - name: sync
+      description: Sync access for platform-managed applications in project __TENANT__
+      groups:
+        - app:argocd:project:__TENANT__:sync
+      policies:
+        - p, proj:__TENANT__:sync, applications, get, __TENANT__/*, allow
+        - p, proj:__TENANT__:sync, applications, sync, __TENANT__/*, allow
+        - p, proj:__TENANT__:sync, logs, get, __TENANT__/*, allow
+    - name: readonly
+      description: Read-only access for platform-managed applications in project __TENANT__
+      groups:
+        - app:argocd:project:__TENANT__:readonly
+      policies:
+        - p, proj:__TENANT__:readonly, applications, get, __TENANT__/*, allow
+        - p, proj:__TENANT__:readonly, logs, get, __TENANT__/*, allow

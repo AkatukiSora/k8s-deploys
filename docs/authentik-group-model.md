@@ -33,6 +33,14 @@ app:*    = Minimal permissions interpreted by each application
 - **Usage**: Applications check membership in these groups
 - **Example**: `app:coder:global:user`, `app:nextcloud:global:user`, `app:grafana:global:editor`
 
+Tenant-scoped examples used for Kubernetes and Argo CD:
+
+- `app:k8s:tenant:foo:owner`
+- `app:k8s:tenant:foo:user`
+- `app:argocd:project:foo:admin`
+- `app:argocd:project:foo:sync`
+- `app:argocd:project:foo:readonly`
+
 ## Standard Assignments
 
 ### Administrator
@@ -100,7 +108,6 @@ team:media-user
 4. **Keep old teams as deprecated** to avoid breaking access
 5. **Later remove** old teams once all users have migrated
 
-
 ## Invitation Enrollment
 
 Invitation-based enrollment uses the `invite-enrollment` flow. The flow creates invited users as inactive, sends an account confirmation email with authentik's global SMTP settings, and activates the user only after the email stage succeeds. Invitation fixed data is optional: when neither `invite_groups` nor `invite_kind` is present, the user is created without any preassigned groups. When group assignment is needed, fixed data can assign groups in either of these ways:
@@ -122,16 +129,16 @@ Only `app:*`, `cohort:*`, and `team:*` groups are accepted by the flow when fixe
 
 Use `invite_kind` when one of the standard combinations is enough:
 
-| `invite_kind` | Assigned groups |
-| --- | --- |
-| `friend-media` | `cohort:friend`, `team:media-user` |
-| `friend-dev` | `cohort:friend`, `team:dev-user` |
-| `friend-storage` | `cohort:friend`, `team:storage-user` |
-| `family-media` | `cohort:family`, `team:media-user` |
-| `family-storage` | `cohort:family`, `team:storage-user` |
+| `invite_kind`          | Assigned groups                                         |
+| ---------------------- | ------------------------------------------------------- |
+| `friend-media`         | `cohort:friend`, `team:media-user`                      |
+| `friend-dev`           | `cohort:friend`, `team:dev-user`                        |
+| `friend-storage`       | `cohort:friend`, `team:storage-user`                    |
+| `family-media`         | `cohort:family`, `team:media-user`                      |
+| `family-storage`       | `cohort:family`, `team:storage-user`                    |
 | `family-media-storage` | `cohort:family`, `team:media-user`, `team:storage-user` |
-| `nkc-dev` | `cohort:nkc-member`, `team:dev-user` |
-| `nkc-storage` | `cohort:nkc-member`, `team:storage-user` |
+| `nkc-dev`              | `cohort:nkc-member`, `team:dev-user`                    |
+| `nkc-storage`          | `cohort:nkc-member`, `team:storage-user`                |
 
 The flow prefers `invite_groups` when both keys are present, falls back to `invite_kind` only when `invite_groups` is empty, and creates the user without extra groups when neither key is provided.
 

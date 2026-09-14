@@ -1,0 +1,14 @@
+crds:
+  install: true
+
+manager:
+  options:
+    forceTenantPrefix: true
+    protectedNamespaceRegex: "^(kube|default|capsule|admin|system|argocd|com|org|local|localhost|io)$"
+    allowServiceAccountPromotion: false
+
+monitoring:
+  serviceMonitor:
+    enabled: true
+    annotations:
+      argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
