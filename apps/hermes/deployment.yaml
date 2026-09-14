@@ -226,6 +226,61 @@ spec:
           volumeMounts:
             - mountPath: /opt/github-bin
               name: github-bin
+        - name: install-kubectl
+          command:
+            - /bin/sh
+            - -ec
+            - |
+              set -eu
+
+              kubectl_version=v1.36.2
+              case "$(uname -m)" in
+                x86_64)
+                  arch=amd64
+                  kubectl_sha=1e9045ec32bea85da43de85f0065358529ea7c7a152eca78154fba5b58c27d82
+                  ;;
+                aarch64|arm64)
+                  arch=arm64
+                  kubectl_sha=c957eb8c4bea27a3bb35b269edd9082e27f027f7b76b20b5bf4afebc726c6d3e
+                  ;;
+                *)
+                  echo "unsupported architecture: $(uname -m)" >&2
+                  exit 1
+                  ;;
+              esac
+
+              kubectl=/opt/kubernetes-bin/kubectl
+              temporary="${kubectl}.tmp"
+              rm -f "$temporary"
+              curl -fsSL --retry 3 --retry-all-errors \
+                -o "$temporary" \
+                "https://dl.k8s.io/release/${kubectl_version}/bin/linux/${arch}/kubectl"
+              printf '%s  %s\n' "$kubectl_sha" "$temporary" | sha256sum -c -
+              install -m 0555 "$temporary" "$kubectl"
+              rm -f "$temporary"
+          image: "nousresearch/hermes-agent@sha256:\
+            63bfb6d732f49a55d453e801057273785cc61e0f6ee43db3fa2f2a79846301b7"
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: 250m
+              memory: 128Mi
+            requests:
+              cpu: 25m
+              memory: 32Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 0
+            runAsNonRoot: false
+            runAsUser: 0
+          volumeMounts:
+            - mountPath: /opt/kubernetes-bin
+              name: kubernetes-bin
       securityContext:
         seccompProfile:
           type: RuntimeDefault
@@ -252,8 +307,10 @@ spec:
                   key: DISCORD_ALLOWED_USERS
             - name: HERMES_GITHUB_TOKEN_FILE
               value: /var/run/github-token/token
+            - name: KUBECONFIG
+              value: /etc/hermes-kubernetes/kubeconfig
             - name: PATH
-              value: /opt/hermes-tools:/opt/github-bin:/opt/hermes/bin:/opt/hermes/.venv/bin:/opt/data/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+              value: /opt/hermes-tools:/opt/github-bin:/opt/kubernetes-bin:/opt/hermes/bin:/opt/hermes/.venv/bin:/opt/data/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
             - name: GIT_CONFIG_COUNT
               value: "2"
             - name: GIT_CONFIG_KEY_0
@@ -326,6 +383,15 @@ spec:
               readOnly: true
             - mountPath: /opt/github-bin
               name: github-bin
+              readOnly: true
+            - mountPath: /opt/kubernetes-bin
+              name: kubernetes-bin
+              readOnly: true
+            - mountPath: /etc/hermes-kubernetes
+              name: kubernetes-config
+              readOnly: true
+            - mountPath: /var/run/hermes-kubernetes
+              name: hermes-kubernetes-token
               readOnly: true
             - mountPath: /var/run/github-token
               name: github-token
@@ -401,6 +467,23 @@ spec:
             defaultMode: 0555
         - name: github-bin
           emptyDir: {}
+        - name: kubernetes-bin
+          emptyDir: {}
+        - name: kubernetes-config
+          configMap:
+            name: hermes-kubernetes-config
+        - name: hermes-kubernetes-token
+          projected:
+            defaultMode: 0444
+            sources:
+              - serviceAccountToken:
+                  expirationSeconds: 3600
+                  path: token
+              - configMap:
+                  items:
+                    - key: ca.crt
+                      path: ca.crt
+                  name: kube-root-ca.crt
         - name: github-token
           emptyDir:
             medium: Memory
