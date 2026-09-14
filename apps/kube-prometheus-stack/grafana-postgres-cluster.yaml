@@ -26,5 +26,3 @@ spec:
         parameters:
           barmanObjectName: grafana-postgres-barman-store
           serverName: grafana-postgres
-  monitoring:
-    enablePodMonitor: true

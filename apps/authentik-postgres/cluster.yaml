@@ -36,5 +36,3 @@ spec:
         parameters:
           barmanObjectName: authentik-postgres-barman-store
           serverName: authentik-postgres
-  monitoring:
-    enablePodMonitor: true

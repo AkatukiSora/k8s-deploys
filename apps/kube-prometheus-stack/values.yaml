@@ -104,6 +104,10 @@ prometheus:
   prometheusSpec:
     serviceMonitorSelectorNilUsesHelmValues: false
     podMonitorSelectorNilUsesHelmValues: false
+    # Select every explicitly managed PodMonitor, including CNPG targets.
+    podMonitorSelector: {}
+    # Discover Git-managed CNPG PodMonitors across application namespaces.
+    podMonitorNamespaceSelector: {}
     # Temporary storage-pressure mitigation. Return to shorter intervals after storage replacement.
     scrapeInterval: 1m
     evaluationInterval: 1m
