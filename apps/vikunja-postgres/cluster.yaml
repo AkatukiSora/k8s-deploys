@@ -25,5 +25,3 @@ spec:
         parameters:
           barmanObjectName: vikunja-postgres-barman-store
           serverName: vikunja-postgres
-  monitoring:
-    enablePodMonitor: true

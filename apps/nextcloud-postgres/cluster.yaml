@@ -29,5 +29,3 @@ spec:
       isWALArchiver: true
       parameters:
         barmanObjectName: nextcloud-postgres-barman-store
-  monitoring:
-    enablePodMonitor: true

@@ -26,5 +26,3 @@ spec:
         parameters:
           barmanObjectName: coder-postgres-barman-store
           serverName: coder-postgres
-  monitoring:
-    enablePodMonitor: true
