@@ -9,12 +9,20 @@ must review and synchronize its resources before the workload starts.
 
 - The image is pinned to the official `v2026.9.7` multi-architecture image
   digest. Do not replace it with a floating tag.
-- There is no Service, Ingress, dashboard, API exposure, Kubernetes API token,
-  host mount, or privileged mode. The Discord gateway accepts only the users
-  stored in the 1Password-managed `hermes-discord` Secret.
+- There is no Service, Ingress, dashboard, API exposure, host mount, or
+  privileged mode. The Discord gateway accepts only the users stored in the
+  1Password-managed `hermes-discord` Secret.
+- Kubernetes API observation is deliberately separate from GitHub access. The
+  ServiceAccount remains `automountServiceAccountToken: false`; only the Hermes
+  container receives an explicit short-lived projected token. Its custom
+  ClusterRole is read-only and excludes Secrets, ConfigMaps, RBAC resources,
+  exec/attach/port-forward/proxy subresources, arbitrary CRDs, and all mutation
+  verbs. `kubectl` is installed into an ephemeral volume by a checksum-verified
+  init container and is available through `PATH`.
 - NetworkPolicy denies all ingress and egress by default. Hermes may resolve
-  DNS through `kube-system` and make TCP/443 connections only to public IPv4
-  addresses. It cannot access RFC1918, loopback, link-local, shared-address,
+  DNS through `kube-system`, make TCP/443 connections only to public IPv4
+  addresses, and reach the documented Kubernetes API VIP only on TCP/6443. It
+  cannot otherwise access RFC1918, loopback, link-local, shared-address,
   documentation, multicast, or reserved IPv4 ranges. IPv6 egress is denied.
 - `/opt/data` is the only persistent path. It holds Hermes configuration,
   memory, skills, sessions, and ChatGPT/Codex OAuth credentials. It is a

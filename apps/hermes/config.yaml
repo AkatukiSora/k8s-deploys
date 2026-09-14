@@ -8,6 +8,8 @@ database:
   journal_mode: wal
 display:
   language: ja
+  busy_ack_enabled: true
+  busy_input_mode: steer
 delegation:
   provider: openai-codex
   model: gpt-5.6-luna

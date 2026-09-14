@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+  name: allow-kubernetes-api-egress
+  namespace: hermes
+spec:
+  egress:
+    - ports:
+        - port: 6443
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: 10.0.40.99/32
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: hermes
+  policyTypes:
+    - Egress

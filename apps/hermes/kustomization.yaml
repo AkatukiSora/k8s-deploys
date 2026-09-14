@@ -7,9 +7,11 @@ resources:
   - pvc.yaml
   - onepassworditem-discord.yaml
   - onepassworditem-github-app.yaml
+  - rbac-k8s-observer.yaml
   - networkpolicy-default-deny.yaml
   - networkpolicy-dns-egress.yaml
   - networkpolicy-public-https-egress.yaml
+  - networkpolicy-kubernetes-api-egress.yaml
   - deployment.yaml
 configMapGenerator:
   - name: hermes-config
@@ -22,6 +24,9 @@ configMapGenerator:
       - github-tools/git-credential-hermes
       - github-tools/gh
       - github-tools/github-commit-staged
+  - name: hermes-kubernetes-config
+    files:
+      - kubeconfig=kubernetes/kubeconfig
 generatorOptions:
   disableNameSuffixHash: true
   annotations:
