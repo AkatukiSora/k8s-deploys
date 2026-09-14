@@ -40,9 +40,8 @@ Discord requires explicit user mention in server channels and threads except
 for the configured private control channel, never reads historical channel
 messages, does not create threads or reactions, never mentions users, roles,
 or everyone, and isolates all group and thread sessions per user.
-`DISCORD_BOT_TOKEN` and `DISCORD_ALLOWED_USERS` are the only Kubernetes Secret
-keys. They are projected from the `hermes-discord` 1Password item and must
-never be copied into Git.
+`DISCORD_BOT_TOKEN` and `DISCORD_ALLOWED_USERS` are projected from the
+`hermes-discord` 1Password item and must never be copied into Git.
 
 The normal parent model is Terra at Medium effort. Delegated children default
 to Luna at Max effort for long, well-specified work; they are limited to one
@@ -51,6 +50,56 @@ model, so switch the writable `delegation.model` and `delegation.reasoning_effor
 to Sol/Low or Sol/High only for an explicitly selected high-value task, then
 restore the Luna/Max defaults. Use Kanban rather than `delegate_task` when a
 durable queued task requires a per-task model override.
+
+## GitHub App automation
+
+Hermes is intended to make repository changes through GitHub rather than by
+mutating the Kubernetes desired state directly. The GitHub App credentials are
+stored in a 1Password item named `hermes-github-app` in the same vault used by
+Hermes. Before synchronization, create that item with these exact fields:
+
+- `clientId`: the GitHub App Client ID.
+- `installationId`: the installation ID for the App installation that contains
+  the repositories Hermes may operate on.
+- `privateKey`: the PEM-encoded GitHub App private key.
+
+The private key is mounted only into the `github-token-broker` container.
+Hermes never receives it. The broker uses the pinned MIT-licensed
+`git-credential-github-app` v1.0.1 helper to mint an installation access token,
+writes the token to a memory-backed `emptyDir`, and refreshes it ten minutes
+before expiry. A refresh failure leaves the previous token in place and retries
+once per minute. The token volume is read-only in the Hermes container.
+
+The init container also installs pinned, checksum-verified copies of
+`git-credential-github-app` v1.0.1 and GitHub CLI v2.100.0 into an ephemeral
+volume. No custom container registry is required. The immutable ConfigMap
+provides these commands to Hermes:
+
+- `gh`: wraps GitHub CLI and reads the current installation token on every
+  invocation. Use it for Issues, pull requests, checks, comments, and API
+  queries.
+- `git-credential-hermes`: is configured automatically for HTTPS GitHub
+  remotes and reads the current token on every credential request.
+- `github-commit-staged <headline> [body]`: converts the current staged Git
+  index into one GraphQL `createCommitOnBranch` operation. It refuses the
+  repository default branch, uses `expectedHeadOid` for optimistic locking,
+  and accepts only regular `100644` files because the GraphQL file-change API
+  cannot preserve executable, symlink, or submodule modes. GitHub creates the
+  commit, so supported commits are GitHub-signed and shown as Verified.
+
+The intended autonomous flow is: fetch or clone the repository, create or
+checkout a non-default work branch, edit and validate files, `git add` the
+chosen changes, call `github-commit-staged`, then use `gh` to create or update
+a pull request and to read/respond to its discussion. Do not put a long-lived
+GitHub token in Hermes configuration. The default branch should be protected
+so desired-state changes require a pull request; the App itself does not need a
+per-commit approval gate.
+
+Recommended initial GitHub App repository permissions are `Contents: Read &
+write`, `Pull requests: Read & write`, `Issues: Read & write`, `Checks: Read`,
+`Actions: Read`, and `Commit statuses: Read`. Keep `Administration` and
+`Workflows` disabled unless a later use case explicitly requires them, and
+install the App only on repositories Hermes should control.
 
 ## Bootstrap and acceptance
 
@@ -70,6 +119,12 @@ durable queued task requires a per-task model override.
    `config.yaml` and `SOUL.md` if they exist. After sync, verify that both are
    writable regular files owned by UID/GID 10000, then make and restart-test a
    harmless runtime configuration change.
+7. Verify the GitHub broker without printing the token: check that
+   `/var/run/github-token/expires_at` exists in the Hermes container and run
+   `gh api rate_limit`. Clone/fetch an allowed repository over HTTPS, create a
+   test work branch, stage a harmless regular-file change, run
+   `github-commit-staged`, and confirm the resulting commit is Verified before
+   opening a test pull request.
 
 Use `gpt-5.6-terra` with Medium effort as the normal Hermes model. Switch to
 `gpt-5.6-sol` with High effort only for difficult, high-value tasks. Reserve

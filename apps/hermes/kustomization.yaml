@@ -6,6 +6,7 @@ resources:
   - serviceaccount.yaml
   - pvc.yaml
   - onepassworditem-discord.yaml
+  - onepassworditem-github-app.yaml
   - networkpolicy-default-deny.yaml
   - networkpolicy-dns-egress.yaml
   - networkpolicy-public-https-egress.yaml
@@ -15,6 +16,12 @@ configMapGenerator:
     files:
       - config.yaml
       - SOUL.md
+  - name: hermes-github-tools
+    files:
+      - github-tools/token-broker.sh
+      - github-tools/git-credential-hermes
+      - github-tools/gh
+      - github-tools/github-commit-staged
 generatorOptions:
   disableNameSuffixHash: true
   annotations:

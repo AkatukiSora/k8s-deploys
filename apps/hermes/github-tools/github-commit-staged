@@ -1,0 +1,260 @@
+#!/usr/bin/env python3
+"""Create one GitHub-signed commit from the staged Git index.
+
+The local worktree remains the editing surface. This command translates the
+staged index into GitHub GraphQL createCommitOnBranch fileChanges, so GitHub
+creates (and, when supported, signs) the commit as the authenticated GitHub
+App installation.
+"""
+from __future__ import annotations
+
+import base64
+import json
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+
+GH = os.environ.get("HERMES_GH", "/opt/hermes-tools/gh")
+
+
+class Fail(RuntimeError):
+    pass
+
+
+def run(*args: str, input_bytes: bytes | None = None, check: bool = True) -> subprocess.CompletedProcess[bytes]:
+    p = subprocess.run(
+        args,
+        input=input_bytes,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if check and p.returncode != 0:
+        err = p.stderr.decode("utf-8", "replace").strip()
+        raise Fail(f"{' '.join(args)} failed: {err or f'exit {p.returncode}'}")
+    return p
+
+
+def git(*args: str, text: bool = True) -> str | bytes:
+    out = run("git", *args).stdout
+    return out.decode("utf-8", "surrogateescape").strip() if text else out
+
+
+def gh_json(*args: str, payload: dict | None = None, allow_404: bool = False) -> dict:
+    cmd = [GH, "api", *args]
+    if payload is not None and "--input" not in args:
+        cmd.extend(["--input", "-"])
+    p = run(*cmd, input_bytes=(json.dumps(payload).encode() if payload is not None else None), check=False)
+    if p.returncode != 0:
+        err = p.stderr.decode("utf-8", "replace")
+        if allow_404 and ("HTTP 404" in err or "Not Found" in err):
+            return {}
+        raise Fail(f"gh api failed: {err.strip() or f'exit {p.returncode}'}")
+    try:
+        return json.loads(p.stdout or b"{}")
+    except json.JSONDecodeError as exc:
+        raise Fail(f"gh api returned invalid JSON: {exc}") from exc
+
+
+def repo_from_origin() -> str:
+    url = git("remote", "get-url", "origin")
+    assert isinstance(url, str)
+    patterns = (
+        r"^https://github\.com/([^/]+/[^/]+?)(?:\.git)?$",
+        r"^git@github\.com:([^/]+/[^/]+?)(?:\.git)?$",
+        r"^ssh://git@github\.com/([^/]+/[^/]+?)(?:\.git)?$",
+    )
+    for pat in patterns:
+        m = re.match(pat, url)
+        if m:
+            return m.group(1)
+    raise Fail(f"origin is not a supported github.com repository URL: {url}")
+
+
+def staged_changes() -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+    raw = git("diff", "--cached", "--name-status", "-z", "--find-renames", text=False)
+    assert isinstance(raw, bytes)
+    fields = raw.split(b"\0")
+    if fields and fields[-1] == b"":
+        fields.pop()
+    if not fields:
+        raise Fail("there are no staged changes")
+
+    additions: list[dict[str, str]] = []
+    deletions: list[dict[str, str]] = []
+    i = 0
+
+    def path_text(raw_path: bytes) -> str:
+        try:
+            return raw_path.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise Fail("GitHub file paths must be valid UTF-8") from exc
+
+    def add_path(path: str) -> None:
+        ls = run("git", "ls-files", "-s", "-z", "--", path).stdout
+        records = [r for r in ls.split(b"\0") if r]
+        if len(records) != 1:
+            raise Fail(f"could not resolve a single staged entry for {path!r}")
+        meta, _, _ = records[0].partition(b"\t")
+        parts = meta.split()
+        if len(parts) != 3 or parts[2] != b"0":
+            raise Fail(f"unmerged or malformed staged entry for {path!r}")
+        mode = parts[0].decode()
+        if mode != "100644":
+            raise Fail(
+                f"{path!r} has Git mode {mode}; createCommitOnBranch is restricted "
+                "here to regular non-executable files (100644)"
+            )
+        content = run("git", "show", f":{path}").stdout
+        additions.append(
+            {"path": path, "contents": base64.b64encode(content).decode("ascii")}
+        )
+
+    while i < len(fields):
+        status = fields[i].decode("ascii", "strict")
+        i += 1
+        code = status[0]
+        if code in {"R", "C"}:
+            if i + 1 >= len(fields):
+                raise Fail("malformed staged rename/copy record")
+            old = path_text(fields[i])
+            new = path_text(fields[i + 1])
+            i += 2
+            if code == "R":
+                deletions.append({"path": old})
+            add_path(new)
+        else:
+            if i >= len(fields):
+                raise Fail("malformed staged change record")
+            path = path_text(fields[i])
+            i += 1
+            if code in {"A", "M"}:
+                add_path(path)
+            elif code == "D":
+                deletions.append({"path": path})
+            else:
+                raise Fail(f"unsupported staged status {status!r} for {path!r}")
+
+    return additions, deletions
+
+
+def main() -> int:
+    if len(sys.argv) < 2 or sys.argv[1] in {"-h", "--help"}:
+        print(f"usage: {Path(sys.argv[0]).name} <commit headline> [commit body]", file=sys.stderr)
+        return 2
+
+    headline = sys.argv[1].strip()
+    body = sys.argv[2] if len(sys.argv) > 2 else ""
+    if not headline or "\n" in headline:
+        raise Fail("commit headline must be one non-empty line")
+
+    root = git("rev-parse", "--show-toplevel")
+    assert isinstance(root, str)
+    os.chdir(root)
+
+    repo = repo_from_origin()
+    branch = git("branch", "--show-current")
+    head = git("rev-parse", "HEAD")
+    assert isinstance(branch, str) and isinstance(head, str)
+    if not branch:
+        raise Fail("detached HEAD is not supported")
+
+    repo_info = gh_json(f"repos/{repo}")
+    default_branch = repo_info.get("default_branch")
+    if not default_branch:
+        raise Fail("could not determine repository default branch")
+    if branch == default_branch:
+        raise Fail(f"refusing to commit directly to default branch {default_branch!r}")
+
+    additions, deletions = staged_changes()
+
+    # Ensure the remote work branch exists. Creation at local HEAD succeeds only
+    # if that base object is already known by GitHub, which prevents pushing a
+    # chain of opaque local commits through this helper.
+    ref_path = f"repos/{repo}/git/ref/heads/{branch.replace('/', '%2F')}"
+    ref = gh_json(ref_path, allow_404=True)
+    if not ref:
+        ref = gh_json(
+            f"repos/{repo}/git/refs",
+            payload={"ref": f"refs/heads/{branch}", "sha": head},
+        )
+
+    remote_head = ((ref.get("object") or {}).get("sha"))
+    if not remote_head:
+        raise Fail("could not determine remote branch HEAD")
+    if remote_head != head:
+        raise Fail(
+            f"remote branch moved or local HEAD is not synchronized "
+            f"(local {head}, remote {remote_head}); fetch/rebase before retrying"
+        )
+
+    message: dict[str, str] = {"headline": headline}
+    if body:
+        message["body"] = body
+
+    mutation = """
+mutation($input: CreateCommitOnBranchInput!) {
+  createCommitOnBranch(input: $input) {
+    commit { oid url }
+  }
+}
+""".strip()
+    payload = {
+        "query": mutation,
+        "variables": {
+            "input": {
+                "branch": {
+                    "repositoryNameWithOwner": repo,
+                    "branchName": branch,
+                },
+                "message": message,
+                "fileChanges": {
+                    **({"additions": additions} if additions else {}),
+                    **({"deletions": deletions} if deletions else {}),
+                },
+                "expectedHeadOid": remote_head,
+            }
+        },
+    }
+    response = gh_json("graphql", payload=payload)
+    if response.get("errors"):
+        raise Fail("GitHub GraphQL error: " + json.dumps(response["errors"], ensure_ascii=False))
+
+    commit = (((response.get("data") or {}).get("createCommitOnBranch") or {}).get("commit") or {})
+    oid = commit.get("oid")
+    url = commit.get("url")
+    if not oid:
+        raise Fail("GitHub did not return the created commit OID")
+
+    # Align local HEAD/index with the GitHub-created commit while preserving
+    # unstaged and untracked worktree changes.
+    run("git", "fetch", "--no-tags", "origin", f"refs/heads/{branch}:refs/remotes/origin/{branch}")
+    run("git", "reset", "--mixed", oid)
+
+    detail = gh_json(f"repos/{repo}/commits/{oid}")
+    verification = ((detail.get("commit") or {}).get("verification") or {})
+    print(
+        json.dumps(
+            {
+                "repository": repo,
+                "branch": branch,
+                "oid": oid,
+                "url": url,
+                "verified": verification.get("verified"),
+                "verification_reason": verification.get("reason"),
+            },
+            ensure_ascii=False,
+        )
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except Fail as exc:
+        print(f"github-commit-staged: {exc}", file=sys.stderr)
+        raise SystemExit(1)
