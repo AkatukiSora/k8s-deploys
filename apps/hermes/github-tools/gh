@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+
+token_file="${HERMES_GITHUB_TOKEN_FILE:-/var/run/github-token/token}"
+if [ ! -r "$token_file" ] || [ ! -f "$token_file" ]; then
+  echo "gh: GitHub installation token is not ready" >&2
+  exit 1
+fi
+
+GH_TOKEN="$(cat "$token_file")"
+export GH_TOKEN
+exec /opt/github-bin/gh "$@"
