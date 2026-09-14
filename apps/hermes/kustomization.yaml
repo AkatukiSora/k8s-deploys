@@ -24,6 +24,7 @@ configMapGenerator:
       - github-tools/git-credential-hermes
       - github-tools/gh
       - github-tools/github-commit-staged
+      - github-tools/terminal-path.sh
   - name: hermes-kubernetes-config
     files:
       - kubeconfig=kubernetes/kubeconfig
