@@ -1,7 +1,6 @@
 #!/bin/sh
 set -eu
 
-helper=/opt/github-bin/git-credential-github-app
 private_key=/var/run/github-app/privateKey
 token_dir=/var/run/github-token
 
@@ -12,37 +11,88 @@ require_file() {
   fi
 }
 
-require_file "$helper"
 require_file "$private_key"
 
-if [ -z "${GITHUB_APP_CLIENT_ID:-}" ] || [ -z "${GITHUB_APP_INSTALLATION_ID:-}" ]; then
-  echo "github-token-broker: GitHub App client/installation ID is missing" >&2
+is_positive_decimal() {
+  case "$1" in
+    ''|*[!0-9]*) return 1 ;;
+  esac
+  [ "${#1}" -le 18 ] && [ "$1" -gt 0 ]
+}
+
+if ! is_positive_decimal "${GITHUB_APP_ID:-}" || \
+  ! is_positive_decimal "${GITHUB_APP_INSTALLATION_ID:-}"; then
+  echo "github-token-broker: GitHub App and installation IDs must be positive integers" >&2
   exit 1
 fi
+
+b64url() {
+  openssl base64 -A | tr '+/' '-_' | tr -d '='
+}
+
+create_jwt() {
+  now="$(date +%s)"
+  header="$(printf '%s' '{"alg":"RS256","typ":"JWT"}' | b64url)"
+  payload="$(
+    printf '{"iat":%s,"exp":%s,"iss":%s}' \
+      "$((now - 60))" "$((now + 540))" "$GITHUB_APP_ID" | b64url
+  )"
+  signature="$(
+    printf '%s.%s' "$header" "$payload" |
+      openssl dgst -binary -sha256 -sign "$private_key" | b64url
+  )"
+  printf '%s.%s.%s\n' "$header" "$payload" "$signature"
+}
+
+mint_token() {
+  jwt="$(create_jwt)"
+  curl -fsS --retry 3 --retry-all-errors \
+    --request POST \
+    --header 'Accept: application/vnd.github+json' \
+    --header "Authorization: Bearer $jwt" \
+    --header 'X-GitHub-Api-Version: 2022-11-28' \
+    "https://api.github.com/app/installations/${GITHUB_APP_INSTALLATION_ID}/access_tokens"
+}
+
+parse_token_response() {
+  python3 -c '
+import json
+import sys
+from datetime import datetime, timezone
+
+try:
+    response = json.load(sys.stdin)
+    token = response["token"]
+    expires_at = response["expires_at"]
+    if not isinstance(token, str) or not token or "\n" in token:
+        raise ValueError
+    expiry = int(datetime.fromisoformat(expires_at.replace("Z", "+00:00")).timestamp())
+    if expiry <= int(datetime.now(timezone.utc).timestamp()) + 60:
+        raise ValueError
+except (KeyError, TypeError, ValueError):
+    raise SystemExit("github-token-broker: invalid GitHub token response")
+
+print(token)
+print(expiry)
+'
+}
 
 mkdir -p "$token_dir"
 
 while :; do
-  if output="$(
-    printf 'protocol=https\nhost=github.com\n\n' |
-      "$helper" \
-        --private-key "$private_key" \
-        --client-id "$GITHUB_APP_CLIENT_ID" \
-        --installation-id "$GITHUB_APP_INSTALLATION_ID" \
-        get
-  )"; then
-    token="$(printf '%s\n' "$output" | sed -n 's/^password=//p')"
-    expiry="$(printf '%s\n' "$output" | sed -n 's/^password_expiry_utc=//p')"
+  if output="$(mint_token | parse_token_response)"; then
+    token="$(printf '%s\n' "$output" | sed -n '1p')"
+    expiry="$(printf '%s\n' "$output" | sed -n '2p')"
 
     case "$expiry" in
       ''|*[!0-9]*)
-        echo "github-token-broker: helper did not return a valid expiry" >&2
+        echo "github-token-broker: GitHub returned an invalid expiry" >&2
         sleep 60
         continue
         ;;
     esac
     if [ -z "$token" ]; then
-      echo "github-token-broker: helper returned an empty token" >&2
+        echo "github-token-broker: GitHub returned an empty token" >&2
       sleep 60
       continue
     fi
