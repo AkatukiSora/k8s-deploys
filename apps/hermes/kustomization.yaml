@@ -8,6 +8,7 @@ resources:
   - service-webhook.yaml
   - onepassworditem-discord.yaml
   - onepassworditem-github-app.yaml
+  - onepassworditem-alertmanager-webhook.yaml
   - rbac-k8s-observer.yaml
   - networkpolicy-default-deny.yaml
   - networkpolicy-dns-egress.yaml

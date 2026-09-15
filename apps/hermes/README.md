@@ -132,12 +132,12 @@ API. Do not assign it to human Authentik groups or reuse an administrator token.
 Before enabling the integration, provision three separate 1Password items and
 project them as read-only Kubernetes Secrets: an Argo CD `apiKey` token, a
 Grafana Viewer service-account token, and an Alertmanager/Hermes webhook HMAC
-secret. The token and secret references are intentionally absent from this
-bootstrap change so reconciliation cannot fail while those items do not exist.
-After the secrets exist, a follow-up change must enable the Hermes webhook
-adapter, configure the fixed internal Alertmanager route, and add only the
-credential mounts required by the Hermes container. Do not expose TCP/8644 via
-an Ingress for this internal Alertmanager path.
+secret. The `hermes-alertmanager-webhook` item is reconciled by the 1Password
+operator, but is not mounted into Hermes until the fixed internal route is
+enabled. After the Argo CD and Grafana token items exist, a follow-up change
+must configure that route and add only the credential mounts required by the
+Hermes container. Do not expose TCP/8644 via an Ingress for this internal
+Alertmanager path.
 
 ## Bootstrap and acceptance
 
