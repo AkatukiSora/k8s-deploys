@@ -35,6 +35,9 @@ configMapGenerator:
   - name: hermes-kubernetes-config
     files:
       - kubeconfig=kubernetes/kubeconfig
+  - name: hermes-observability-tools
+    files:
+      - observability-tools/grafana-read
 generatorOptions:
   disableNameSuffixHash: true
   annotations:

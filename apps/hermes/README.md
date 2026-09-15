@@ -154,17 +154,30 @@ Applications and can sync and retrieve logs for all Applications. It cannot use
 Application overrides, resource actions, exec, or any Argo CD administrative
 API. Do not assign it to human Authentik groups or reuse an administrator token.
 
-Before enabling the integration, provision three separate 1Password items and
-project them as read-only Kubernetes Secrets: an Argo CD `apiKey` token, a
-Grafana Viewer service-account token, and an Alertmanager/Hermes webhook HMAC
-secret. The `hermes-alertmanager-webhook`, `hermes-argocd`, and
-`hermes-grafana` items are reconciled by the 1Password operator, but are not
-mounted into Hermes until the fixed internal route and API clients are enabled.
-An empty Argo CD token item is safe at this stage because it is not consumed by
-the Deployment. After the Argo CD and Grafana token values exist, a follow-up
-change must configure that route and add only the credential mounts required by
-the Hermes container. Do not expose TCP/8644 via an Ingress for this internal
-Alertmanager path.
+Provision separate 1Password items and project them as read-only Kubernetes
+Secrets: an Argo CD `apiKey` token and a Grafana Viewer service-account token.
+The `hermes-argocd` and `hermes-grafana` items are reconciled by the 1Password
+operator and injected only into the Hermes container as
+`ARGOCD_AUTH_TOKEN` and `GRAFANA_SERVICE_ACCOUNT_TOKEN`; their values must
+never be printed, committed, or copied into Hermes configuration.
+
+The Deployment installs the checksum-verified Argo CD CLI version matching the
+in-cluster Argo CD server. Use it only with the internal server and plaintext
+transport parameters: `argocd --server "$ARGOCD_SERVER" --plaintext --grpc-web
+app list`, `app get <name>`, `app logs <name>`, and—only after an explicit
+operator request—`app sync <name>`. The API token is read automatically from
+`ARGOCD_AUTH_TOKEN`; do not pass it as a command-line flag.
+
+`grafana-read` is a repository-managed, read-only wrapper for the Grafana HTTP
+API. It permits only `whoami`, `datasources`, `search [query]`, `dashboard
+<uid>`, and `alert-rules`; it has no arbitrary-path or mutation mode. It uses
+the service-account token internally and never prints it. Grafana configuration
+changes remain GitHub PR → review → Argo CD reconciliation.
+
+Alertmanager-to-Hermes webhook delivery remains disabled. Hermes requires HMAC
+validation for webhook payloads, while Alertmanager has no native HMAC-signing
+mechanism. Do not expose TCP/8644 via an Ingress. Revisit this only after the
+planned encrypted east-west service-traffic layer is available.
 
 ## Bootstrap and acceptance
 
