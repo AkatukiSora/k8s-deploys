@@ -14,6 +14,9 @@ data:
     p, role:deployer, applications, sync, *, allow
     p, role:deployer, logs, get, *, allow
     p, role:hermes-observer, applications, get, */*, allow
+    # The Argo CD CLI resolves an application's AppProject before displaying
+    # or synchronizing it. This permits only that required project metadata.
+    p, role:hermes-observer, projects, get, *, allow
     p, role:hermes-operator, applications, sync, */*, allow
     p, role:hermes-operator, logs, get, */*, allow
     g, app:argocd:global:admin, role:admin
