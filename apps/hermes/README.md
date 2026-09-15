@@ -30,10 +30,14 @@ must review and synchronize its resources before the workload starts.
   memory, skills, sessions, and ChatGPT/Codex OAuth credentials. It is a
   `ReadWriteOnce` Ceph RBD volume and the Deployment uses `Recreate`; never
   run a second Hermes gateway against this volume.
-- The `hermes-config` ConfigMap provides first-install defaults only. An init
-  container copies `config.yaml` and `SOUL.md` to the PVC only when each file
-  is absent. Thereafter the writable PVC is authoritative, so slash and CLI
-  configuration changes persist across pod restarts and Git reconciliation.
+- The `hermes-config` ConfigMap has two roles. An init container copies
+  `config.yaml` and `SOUL.md` to the PVC only when each file is absent, while
+  the running Hermes container mounts the same ConfigMap read-only as its
+  Managed Scope. Every leaf setting in the Git-managed `config.yaml` therefore
+  wins over the writable PVC configuration, shell environment, and runtime
+  configuration commands. The PVC remains writable for non-managed settings
+  and durable state such as OAuth, sessions, memories, skills, cron, logs, and
+  the state database.
 - The first recovery migration archives the existing files under
   `/opt/data/.hermes-bootstrap-recovery-v1/` before atomically installing the
   Git bootstrap files. A missing or malformed completion marker blocks startup
@@ -73,11 +77,14 @@ reports only a newly encountered tool type and is intentionally accumulated
 into one update rather than emitting one Discord message per tool call. Tool
 previews are capped at 160 characters to limit information exposure in Discord.
 
-The `hermes-config` ConfigMap remains a first-install bootstrap input; the PVC
-copy is authoritative after bootstrap. Changes to this file establish the
-desired defaults for a new installation, but do not overwrite an existing
-runtime configuration. Apply the equivalent approved runtime configuration
-change through Hermes before relying on it in an already bootstrapped instance.
+The `hermes-config` ConfigMap is mounted as Hermes Managed Scope at
+`/etc/hermes-managed` through the deployment-owned `HERMES_MANAGED_DIR` value.
+The mounted files are read-only and must remain inaccessible for mutation by
+the Hermes runtime. Git-managed configuration leaves therefore remain effective
+even when a writable PVC `config.yaml` contains different values. This is a
+key-level policy overlay, not a hard sandbox: do not depend on it to stop a
+process with Kubernetes-level authority from changing its own environment or
+mounts.
 
 ## GitHub App automation
 
