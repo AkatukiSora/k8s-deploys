@@ -13,6 +13,13 @@ data:
     p, role:deployer, applications, get, *, allow
     p, role:deployer, applications, sync, *, allow
     p, role:deployer, logs, get, *, allow
+    p, role:hermes-observer, applications, get, */*, allow
+    p, role:hermes-operator, applications, sync, default/kube-prometheus-stack, allow
+    p, role:hermes-operator, applications, sync, default/authentik, allow
+    p, role:hermes-operator, logs, get, default/kube-prometheus-stack, allow
+    p, role:hermes-operator, logs, get, default/authentik, allow
     g, app:argocd:global:admin, role:admin
     g, app:argocd:global:sync, role:deployer
     g, app:argocd:global:readonly, role:readonly
+    g, hermes, role:hermes-observer
+    g, hermes, role:hermes-operator

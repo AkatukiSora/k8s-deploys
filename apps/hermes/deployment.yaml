@@ -329,6 +329,9 @@ spec:
             - containerPort: 8642
               name: gateway
               protocol: TCP
+            - containerPort: 8644
+              name: webhook
+              protocol: TCP
           livenessProbe:
             exec:
               command:

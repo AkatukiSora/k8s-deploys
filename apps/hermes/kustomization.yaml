@@ -5,6 +5,7 @@ resources:
   - namespace.yaml
   - serviceaccount.yaml
   - pvc.yaml
+  - service-webhook.yaml
   - onepassworditem-discord.yaml
   - onepassworditem-github-app.yaml
   - rbac-k8s-observer.yaml
@@ -12,6 +13,9 @@ resources:
   - networkpolicy-dns-egress.yaml
   - networkpolicy-public-https-egress.yaml
   - networkpolicy-kubernetes-api-egress.yaml
+  - networkpolicy-argocd-egress.yaml
+  - networkpolicy-grafana-egress.yaml
+  - networkpolicy-alertmanager-webhook-ingress.yaml
   - deployment.yaml
 configMapGenerator:
   - name: hermes-config

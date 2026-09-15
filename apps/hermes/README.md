@@ -26,6 +26,17 @@ must review and synchronize its resources before the workload starts.
   addresses, and reach the documented Kubernetes API VIP only on TCP/6443. It
   cannot otherwise access RFC1918, loopback, link-local, shared-address,
   documentation, multicast, or reserved IPv4 ranges. IPv6 egress is denied.
+- Internal integration traffic is explicitly limited to the Argo CD server on
+  its TCP/80 Service and TCP/8080 Pod ports, and Grafana on its TCP/80 Service
+  and TCP/3000 Pod ports. Both ports are required because CNI implementations
+  can evaluate NetworkPolicy before or after Service DNAT. The `hermes-webhook` Service is
+  `ClusterIP` only and the TCP/8644 ingress policy accepts traffic solely from
+  the kube-prometheus-stack Alertmanager selector in `monitoring`; it has no
+  Ingress or external Cloudflare route. These resources are inert until the
+  corresponding dedicated 1Password credentials and webhook configuration are
+  installed. Internal HTTP is a documented interim risk pending encrypted
+  east-west traffic in issue #62; NetworkPolicy constrains reachability but
+  does not provide transport encryption.
 - `/opt/data` is the only persistent path. It holds Hermes configuration,
   memory, skills, sessions, and ChatGPT/Codex OAuth credentials. It is a
   `ReadWriteOnce` Ceph RBD volume and the Deployment uses `Recreate`; never
@@ -109,6 +120,25 @@ write`, `Pull requests: Read & write`, `Issues: Read & write`, `Checks: Read`,
 `Actions: Read`, and `Commit statuses: Read`. Keep `Administration` and
 `Workflows` disabled unless a later use case explicitly requires them, and
 install the App only on repositories Hermes should control.
+
+## Argo CD and Grafana integration bootstrap
+
+The repository creates a non-interactive local Argo CD account named `hermes`
+with only the `apiKey` capability. It is assigned an observation role for all
+Applications, but can sync and retrieve logs only for
+`default/kube-prometheus-stack` and `default/authentik`. It cannot use
+Application overrides, resource actions, exec, or any Argo CD administrative
+API. Do not assign it to human Authentik groups or reuse an administrator token.
+
+Before enabling the integration, provision three separate 1Password items and
+project them as read-only Kubernetes Secrets: an Argo CD `apiKey` token, a
+Grafana Viewer service-account token, and an Alertmanager/Hermes webhook HMAC
+secret. The token and secret references are intentionally absent from this
+bootstrap change so reconciliation cannot fail while those items do not exist.
+After the secrets exist, a follow-up change must enable the Hermes webhook
+adapter, configure the fixed internal Alertmanager route, and add only the
+credential mounts required by the Hermes container. Do not expose TCP/8644 via
+an Ingress for this internal Alertmanager path.
 
 ## Bootstrap and acceptance
 
