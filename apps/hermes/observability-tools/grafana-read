@@ -1,0 +1,77 @@
+#!/bin/sh
+# Read-only Grafana API client for Hermes. It never accepts an arbitrary path.
+set -eu
+
+command=${1:-}
+
+usage() {
+  cat >&2 <<'EOF'
+Usage: grafana-read <command> [argument]
+
+Read-only commands:
+  whoami
+  datasources
+  search [query]
+  dashboard <uid>
+  alert-rules
+EOF
+  exit 64
+}
+
+case "$command" in
+  help|-h|--help)
+    usage
+    ;;
+esac
+
+base_url=${GRAFANA_URL:?GRAFANA_URL must be set}
+token=${GRAFANA_SERVICE_ACCOUNT_TOKEN:?GRAFANA_SERVICE_ACCOUNT_TOKEN must be set}
+
+request() {
+  curl --fail --silent --show-error --max-time 20 \
+    -H "Authorization: Bearer ${token}" \
+    -H 'Accept: application/json' \
+    "${base_url}$1"
+}
+
+urlencode() {
+  printf '%s' "$1" | python3 -c \
+    'import sys; from urllib.parse import quote; print(quote(sys.stdin.read(), safe=""))'
+}
+
+case "$command" in
+  whoami)
+    test "$#" -eq 1 || usage
+    request /api/user
+    ;;
+  datasources)
+    test "$#" -eq 1 || usage
+    request /api/datasources
+    ;;
+  search)
+    test "$#" -le 2 || usage
+    query=${2:-}
+    request "/api/search?query=$(urlencode "$query")"
+    ;;
+  dashboard)
+    test "$#" -eq 2 || usage
+    uid=$2
+    case "$uid" in
+      *[!A-Za-z0-9_-]*|'')
+        echo 'dashboard UID must contain only A-Z, a-z, 0-9, _ or -' >&2
+        exit 64
+        ;;
+    esac
+    request "/api/dashboards/uid/${uid}"
+    ;;
+  alert-rules)
+    test "$#" -eq 1 || usage
+    request /api/v1/provisioning/alert-rules
+    ;;
+  help|-h|--help)
+    usage
+    ;;
+  *)
+    usage
+    ;;
+esac

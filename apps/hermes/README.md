@@ -136,6 +136,19 @@ operator and injected only into the Hermes container as
 `ARGOCD_AUTH_TOKEN` and `GRAFANA_SERVICE_ACCOUNT_TOKEN`; their values must
 never be printed, committed, or copied into Hermes configuration.
 
+The Deployment installs the checksum-verified Argo CD CLI version matching the
+in-cluster Argo CD server. Use it only with the internal server and plaintext
+transport parameters: `argocd --server "$ARGOCD_SERVER" --plaintext --grpc-web
+app list`, `app get <name>`, `app logs <name>`, and—only after an explicit
+operator request—`app sync <name>`. The API token is read automatically from
+`ARGOCD_AUTH_TOKEN`; do not pass it as a command-line flag.
+
+`grafana-read` is a repository-managed, read-only wrapper for the Grafana HTTP
+API. It permits only `whoami`, `datasources`, `search [query]`, `dashboard
+<uid>`, and `alert-rules`; it has no arbitrary-path or mutation mode. It uses
+the service-account token internally and never prints it. Grafana configuration
+changes remain GitHub PR → review → Argo CD reconciliation.
+
 Alertmanager-to-Hermes webhook delivery remains disabled. Hermes requires HMAC
 validation for webhook payloads, while Alertmanager has no native HMAC-signing
 mechanism. Do not expose TCP/8644 via an Ingress. Revisit this only after the

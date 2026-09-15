@@ -281,6 +281,61 @@ spec:
           volumeMounts:
             - mountPath: /opt/kubernetes-bin
               name: kubernetes-bin
+        - name: install-argocd
+          command:
+            - /bin/sh
+            - -ec
+            - |
+              set -eu
+
+              argocd_version=v3.4.5
+              case "$(uname -m)" in
+                x86_64)
+                  arch=amd64
+                  argocd_sha=23303f05a58c1e041324d5645b0f9d6ea338b16bbf32f4a24508f388fcf9f9c0
+                  ;;
+                aarch64|arm64)
+                  arch=arm64
+                  argocd_sha=f6c1baa8f10d12d8a7c61b81c8e8632a84cba0def0dcbc5082d8a45efa241168
+                  ;;
+                *)
+                  echo "unsupported architecture: $(uname -m)" >&2
+                  exit 1
+                  ;;
+              esac
+
+              argocd=/opt/argocd-bin/argocd
+              temporary="${argocd}.tmp"
+              rm -f "$temporary"
+              curl -fsSL --retry 3 --retry-all-errors \
+                -o "$temporary" \
+                "https://github.com/argoproj/argo-cd/releases/download/${argocd_version}/argocd-linux-${arch}"
+              printf '%s  %s\n' "$argocd_sha" "$temporary" | sha256sum -c -
+              install -m 0555 "$temporary" "$argocd"
+              rm -f "$temporary"
+          image: "nousresearch/hermes-agent@sha256:\
+            63bfb6d732f49a55d453e801057273785cc61e0f6ee43db3fa2f2a79846301b7"
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: 250m
+              memory: 128Mi
+            requests:
+              cpu: 25m
+              memory: 32Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 0
+            runAsNonRoot: false
+            runAsUser: 0
+          volumeMounts:
+            - mountPath: /opt/argocd-bin
+              name: argocd-bin
       securityContext:
         fsGroup: 10000
         fsGroupChangePolicy: OnRootMismatch
@@ -308,8 +363,7 @@ spec:
                   name: hermes-discord
                   key: DISCORD_ALLOWED_USERS
             - name: ARGOCD_SERVER
-              value: >-
-                http://argocd-server.argocd.svc.cluster.local
+              value: argocd-server.argocd.svc.cluster.local:80
             - name: ARGOCD_AUTH_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -330,7 +384,7 @@ spec:
             - name: BASH_ENV
               value: /opt/hermes-tools/terminal-path.sh
             - name: PATH
-              value: /opt/hermes-tools:/opt/github-bin:/opt/kubernetes-bin:/opt/hermes/bin:/opt/hermes/.venv/bin:/opt/data/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+              value: /opt/hermes-tools:/opt/github-bin:/opt/kubernetes-bin:/opt/argocd-bin:/opt/observability-tools:/opt/hermes/bin:/opt/hermes/.venv/bin:/opt/data/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
             - name: GIT_CONFIG_COUNT
               value: "2"
             - name: GIT_CONFIG_KEY_0
@@ -409,6 +463,12 @@ spec:
               readOnly: true
             - mountPath: /opt/kubernetes-bin
               name: kubernetes-bin
+              readOnly: true
+            - mountPath: /opt/argocd-bin
+              name: argocd-bin
+              readOnly: true
+            - mountPath: /opt/observability-tools
+              name: observability-tools
               readOnly: true
             - mountPath: /etc/hermes-kubernetes
               name: kubernetes-config
@@ -492,6 +552,12 @@ spec:
           emptyDir: {}
         - name: kubernetes-bin
           emptyDir: {}
+        - name: argocd-bin
+          emptyDir: {}
+        - name: observability-tools
+          configMap:
+            name: hermes-observability-tools
+            defaultMode: 0555
         - name: kubernetes-config
           configMap:
             name: hermes-kubernetes-config
