@@ -125,8 +125,7 @@ install the App only on repositories Hermes should control.
 
 The repository creates a non-interactive local Argo CD account named `hermes`
 with only the `apiKey` capability. It is assigned an observation role for all
-Applications, but can sync and retrieve logs only for
-`default/kube-prometheus-stack` and `default/authentik`. It cannot use
+Applications and can sync and retrieve logs for all Applications. It cannot use
 Application overrides, resource actions, exec, or any Argo CD administrative
 API. Do not assign it to human Authentik groups or reuse an administrator token.
 
