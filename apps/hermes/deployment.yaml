@@ -309,6 +309,8 @@ spec:
                   key: DISCORD_ALLOWED_USERS
             - name: HERMES_GITHUB_TOKEN_FILE
               value: /var/run/github-token/token
+            - name: HERMES_MANAGED_DIR
+              value: /etc/hermes-managed
             - name: KUBECONFIG
               value: /etc/hermes-kubernetes/kubeconfig
             - name: BASH_ENV
@@ -385,6 +387,9 @@ spec:
           volumeMounts:
             - mountPath: /opt/data
               name: data
+            - mountPath: /etc/hermes-managed
+              name: config
+              readOnly: true
             - mountPath: /opt/hermes-tools
               name: github-tools
               readOnly: true

@@ -41,10 +41,14 @@ must review and synchronize its resources before the workload starts.
   memory, skills, sessions, and ChatGPT/Codex OAuth credentials. It is a
   `ReadWriteOnce` Ceph RBD volume and the Deployment uses `Recreate`; never
   run a second Hermes gateway against this volume.
-- The `hermes-config` ConfigMap provides first-install defaults only. An init
-  container copies `config.yaml` and `SOUL.md` to the PVC only when each file
-  is absent. Thereafter the writable PVC is authoritative, so slash and CLI
-  configuration changes persist across pod restarts and Git reconciliation.
+- The `hermes-config` ConfigMap has two roles. An init container copies
+  `config.yaml` and `SOUL.md` to the PVC only when each file is absent, while
+  the running Hermes container mounts the same ConfigMap read-only as its
+  Managed Scope. Every leaf setting in the Git-managed `config.yaml` therefore
+  wins over the writable PVC configuration, shell environment, and runtime
+  configuration commands. The PVC remains writable for non-managed settings
+  and durable state such as OAuth, sessions, memories, skills, cron, logs, and
+  the state database.
 - The first recovery migration archives the existing files under
   `/opt/data/.hermes-bootstrap-recovery-v1/` before atomically installing the
   Git bootstrap files. A missing or malformed completion marker blocks startup
@@ -65,12 +69,33 @@ or everyone, and isolates all group and thread sessions per user.
 `hermes-discord` 1Password item and must never be copied into Git.
 
 The normal parent model is Terra at Medium effort. Delegated children default
-to Luna at Max effort for long, well-specified work; they are limited to one
-flat child with no automatic approval. `delegate_task` has one global child
-model, so switch the writable `delegation.model` and `delegation.reasoning_effort`
-to Sol/Low or Sol/High only for an explicitly selected high-value task, then
-restore the Luna/Max defaults. Use Kanban rather than `delegate_task` when a
+to Luna at High effort for long, well-specified, read-only investigation such
+as web search, status collection, log review, and repetitive validation. They
+are limited to one flat child with no automatic approval. `delegate_task` has
+one global child model and no per-task model parameter: keep the Luna default
+for inexpensive workers. For a difficult, high-value design decision, switch
+the parent for that turn with `/model gpt-5.6-sol --once`; this leaves the Luna
+delegation default intact, and the per-model reasoning override applies High
+effort to Sol. Use Kanban rather than `delegate_task` when a
 durable queued task requires a per-task model override.
+
+Discord progress visibility is enabled through interim assistant messages and
+accumulated tool-progress updates. Background delegation completion and failure
+notices should return to the originating thread automatically. Use `/agents`
+to inspect an in-flight delegation (child activity, tool, and elapsed work),
+and `/verbose` to toggle detailed gateway progress when needed. `tool_progress`
+reports only a newly encountered tool type and is intentionally accumulated
+into one update rather than emitting one Discord message per tool call. Tool
+previews are capped at 160 characters to limit information exposure in Discord.
+
+The `hermes-config` ConfigMap is mounted as Hermes Managed Scope at
+`/etc/hermes-managed` through the deployment-owned `HERMES_MANAGED_DIR` value.
+The mounted files are read-only and must remain inaccessible for mutation by
+the Hermes runtime. Git-managed configuration leaves therefore remain effective
+even when a writable PVC `config.yaml` contains different values. This is a
+key-level policy overlay, not a hard sandbox: do not depend on it to stop a
+process with Kubernetes-level authority from changing its own environment or
+mounts.
 
 ## GitHub App automation
 
@@ -167,8 +192,8 @@ Alertmanager path.
    opening a test pull request.
 
 Use `gpt-5.6-terra` with Medium effort as the normal Hermes model. Switch to
-`gpt-5.6-sol` with High effort only for difficult, high-value tasks. Reserve
-`gpt-5.6-luna` for clear, repeatable auxiliary work.
+`gpt-5.6-sol` with High effort only for difficult, high-value design tasks.
+Reserve `gpt-5.6-luna` with High effort for clear, repeatable auxiliary work.
 
 ## Rollback
 
