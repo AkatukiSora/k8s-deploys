@@ -4,16 +4,25 @@ model:
   provider: openai-codex
 agent:
   reasoning_effort: medium
+  reasoning_overrides:
+    gpt-5.6-sol: high
 database:
   journal_mode: wal
 display:
   language: ja
   busy_ack_enabled: true
   busy_input_mode: steer
+  interim_assistant_messages: true
+  tool_progress_command: true
+  tool_preview_length: 160
+  platforms:
+    discord:
+      tool_progress: new
+      tool_progress_grouping: accumulate
 delegation:
   provider: openai-codex
   model: gpt-5.6-luna
-  reasoning_effort: max
+  reasoning_effort: high
   max_iterations: 120
   max_concurrent_children: 1
   max_spawn_depth: 1
