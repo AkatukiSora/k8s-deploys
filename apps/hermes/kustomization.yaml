@@ -9,6 +9,8 @@ resources:
   - onepassworditem-discord.yaml
   - onepassworditem-github-app.yaml
   - onepassworditem-alertmanager-webhook.yaml
+  - onepassworditem-argocd.yaml
+  - onepassworditem-grafana.yaml
   - rbac-k8s-observer.yaml
   - networkpolicy-default-deny.yaml
   - networkpolicy-dns-egress.yaml
