@@ -307,6 +307,22 @@ spec:
                 secretKeyRef:
                   name: hermes-discord
                   key: DISCORD_ALLOWED_USERS
+            - name: ARGOCD_SERVER
+              value: >-
+                http://argocd-server.argocd.svc.cluster.local
+            - name: ARGOCD_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-argocd
+                  key: ARGOCD_AUTH_TOKEN
+            - name: GRAFANA_URL
+              value: >-
+                http://kube-prometheus-stack-grafana.monitoring.svc.cluster.local
+            - name: GRAFANA_SERVICE_ACCOUNT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-grafana
+                  key: GRAFANA_SERVICE_ACCOUNT_TOKEN
             - name: HERMES_GITHUB_TOKEN_FILE
               value: /var/run/github-token/token
             - name: KUBECONFIG
