@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  labels:
+    app.kubernetes.io/instance: hermes
+    app.kubernetes.io/name: hermes
+  name: hermes-webhook
+  namespace: hermes
+spec:
+  ports:
+    - name: webhook
+      port: 8644
+      protocol: TCP
+      targetPort: webhook
+  selector:
+    app.kubernetes.io/name: hermes
+  type: ClusterIP

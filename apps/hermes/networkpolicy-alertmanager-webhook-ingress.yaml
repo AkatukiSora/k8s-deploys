@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+  name: allow-alertmanager-webhook-ingress
+  namespace: hermes
+spec:
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              alertmanager: kube-prometheus-stack-alertmanager
+              app.kubernetes.io/name: alertmanager
+      ports:
+        - port: 8644
+          protocol: TCP
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: hermes
+  policyTypes:
+    - Ingress

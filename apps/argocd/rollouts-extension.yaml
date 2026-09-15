@@ -7,6 +7,9 @@ metadata:
     app.kubernetes.io/name: argocd-cm
     app.kubernetes.io/part-of: argocd
 data:
+  # API-only identity for Hermes. Its token is intentionally managed outside
+  # this ConfigMap through 1Password and has no interactive login capability.
+  accounts.hermes: apiKey
   url: https://argocd.akatuki-host.com
   oidc.config: |
     name: Authentik
