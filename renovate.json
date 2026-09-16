@@ -1,0 +1,37 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Create reviewable dependency-update PRs for Argo CD Application sources.",
+  "extends": [
+    "config:recommended"
+  ],
+  "enabledManagers": [
+    "argocd"
+  ],
+  "argocd": {
+    "managerFilePatterns": [
+      "/^installs\\/[^/]+\\.yaml$/"
+    ]
+  },
+  "automerge": false,
+  "dependencyDashboard": true,
+  "labels": [
+    "dependencies"
+  ],
+  "prConcurrentLimit": 3,
+  "prHourlyLimit": 1,
+  "packageRules": [
+    {
+      "description": "Keep major-version upgrades distinct because they require a compatibility review and explicit rollback assessment.",
+      "matchManagers": [
+        "argocd"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "labels": [
+        "dependencies",
+        "major-update"
+      ]
+    }
+  ]
+}
