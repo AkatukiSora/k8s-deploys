@@ -5,11 +5,24 @@
     "config:recommended"
   ],
   "enabledManagers": [
-    "argocd"
+    "argocd",
+    "kubernetes",
+    "kustomize",
+    "helm-values"
   ],
   "argocd": {
     "managerFilePatterns": [
       "/^installs\\/[^/]+\\.yaml$/"
+    ]
+  },
+  "kubernetes": {
+    "managerFilePatterns": [
+      "/^apps\\/.+\\.ya?ml$/"
+    ]
+  },
+  "helm-values": {
+    "managerFilePatterns": [
+      "/^apps\\/.*values[^/]*\\.ya?ml$/"
     ]
   },
   "automerge": false,
@@ -21,9 +34,33 @@
   "prHourlyLimit": 1,
   "packageRules": [
     {
+      "description": "Disable Helm values files outside apps/ because manager file patterns are additive to Renovate defaults.",
+      "matchManagers": [
+        "helm-values"
+      ],
+      "matchFileNames": [
+        "!apps/**"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Helm values own image references in values files, preventing duplicate image-update PRs from the Kubernetes manager.",
+      "matchManagers": [
+        "kubernetes"
+      ],
+      "matchFileNames": [
+        "apps/**/*values*.yaml",
+        "apps/**/*values*.yml"
+      ],
+      "enabled": false
+    },
+    {
       "description": "Keep major-version upgrades distinct because they require a compatibility review and explicit rollback assessment.",
       "matchManagers": [
-        "argocd"
+        "argocd",
+        "kubernetes",
+        "kustomize",
+        "helm-values"
       ],
       "matchUpdateTypes": [
         "major"
