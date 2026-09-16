@@ -21,6 +21,15 @@ vikunja:
       storageClass: ceph-rbd
     database:
       enabled: false
+    oidc-client-secret:
+      enabled: true
+      type: secret
+      name: vikunja-oidc-client-secret
+      mountPath: /etc/vikunja/oidc
+      readOnly: true
+      items:
+        - key: client-secret
+          path: client-secret
 
   ingress:
     main:
@@ -54,6 +63,8 @@ vikunja:
                   authurl: https://auth.akatuki-host.com/application/o/vikunja/
                   logouturl: https://auth.akatuki-host.com/application/o/vikunja/end-session/
                   clientid: vikunja
+                  clientsecret:
+                    file: /etc/vikunja/oidc/client-secret
                   scope: openid profile email vikunja_scope
                   forceuserinfo: false
 
@@ -78,8 +89,3 @@ vikunja:
         secretKeyRef:
           name: vikunja-secret
           key: VIKUNJA_SERVICE_SECRET
-    VIKUNJA_AUTH_OPENID_PROVIDERS_AUTHENTIK_CLIENTSECRET:
-      valueFrom:
-        secretKeyRef:
-          name: vikunja-oidc-client-secret
-          key: client-secret
