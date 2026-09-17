@@ -19,6 +19,9 @@ spec:
       app.kubernetes.io/name: hermes
   template:
     metadata:
+      annotations:
+        checksum/hermes-vikunja-adapter: ea06d8d5cd3ebe749ea5b6797ad514e1c29a62e935fd38ebf4d7f98824dfb0cd
+        checksum/hermes-vikunja-tools: 37684218132f8595aca4f776937bbb10fc51e8fd2424142466dcae7a329ac610
       labels:
         app.kubernetes.io/instance: hermes
         app.kubernetes.io/name: hermes
@@ -484,6 +487,64 @@ spec:
             - mountPath: /var/run/github-token
               name: github-token
               readOnly: true
+            - mountPath: /opt/hermes-tools/vikunja-tasks
+              name: vikunja-tools
+              subPath: vikunja-tasks
+              readOnly: true
+        - name: vikunja-adapter
+          command:
+            - python3
+            - /opt/vikunja-adapter/server.py
+          image: "nousresearch/hermes-agent@sha256:\
+            63bfb6d732f49a55d453e801057273785cc61e0f6ee43db3fa2f2a79846301b7"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: VIKUNJA_BASE_URL
+              value: https://vikunja.akatuki-host.com
+            - name: VIKUNJA_TOKEN_FILE
+              value: /var/run/vikunja-api/token
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -ec
+                - curl -fsS --max-time 3 http://127.0.0.1:8791/health >/dev/null
+            failureThreshold: 3
+            periodSeconds: 20
+            timeoutSeconds: 3
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -ec
+                - curl -fsS --max-time 5 http://127.0.0.1:8791/ready >/dev/null
+            failureThreshold: 3
+            periodSeconds: 10
+            timeoutSeconds: 5
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 10m
+              memory: 32Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 10000
+            runAsNonRoot: true
+            runAsUser: 10000
+          volumeMounts:
+            - mountPath: /opt/vikunja-adapter
+              name: vikunja-adapter
+              readOnly: true
+            - mountPath: /var/run/vikunja-api
+              name: vikunja-api-secret
+              readOnly: true
         - name: github-token-broker
           command:
             - /bin/sh
@@ -563,6 +624,21 @@ spec:
           configMap:
             name: hermes-observability-tools
             defaultMode: 0555
+        - name: vikunja-adapter
+          configMap:
+            name: hermes-vikunja-adapter
+            defaultMode: 0555
+        - name: vikunja-tools
+          configMap:
+            name: hermes-vikunja-tools
+            defaultMode: 0555
+        - name: vikunja-api-secret
+          secret:
+            secretName: hermes-vikunja
+            defaultMode: 0440
+            items:
+              - key: token
+                path: token
         - name: kubernetes-config
           configMap:
             name: hermes-kubernetes-config
