@@ -19,6 +19,11 @@ display:
     discord:
       tool_progress: new
       tool_progress_grouping: accumulate
+cron:
+  # Keep unattended secretary routines independent from the interactive model.
+  model: gpt-5.6-luna
+  model_provider: openai-codex
+
 delegation:
   provider: openai-codex
   model: gpt-5.6-luna
