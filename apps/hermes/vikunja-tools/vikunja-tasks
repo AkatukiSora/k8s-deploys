@@ -1,0 +1,110 @@
+#!/usr/bin/env python3
+"""Client for the bounded loopback Vikunja secretary adapter."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
+
+BASE_URL = "http://127.0.0.1:8791"
+
+
+def request(method: str, path: str, payload: dict | None = None, query: dict | None = None) -> None:
+    url = f"{BASE_URL}{path}"
+    if query:
+        url = f"{url}?{urlencode({key: value for key, value in query.items() if value is not None})}"
+    body = None if payload is None else json.dumps(payload).encode("utf-8")
+    headers = {"Accept": "application/json"}
+    if body is not None:
+        headers["Content-Type"] = "application/json"
+    try:
+        with urlopen(Request(url, data=body, headers=headers, method=method), timeout=15) as response:
+            print(json.dumps(json.loads(response.read().decode("utf-8")), ensure_ascii=False, indent=2))
+    except HTTPError as error:
+        try:
+            message = json.loads(error.read().decode("utf-8")).get("error", "adapter request failed")
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            message = "adapter request failed"
+        print(f"ERROR: {message}", file=sys.stderr)
+        raise SystemExit(1)
+    except URLError:
+        print("ERROR: Vikunja adapter is unavailable", file=sys.stderr)
+        raise SystemExit(1)
+
+
+def add_task_fields(parser: argparse.ArgumentParser, *, create: bool) -> None:
+    if create:
+        parser.add_argument("--project", type=int, required=True)
+    parser.add_argument("--title")
+    parser.add_argument("--description")
+    parser.add_argument("--due")
+    parser.add_argument("--start")
+    parser.add_argument("--end")
+    parser.add_argument("--priority", type=int)
+
+
+def task_payload(args: argparse.Namespace, *, create: bool) -> dict:
+    fields = {
+        "title": args.title,
+        "description": args.description,
+        "due_date": args.due,
+        "start_date": args.start,
+        "end_date": args.end,
+        "priority": args.priority,
+    }
+    payload = {key: value for key, value in fields.items() if value is not None}
+    if create:
+        payload["project_id"] = args.project
+    if not create and not payload:
+        raise SystemExit("ERROR: supply at least one mutable task field")
+    return payload
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    groups = parser.add_subparsers(dest="group", required=True)
+
+    projects = groups.add_parser("projects")
+    projects_sub = projects.add_subparsers(dest="command", required=True)
+    projects_list = projects_sub.add_parser("list")
+    projects_list.add_argument("--page", type=int)
+    projects_list.add_argument("--per-page", type=int)
+    projects_list.add_argument("--search")
+
+    tasks = groups.add_parser("tasks")
+    tasks_sub = tasks.add_subparsers(dest="command", required=True)
+    tasks_list = tasks_sub.add_parser("list")
+    tasks_list.add_argument("--page", type=int)
+    tasks_list.add_argument("--per-page", type=int)
+    tasks_list.add_argument("--search")
+    tasks_get = tasks_sub.add_parser("get")
+    tasks_get.add_argument("task_id", type=int)
+    tasks_create = tasks_sub.add_parser("create")
+    add_task_fields(tasks_create, create=True)
+    tasks_update = tasks_sub.add_parser("update")
+    tasks_update.add_argument("task_id", type=int)
+    add_task_fields(tasks_update, create=False)
+    tasks_complete = tasks_sub.add_parser("complete")
+    tasks_complete.add_argument("task_id", type=int)
+
+    args = parser.parse_args()
+    if args.group == "projects":
+        request("GET", "/projects", query={"page": args.page, "per_page": args.per_page, "s": args.search})
+    elif args.command == "list":
+        request("GET", "/tasks", query={"page": args.page, "per_page": args.per_page, "s": args.search})
+    elif args.command == "get":
+        request("GET", f"/tasks/{args.task_id}")
+    elif args.command == "create":
+        request("POST", "/tasks", task_payload(args, create=True))
+    elif args.command == "update":
+        request("POST", f"/tasks/{args.task_id}", task_payload(args, create=False))
+    elif args.command == "complete":
+        request("POST", f"/tasks/{args.task_id}/complete", {})
+
+
+if __name__ == "__main__":
+    main()

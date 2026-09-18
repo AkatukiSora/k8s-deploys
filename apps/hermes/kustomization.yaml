@@ -11,6 +11,7 @@ resources:
   - onepassworditem-alertmanager-webhook.yaml
   - onepassworditem-argocd.yaml
   - onepassworditem-grafana.yaml
+  - onepassworditem-vikunja.yaml
   - rbac-k8s-observer.yaml
   - networkpolicy-default-deny.yaml
   - networkpolicy-dns-egress.yaml
@@ -32,6 +33,12 @@ configMapGenerator:
       - github-tools/gh
       - github-tools/github-commit-staged
       - github-tools/terminal-path.sh
+  - name: hermes-vikunja-adapter
+    files:
+      - vikunja-adapter/server.py
+  - name: hermes-vikunja-tools
+    files:
+      - vikunja-tasks=vikunja-tools/vikunja-tasks
   - name: hermes-kubernetes-config
     files:
       - kubeconfig=kubernetes/kubeconfig

@@ -97,6 +97,44 @@ key-level policy overlay, not a hard sandbox: do not depend on it to stop a
 process with Kubernetes-level authority from changing its own environment or
 mounts.
 
+## Vikunja task adapter
+
+Hermes manages Vikunja tasks through a loopback-only adapter sidecar. The
+adapter is the sole bearer-token consumer: it receives the `token` field from
+the 1Password-managed `hermes-vikunja` Secret as a read-only file at
+`/var/run/vikunja-api/token`; the Hermes container never mounts that Secret.
+
+The 1Password item must contain the `token` field before this application is
+synchronized. Create a dedicated Vikunja API token with only the task/project
+read and task create/update permissions required by the secretary workflow.
+Do not grant delete, user, team, permission, or webhook-management permissions.
+Before activation, use the target instance's `/api/v1/routes` and a value-free
+adapter probe to prove the token permits the intended routes and rejects those
+unneeded permissions.
+
+The bounded `vikunja-tasks` client is mounted read-only at
+`/opt/hermes-tools/vikunja-tasks`. It talks only to the local adapter, which
+binds `127.0.0.1:8791`, hard-codes
+`https://vikunja.akatuki-host.com/api/v1` as its upstream, and supports only:
+project/task reads, task creation, restricted-field task updates, and task
+completion. It rejects arbitrary upstream paths, methods, and request fields;
+it does not expose deletion. Every task write is read back from Vikunja before
+the result is returned.
+
+The sidecar's readiness probe calls `/ready`, which makes a value-free
+authenticated `GET /api/v1/user` probe. After the operator synchronizes the
+Hermes Application, verify the adapter readiness and run `vikunja-tasks
+projects list`; do not print the token. The existing public TCP/443 egress
+policy covers the public Vikunja URL; no private-network rule is added.
+
+Rollback: revert the adapter change, synchronize Hermes, and confirm the
+Deployment has recreated its Pod. The Pod template includes the SHA-256 values
+of the adapter and CLI scripts; every script change must update its matching
+checksum annotation, which forces rollout despite the repository's stable
+ConfigMap names. Do not treat a ConfigMap-only sync as proof that running code
+changed. Rollback stops new Vikunja operations but preserves all Vikunja data
+and the 1Password item.
+
 ## GitHub App automation
 
 Hermes is intended to make repository changes through GitHub rather than by
