@@ -59,6 +59,7 @@ class VikunjaClient:
         headers = {
             "Accept": "application/json",
             "Authorization": f"Bearer {self.token}",
+            "User-Agent": "Hermes-Vikunja-Adapter/1.0",
         }
         if body is not None:
             headers["Content-Type"] = "application/json"
