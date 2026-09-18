@@ -151,10 +151,13 @@ it does not expose deletion. Every task write is read back from Vikunja before
 the result is returned.
 
 The sidecar's readiness probe calls `/ready`, which makes a value-free
-authenticated `GET /api/v1/user` probe. After the operator synchronizes the
-Hermes Application, verify the adapter readiness and run `vikunja-tasks
-projects list`; do not print the token. The existing public TCP/443 egress
-policy covers the public Vikunja URL; no private-network rule is added.
+authenticated `GET /api/v1/projects` probe. This uses the same least-privilege
+project-read permission required by the adapter's normal task workflow; it does
+not require access to the user-management route. After the operator
+synchronizes the Hermes Application, verify the adapter readiness and run
+`vikunja-tasks projects list`; do not print the token. The existing public
+TCP/443 egress policy covers the public Vikunja URL; no private-network rule is
+added.
 
 Rollback: revert the adapter change, synchronize Hermes, and confirm the
 Deployment has recreated its Pod. The Pod template includes the SHA-256 values

@@ -174,9 +174,9 @@ class Handler(BaseHTTPRequestHandler):
                 return
             client = self.client()
             if parsed.path == "/ready":
-                _, user = client.request("GET", "/api/v1/user")
-                user_id = user.get("id") if isinstance(user, dict) else None
-                self.send_json(200, {"status": "ready", "user_id": user_id})
+                _, projects = client.request("GET", "/api/v1/projects")
+                project_count = len(projects) if isinstance(projects, list) else None
+                self.send_json(200, {"status": "ready", "project_count": project_count})
                 return
             if parsed.path == "/projects":
                 _, data = client.request("GET", "/api/v1/projects", query=self.allowed_query(parsed.query))
