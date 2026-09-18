@@ -5,6 +5,7 @@ resources:
   - namespace.yaml
   - serviceaccount.yaml
   - pvc.yaml
+  - pvc-google-secretary.yaml
   - service-webhook.yaml
   - onepassworditem-discord.yaml
   - onepassworditem-github-app.yaml
@@ -12,6 +13,7 @@ resources:
   - onepassworditem-argocd.yaml
   - onepassworditem-grafana.yaml
   - onepassworditem-vikunja.yaml
+  - onepassworditem-google-oauth-client.yaml
   - rbac-k8s-observer.yaml
   - networkpolicy-default-deny.yaml
   - networkpolicy-dns-egress.yaml
@@ -39,6 +41,12 @@ configMapGenerator:
   - name: hermes-vikunja-tools
     files:
       - vikunja-tasks=vikunja-tools/vikunja-tasks
+  - name: hermes-google-oauth-broker
+    files:
+      - google-oauth-broker/server.py
+  - name: hermes-google-oauth-tools
+    files:
+      - google-secretary-auth=google-oauth-tools/google-secretary-auth
   - name: hermes-kubernetes-config
     files:
       - kubeconfig=kubernetes/kubeconfig
