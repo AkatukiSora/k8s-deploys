@@ -529,14 +529,6 @@ spec:
             - mountPath: /var/run/github-token
               name: github-token
               readOnly: true
-            - mountPath: /opt/hermes-tools/vikunja-tasks
-              name: vikunja-tools
-              subPath: vikunja-tasks
-              readOnly: true
-            - mountPath: /opt/hermes-tools/google-secretary-auth
-              name: google-oauth-tools
-              subPath: google-secretary-auth
-              readOnly: true
         - name: vikunja-adapter
           command:
             - python3
@@ -711,9 +703,15 @@ spec:
           persistentVolumeClaim:
             claimName: hermes-google-secretary-data
         - name: github-tools
-          configMap:
-            name: hermes-github-tools
+          projected:
             defaultMode: 0555
+            sources:
+              - configMap:
+                  name: hermes-github-tools
+              - configMap:
+                  name: hermes-vikunja-tools
+              - configMap:
+                  name: hermes-google-oauth-tools
         - name: github-bin
           emptyDir: {}
         - name: kubernetes-bin
@@ -728,10 +726,6 @@ spec:
           configMap:
             name: hermes-vikunja-adapter
             defaultMode: 0555
-        - name: vikunja-tools
-          configMap:
-            name: hermes-vikunja-tools
-            defaultMode: 0555
         - name: vikunja-api-secret
           secret:
             secretName: hermes-vikunja
@@ -742,10 +736,6 @@ spec:
         - name: google-oauth-broker
           configMap:
             name: hermes-google-oauth-broker
-            defaultMode: 0555
-        - name: google-oauth-tools
-          configMap:
-            name: hermes-google-oauth-tools
             defaultMode: 0555
         - name: google-oauth-client-secret
           secret:
