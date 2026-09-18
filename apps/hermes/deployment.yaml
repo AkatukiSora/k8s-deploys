@@ -22,6 +22,8 @@ spec:
       annotations:
         checksum/hermes-vikunja-adapter: ea06d8d5cd3ebe749ea5b6797ad514e1c29a62e935fd38ebf4d7f98824dfb0cd
         checksum/hermes-vikunja-tools: 37684218132f8595aca4f776937bbb10fc51e8fd2424142466dcae7a329ac610
+        checksum/hermes-google-oauth-broker: df3a7cd5b517fde07aeb26ee062ecd849ad72c21349f6d87526c3d5a0f8a2f9f
+        checksum/hermes-google-oauth-tools: a9f6e8f2174c2a7cb73e6206af4505a77502d762156ca89b7461ddbfa16be53a
       labels:
         app.kubernetes.io/instance: hermes
         app.kubernetes.io/name: hermes
@@ -143,6 +145,46 @@ spec:
               readOnly: true
             - mountPath: /opt/data
               name: data
+        - name: prepare-google-secretary-state
+          command:
+            - /bin/sh
+            - -ec
+            - |
+              set -eu
+              state=/var/lib/google-secretary
+              if [ -L "$state" ] || [ ! -d "$state" ]; then
+                echo "google secretary state must be a directory" >&2
+                exit 1
+              fi
+              chown 10000:10000 "$state"
+              chmod 0700 "$state"
+          image: "nousresearch/hermes-agent@sha256:\
+            63bfb6d732f49a55d453e801057273785cc61e0f6ee43db3fa2f2a79846301b7"
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: 50m
+              memory: 64Mi
+            requests:
+              cpu: 5m
+              memory: 16Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              add:
+                - CHOWN
+                - DAC_OVERRIDE
+                - FOWNER
+              drop:
+                - ALL
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 0
+            runAsNonRoot: false
+            runAsUser: 0
+          volumeMounts:
+            - mountPath: /var/lib/google-secretary
+              name: google-secretary-data
         - name: install-github-tools
           command:
             - /bin/sh
@@ -491,6 +533,10 @@ spec:
               name: vikunja-tools
               subPath: vikunja-tasks
               readOnly: true
+            - mountPath: /opt/hermes-tools/google-secretary-auth
+              name: google-oauth-tools
+              subPath: google-secretary-auth
+              readOnly: true
         - name: vikunja-adapter
           command:
             - python3
@@ -545,6 +591,57 @@ spec:
             - mountPath: /var/run/vikunja-api
               name: vikunja-api-secret
               readOnly: true
+        - name: google-oauth-broker
+          command:
+            - python3
+            - /opt/google-oauth-broker/server.py
+          image: "nousresearch/hermes-agent@sha256:\
+            63bfb6d732f49a55d453e801057273785cc61e0f6ee43db3fa2f2a79846301b7"
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -ec
+                - curl -fsS --max-time 3 http://127.0.0.1:8792/health >/dev/null
+            failureThreshold: 3
+            periodSeconds: 20
+            timeoutSeconds: 3
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -ec
+                - curl -fsS --max-time 3 http://127.0.0.1:8792/oauth/status >/dev/null
+            failureThreshold: 3
+            periodSeconds: 10
+            timeoutSeconds: 3
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 10m
+              memory: 32Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 10000
+            runAsNonRoot: true
+            runAsUser: 10000
+          volumeMounts:
+            - mountPath: /opt/google-oauth-broker
+              name: google-oauth-broker
+              readOnly: true
+            - mountPath: /var/run/google-oauth-client
+              name: google-oauth-client-secret
+              readOnly: true
+            - mountPath: /var/lib/google-secretary
+              name: google-secretary-data
         - name: github-token-broker
           command:
             - /bin/sh
@@ -610,6 +707,9 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: hermes-data
+        - name: google-secretary-data
+          persistentVolumeClaim:
+            claimName: hermes-google-secretary-data
         - name: github-tools
           configMap:
             name: hermes-github-tools
@@ -639,6 +739,23 @@ spec:
             items:
               - key: token
                 path: token
+        - name: google-oauth-broker
+          configMap:
+            name: hermes-google-oauth-broker
+            defaultMode: 0555
+        - name: google-oauth-tools
+          configMap:
+            name: hermes-google-oauth-tools
+            defaultMode: 0555
+        - name: google-oauth-client-secret
+          secret:
+            secretName: hermes-google-oauth-client
+            defaultMode: 0440
+            items:
+              - key: clientId
+                path: clientId
+              - key: clientSecret
+                path: clientSecret
         - name: kubernetes-config
           configMap:
             name: hermes-kubernetes-config
