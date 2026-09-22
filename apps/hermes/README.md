@@ -109,18 +109,27 @@ fields with Google's fixed authorization and token endpoints.
 The broker persists only its PKCE transaction state and OAuth token on the
 dedicated `hermes-google-secretary-data` PVC, mounted solely into the broker
 and its state-preparation init container. The shared Hermes PVC does not mount
-this OAuth state. It requests only Gmail read access plus Calendar event,
-calendar-list, and calendar-creation scopes; the Calendar scopes are required
-to manage events you own and create the secretary calendar, and do not grant
-Calendar ACL operations. It cannot send, modify, archive, label, or delete
-Gmail.
+this OAuth state. It requests exactly the broad `gmail.readonly` and
+`calendar.readonly` scopes; changing from the previous Calendar grant requires
+reauthorization. It cannot send, modify, archive, label, or delete Gmail, and
+it exposes no Calendar write or pagination operation.
 
-Use the read-only `/opt/hermes-tools/google-secretary-auth` client to obtain an
-authorization URL, then provide the complete `http://localhost:1/...` callback
-URL on standard input to its exchange command; do not place it in command-line
-arguments. The authorization code and token are never returned by the broker or
-committed. Verify `/oauth/status` after exchange, then add separate reviewed
-Calendar/Gmail API operations before scheduling any secretary job.
+The read-only `/opt/hermes-tools/google-secretary-auth` client is tokenless: it
+calls only the loopback broker and accepts no credential, token, URL, method, or
+payload override. Its fixed operations are `calendar-list`, `calendar-events`
+(with optional `--start`/`--end` and `--limit` 1–20), `gmail-list` (query and
+limit 1–20), and `gmail-get` (validated message ID). Calendar events return
+minimal scheduling fields. Gmail list returns bounded metadata/snippets; Gmail
+get returns text/plain content, falling back to HTML stripped to text, with a
+16 KiB body cap. The broker owns token refresh and all Google API requests.
+
+Use `google-secretary-auth start` to obtain an authorization URL, then provide
+the complete `http://localhost:1/...` callback URL on standard input to its
+exchange command; do not place it in command-line arguments. The authorization
+code and token are never returned by the broker or committed. `/oauth/status`
+returns metadata only; the broker's `/ready` endpoint refreshes the token when
+needed and makes an authenticated Calendar probe. Verify `/ready` after
+exchange before scheduling any secretary job.
 
 Rollback: revert this change, synchronize Hermes, and verify the Deployment
 recreated its Pod. The OAuth client credential and token remain in 1Password
