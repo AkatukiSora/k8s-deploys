@@ -44,9 +44,15 @@ configMapGenerator:
   - name: hermes-google-oauth-broker
     files:
       - google-oauth-broker/server.py
+    options:
+      labels:
+        app.kubernetes.io/component: google-read-adapter
   - name: hermes-google-oauth-tools
     files:
       - google-secretary-auth=google-oauth-tools/google-secretary-auth
+    options:
+      labels:
+        app.kubernetes.io/component: google-read-adapter
   - name: hermes-kubernetes-config
     files:
       - kubeconfig=kubernetes/kubeconfig

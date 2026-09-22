@@ -22,8 +22,8 @@ spec:
       annotations:
         checksum/hermes-vikunja-adapter: 769ce2dc5ff77c7bfe5b9cf7e32635791cae3129d1863d052c02a38dbd2fc442
         checksum/hermes-vikunja-tools: 37684218132f8595aca4f776937bbb10fc51e8fd2424142466dcae7a329ac610
-        checksum/hermes-google-oauth-broker: df3a7cd5b517fde07aeb26ee062ecd849ad72c21349f6d87526c3d5a0f8a2f9f
-        checksum/hermes-google-oauth-tools: a9f6e8f2174c2a7cb73e6206af4505a77502d762156ca89b7461ddbfa16be53a
+        checksum/hermes-google-oauth-broker: 00dc452ff55da77b59ce56b2dc8f779590dcf1625f75de2568f45c89dc68cf1b
+        checksum/hermes-google-oauth-tools: 0cc5c6d671b6556c0246d03436346840638aa41abe494ec1742e429631c83997
       labels:
         app.kubernetes.io/instance: hermes
         app.kubernetes.io/name: hermes
@@ -604,10 +604,10 @@ spec:
               command:
                 - /bin/sh
                 - -ec
-                - curl -fsS --max-time 3 http://127.0.0.1:8792/oauth/status >/dev/null
+                - curl -fsS --max-time 5 http://127.0.0.1:8792/ready >/dev/null
             failureThreshold: 3
             periodSeconds: 10
-            timeoutSeconds: 3
+            timeoutSeconds: 6
           resources:
             limits:
               cpu: 100m
