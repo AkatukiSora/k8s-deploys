@@ -10,6 +10,8 @@ metadata:
   namespace: hermes
 spec:
   type: ClusterIP
+  # The facade has its own health probe; do not couple read access to unrelated sidecars.
+  publishNotReadyAddresses: true
   selector:
     app.kubernetes.io/name: hermes
   ports:
