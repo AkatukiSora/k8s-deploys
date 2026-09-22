@@ -7,6 +7,9 @@ resources:
   - pvc.yaml
   - pvc-google-secretary.yaml
   - service-webhook.yaml
+  - service-vikunja-read.yaml
+  - rbac-vikunja-read-proxy.yaml
+  - networkpolicy-vikunja-read-ingress.yaml
   - onepassworditem-discord.yaml
   - onepassworditem-github-app.yaml
   - onepassworditem-alertmanager-webhook.yaml
@@ -38,6 +41,9 @@ configMapGenerator:
   - name: hermes-vikunja-adapter
     files:
       - vikunja-adapter/server.py
+  - name: hermes-vikunja-read-proxy
+    files:
+      - vikunja-read-proxy/server.py
   - name: hermes-vikunja-tools
     files:
       - vikunja-tasks=vikunja-tools/vikunja-tasks

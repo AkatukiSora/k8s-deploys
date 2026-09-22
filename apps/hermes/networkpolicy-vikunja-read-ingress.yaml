@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+  name: allow-vikunja-read-from-control-plane
+  namespace: hermes
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: hermes
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - ipBlock:
+            cidr: 10.0.40.11/32
+        - ipBlock:
+            cidr: 10.0.40.12/32
+        - ipBlock:
+            cidr: 10.0.40.13/32
+      ports:
+        - protocol: TCP
+          port: 8793
