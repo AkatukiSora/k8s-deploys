@@ -21,6 +21,7 @@ spec:
     metadata:
       annotations:
         checksum/hermes-vikunja-adapter: 769ce2dc5ff77c7bfe5b9cf7e32635791cae3129d1863d052c02a38dbd2fc442
+        checksum/hermes-vikunja-read-proxy: df88414001005fcf57beb05c7700fa76579dfc1f96eb8aa634ce6ba2d1e7e41c
         checksum/hermes-vikunja-tools: 37684218132f8595aca4f776937bbb10fc51e8fd2424142466dcae7a329ac610
         checksum/hermes-google-oauth-broker: 00dc452ff55da77b59ce56b2dc8f779590dcf1625f75de2568f45c89dc68cf1b
         checksum/hermes-google-oauth-tools: 0cc5c6d671b6556c0246d03436346840638aa41abe494ec1742e429631c83997
@@ -583,6 +584,31 @@ spec:
             - mountPath: /var/run/vikunja-api
               name: vikunja-api-secret
               readOnly: true
+        - name: vikunja-read-proxy
+          command: ["python3", "/opt/vikunja-read-proxy/server.py"]
+          image: "nousresearch/hermes-agent@sha256:63bfb6d732f49a55d453e801057273785cc61e0f6ee43db3fa2f2a79846301b7"
+          ports:
+            - name: vikunja-read
+              containerPort: 8793
+          livenessProbe:
+            httpGet: {path: /healthz, port: vikunja-read}
+          readinessProbe:
+            httpGet: {path: /healthz, port: vikunja-read}
+          resources:
+            limits: {cpu: 100m, memory: 128Mi}
+            requests: {cpu: 10m, memory: 32Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 10000
+            runAsNonRoot: true
+            runAsUser: 10000
+          volumeMounts:
+            - mountPath: /opt/vikunja-read-proxy
+              name: vikunja-read-proxy
+              readOnly: true
         - name: google-oauth-broker
           command:
             - python3
@@ -725,6 +751,10 @@ spec:
         - name: vikunja-adapter
           configMap:
             name: hermes-vikunja-adapter
+            defaultMode: 0555
+        - name: vikunja-read-proxy
+          configMap:
+            name: hermes-vikunja-read-proxy
             defaultMode: 0555
         - name: vikunja-api-secret
           secret:

@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  labels:
+    app.kubernetes.io/instance: hermes
+    app.kubernetes.io/name: hermes
+  name: hermes-vikunja-read
+  namespace: hermes
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: hermes
+  ports:
+    - name: read
+      port: 8793
+      targetPort: vikunja-read
+      protocol: TCP
