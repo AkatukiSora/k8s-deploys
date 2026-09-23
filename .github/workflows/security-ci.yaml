@@ -1,5 +1,5 @@
 ---
-name: Security Manifests CI
+name: Static GitOps CI
 
 on:
   pull_request:
@@ -7,9 +7,12 @@ on:
     branches:
       - master
 
+permissions:
+  contents: read
+
 jobs:
-  validate-security-manifests:
-    runs-on: ubuntu-latest
+  validate-gitops:
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -17,28 +20,29 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.12.8"
 
-      - name: Install yamllint
-        run: pip install yamllint
+      - name: Install pinned Python validation dependencies
+        run: python -m pip install --require-hashes -r .github/requirements.txt
 
-      - name: Install kubeconform
+      - name: Install pinned kubeconform
         run: |
-          curl -sSL "https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz" -o kubeconform.tar.gz
-          tar -xzf kubeconform.tar.gz kubeconform
-          sudo mv kubeconform /usr/local/bin/kubeconform
+          curl --fail --location --silent --show-error \
+            "https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz" \
+            --output kubeconform.tar.gz
+          tar --extract --gzip --file kubeconform.tar.gz kubeconform
+          sudo install --mode 0755 kubeconform /usr/local/bin/kubeconform
 
-      - name: Lint YAML
-        run: |
-          yamllint -d "{extends: default, rules: {line-length: disable, document-start: disable}}" \
-            installs/security-*.yaml \
-            apps/security \
-            .github/workflows/security-ci.yaml
+      - name: Validate YAML syntax
+        run: yamllint --config-file .yamllint.yaml .
+
+      - name: Validate GitOps references and contracts
+        run: python .github/scripts/validate_gitops.py
 
       - name: Validate Kubernetes manifests
         run: |
           shopt -s globstar nullglob
-          kubeconform -summary -strict -ignore-missing-schemas installs/security-*.yaml
+          kubeconform -summary -strict -ignore-missing-schemas apps-root.yaml installs/*.yaml
           kubeconform -summary -strict -ignore-missing-schemas \
             apps/security/kyverno-policies/**/*.yaml \
             apps/security/prometheus-rules/**/*.yaml \
