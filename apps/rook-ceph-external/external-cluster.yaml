@@ -44,7 +44,7 @@ spec:
     disable: true
   dataDirHostPath: /var/lib/rook
   cephVersion:
-    image: quay.io/ceph/ceph:v19.2.3
+    image: quay.io/ceph/ceph:v21.1.0
 ---
 apiVersion: ceph.rook.io/v1
 kind: CephObjectStore
