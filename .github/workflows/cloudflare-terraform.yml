@@ -1,0 +1,31 @@
+name: Cloudflare Terraform validation
+
+on:
+  pull_request:
+    paths:
+      - cloudflare/**
+      - .github/workflows/cloudflare-terraform.yml
+  push:
+    branches:
+      - master
+    paths:
+      - cloudflare/**
+      - .github/workflows/cloudflare-terraform.yml
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cloudflare
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false -input=false
+      - run: terraform validate -no-color

@@ -2,3 +2,8 @@
 /talos/.tmp/
 /talos/secrets/secret.yaml
 /talos/secrets/secrets.yaml
+/cloudflare/.terraform/
+/cloudflare/**/*.tfstate
+/cloudflare/**/*.tfstate.*
+/cloudflare/*.tfvars
+/cloudflare/**/*.tfvars
