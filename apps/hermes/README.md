@@ -38,9 +38,15 @@ must review and synchronize its resources before the workload starts.
   east-west traffic in issue #62; NetworkPolicy constrains reachability but
   does not provide transport encryption.
 - `/opt/data` is the only persistent path. It holds Hermes configuration,
-  memory, skills, sessions, and ChatGPT/Codex OAuth credentials. It is a
-  `ReadWriteOnce` Ceph RBD volume and the Deployment uses `Recreate`; never
-  run a second Hermes gateway against this volume.
+  memory, skills, sessions, ChatGPT/Codex OAuth credentials, and the default
+  Kanban board (`kanban.db`) with its logs, attachments, and workspaces. It is
+  a `ReadWriteOnce` Ceph RBD volume and the Deployment uses `Recreate`; never
+  run a second Hermes gateway or a second Kanban dispatcher against this volume.
+  A Pod restart terminates an in-flight worker process and loses its transient
+  model context, but not its task record: the restarted embedded dispatcher
+  detects the dead local PID/claim and requeues the durable card for a bounded
+  retry. Workers must commit/push durable code changes and persist handoff
+  details to the Kanban card rather than rely on process-local state.
 - The `hermes-config` ConfigMap has two roles. An init container copies
   `config.yaml` and `SOUL.md` to the PVC only when each file is absent, while
   the running Hermes container mounts the same ConfigMap read-only as its
@@ -307,8 +313,11 @@ planned encrypted east-west service-traffic layer is available.
 3. Complete the Codex device OAuth flow from an authorized operator session.
    The resulting credentials must stay on `/opt/data`, never in Git or a
    Kubernetes Secret.
-4. Restart the Pod and verify that OAuth state persists and that only approved
-   DNS and public HTTPS egress works.
+4. Restart the Pod and verify that OAuth state persists, only approved DNS and
+   public HTTPS egress works, and a deliberately harmless Kanban card survives
+   the restart. Confirm that the previous worker is reclaimed/requeued by the
+   embedded dispatcher, then completes exactly once after its retry; do not
+   create a second dispatcher or a second Pod to test this.
 5. Prove a VolSync snapshot backup and an isolated restore before adding a
    `ReplicationSource` or enabling automated sync/prune/self-heal.
 6. Before the migration sync, record or back up the unmasked PVC copies of
