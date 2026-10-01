@@ -38,9 +38,15 @@ must review and synchronize its resources before the workload starts.
   east-west traffic in issue #62; NetworkPolicy constrains reachability but
   does not provide transport encryption.
 - `/opt/data` is the only persistent path. It holds Hermes configuration,
-  memory, skills, sessions, and ChatGPT/Codex OAuth credentials. It is a
-  `ReadWriteOnce` Ceph RBD volume and the Deployment uses `Recreate`; never
-  run a second Hermes gateway against this volume.
+  memory, skills, sessions, ChatGPT/Codex OAuth credentials, and the default
+  Kanban board (`kanban.db`) with its logs, attachments, and workspaces. It is
+  a `ReadWriteOnce` Ceph RBD volume and the Deployment uses `Recreate`; never
+  run a second Hermes gateway or a second Kanban dispatcher against this volume.
+  A Pod restart terminates an in-flight worker process and loses its transient
+  model context, but not its task record: the restarted embedded dispatcher
+  detects the dead local PID/claim and requeues the durable card for a bounded
+  retry. Workers must commit/push durable code changes and persist handoff
+  details to the Kanban card rather than rely on process-local state.
 - The `hermes-config` ConfigMap has two roles. An init container copies
   `config.yaml` and `SOUL.md` to the PVC only when each file is absent, while
   the running Hermes container mounts the same ConfigMap read-only as its
@@ -68,16 +74,55 @@ or everyone, and isolates all group and thread sessions per user.
 `DISCORD_BOT_TOKEN` and `DISCORD_ALLOWED_USERS` are projected from the
 `hermes-discord` 1Password item and must never be copied into Git.
 
-The normal parent model is Terra at Medium effort. Delegated children default
-to Luna at High effort for long, well-specified, read-only investigation such
-as web search, status collection, log review, and repetitive validation. They
-are limited to one flat child with no automatic approval. `delegate_task` has
-one global child model and no per-task model parameter: keep the Luna default
-for inexpensive workers. For a difficult, high-value design decision, switch
-the parent for that turn with `/model gpt-5.6-sol --once`; this leaves the Luna
-delegation default intact, and the per-model reasoning override applies High
-effort to Sol. Use Kanban rather than `delegate_task` when a
-durable queued task requires a per-task model override.
+## Coding and infrastructure orchestration
+
+The default parent is GPT-5.6 Sol at High effort. It is the lead/planner: it
+clarifies requirements, investigates repository-wide context, makes
+architecture and security decisions, builds the dependency DAG, defines
+acceptance criteria and mechanical validation, and integrates or reviews
+results. Do not spend Sol on routine implementation after this contract is
+clear. Escalate to Sol when acceptance criteria conflict, requirements are
+missing, a security boundary or migration is involved, a Terraform plan is
+unexpectedly broad, multiple Kubernetes networking/storage/auth layers are
+affected, or retries have become unexplained trial and error. Use Sol XHigh
+only when High is insufficient for that decision.
+
+Delegated children default to GPT-5.6 Luna at XHigh effort with OpenAI/Codex
+Priority Processing (Luna Fast). Luna implements well-specified features and
+bug fixes, makes targeted Terraform/Ansible/manifest changes, writes tests and
+documentation, investigates bounded questions, and runs validation. Each
+handoff must state the objective, context, constraints, non-goals, likely
+files, dependencies, acceptance criteria, exact validation commands, and risk
+level. Workers must not enlarge that scope. They remain limited to one flat
+child and no automatic approval.
+
+The intended recovery route is Luna, then Terra at High only after Luna has
+failed or is insufficient despite a clear specification, then Sol for an
+architecture issue. This is an escalation decision, not an automatic
+`delegate_task` fallback: a lead must explicitly route the retry through a
+separate managed worker path or Kanban task. Low/medium-risk work receives a
+Luna self-check or a separate Luna review where practical. Sol at High reviews high-risk IAM/RBAC,
+authentication/authorization, NetworkPolicy/firewall/routing, secrets,
+database migrations, destructive Terraform potential, control-plane, and
+production changes. Trust acceptance criteria, mechanical validation, diff
+review, and LLM review in that order.
+
+Independently owned files/modules/components may be delegated in parallel only
+after Sol has separated their dependencies; never assign concurrent writers to
+the same surface. Prefer Luna Fast for user-blocking and critical-path work.
+For independent research, large parallel batches, documentation, non-critical
+tests, or subscription-preservation work, prefer Luna Standard when the
+orchestration primitive can select it.
+
+Hermes `delegate_task` currently has one global child model and one global
+request-override policy, so this Managed Scope makes Luna Fast the baseline;
+it cannot select Luna Standard or Terra per individual delegated call. Use a
+separate managed worker/profile path, or a durable Kanban task with its own
+per-task model override, when that distinction is required; an ordinary
+session-level override cannot supersede this Managed Scope. Do not change the
+managed default ad hoc. A typical issue uses one Sol planning pass, three to six Luna workers,
+one Luna validation/review pass, and a final Sol review only when risk warrants
+it.
 
 Discord progress visibility is enabled through interim assistant messages and
 accumulated tool-progress updates. Background delegation completion and failure
@@ -268,8 +313,11 @@ planned encrypted east-west service-traffic layer is available.
 3. Complete the Codex device OAuth flow from an authorized operator session.
    The resulting credentials must stay on `/opt/data`, never in Git or a
    Kubernetes Secret.
-4. Restart the Pod and verify that OAuth state persists and that only approved
-   DNS and public HTTPS egress works.
+4. Restart the Pod and verify that OAuth state persists, only approved DNS and
+   public HTTPS egress works, and a deliberately harmless Kanban card survives
+   the restart. Confirm that the previous worker is reclaimed/requeued by the
+   embedded dispatcher, then completes exactly once after its retry; do not
+   create a second dispatcher or a second Pod to test this.
 5. Prove a VolSync snapshot backup and an isolated restore before adding a
    `ReplicationSource` or enabling automated sync/prune/self-heal.
 6. Before the migration sync, record or back up the unmasked PVC copies of
@@ -283,9 +331,14 @@ planned encrypted east-west service-traffic layer is available.
    `github-commit-staged`, and confirm the resulting commit is Verified before
    opening a test pull request.
 
-Use `gpt-5.6-terra` with Medium effort as the normal Hermes model. Switch to
-`gpt-5.6-sol` with High effort only for difficult, high-value design tasks.
-Reserve `gpt-5.6-luna` with High effort for clear, repeatable auxiliary work.
+The Managed Scope pins GPT-5.6 Sol / High for the parent and GPT-5.6 Luna /
+XHigh / Fast for delegated workers. Preserve this split in future changes;
+Terra is a manually routed fallback rather than a standing worker. The
+`checksum/hermes-config` Pod-template annotation is the SHA-256 of
+`apps/hermes/config.yaml`; update it with every configuration edit so an Argo
+CD synchronization recreates the Pod and rereads Managed Scope. After sync,
+exercise one non-destructive delegated task and confirm that the provider
+accepts Priority Processing without exposing credentials.
 
 ## Rollback
 

@@ -1,11 +1,9 @@
 _config_version: 37
 model:
-  default: gpt-5.6-terra
+  default: gpt-5.6-sol
   provider: openai-codex
 agent:
-  reasoning_effort: medium
-  reasoning_overrides:
-    gpt-5.6-sol: high
+  reasoning_effort: high
 database:
   journal_mode: wal
 display:
@@ -24,10 +22,28 @@ cron:
   model: gpt-5.6-luna
   model_provider: openai-codex
 
+# Durable task queue. Its SQLite DB, worker logs, attachments, and workspaces
+# live beneath /opt/data on the single-writer Hermes PVC.
+kanban:
+  dispatch_in_gateway: true
+  review_dispatch: true
+  dispatch_interval_seconds: 30
+  failure_limit: 2
+  # This Deployment is intentionally one replica and one active Kanban worker.
+  # A restarted Pod reclaims a dead worker from the durable board rather than
+  # competing with it through a second process.
+  max_in_progress: 1
+  max_in_progress_per_profile: 1
+  dispatch_stale_timeout_seconds: 14400
+  reconcile_orphans: true
+
 delegation:
   provider: openai-codex
   model: gpt-5.6-luna
-  reasoning_effort: high
+  reasoning_effort: xhigh
+  # Luna Fast is the default for user-blocking and critical-path work.
+  request_overrides:
+    service_tier: priority
   max_iterations: 120
   max_concurrent_children: 1
   max_spawn_depth: 1
