@@ -3,6 +3,7 @@ argocd = "latest"
 helm = "latest"
 kubectl = "latest"
 talosctl = "1.13.6"
+terraform = "1.16.5"
 
 [tasks.talos-validate]
 description = "Validate Talos YAML patches and optionally render MachineConfigs"

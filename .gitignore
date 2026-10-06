@@ -2,3 +2,14 @@
 /talos/.tmp/
 /talos/secrets/secret.yaml
 /talos/secrets/secrets.yaml
+
+# Terraform local/runtime files. Provider lock files remain tracked.
+/terraform/**/.terraform/
+/terraform/**/*.tfstate
+/terraform/**/*.tfstate.*
+/terraform/**/*.tfplan
+/terraform/**/backend.hcl
+/terraform/**/*.tfvars
+/terraform/**/*.tfvars.json
+/terraform/**/crash.log
+/terraform/**/crash.*.log

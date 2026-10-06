@@ -1,0 +1,463 @@
+name: Cloudflare Terraform operation
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Terraform operation to execute
+        required: true
+        type: choice
+        default: plan
+        options:
+          - plan
+          - apply
+      plan_key:
+        description: R2 object key emitted by the reviewed plan run (apply only)
+        required: false
+        type: string
+      plan_sha256:
+        description: SHA-256 emitted by the reviewed plan run (apply only)
+        required: false
+        type: string
+      allow_destructive:
+        description: Explicitly permit plans containing delete or replacement actions
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-cloudflare-state
+  cancel-in-progress: false
+
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+  TF_STATE_BUCKET: k8s-deploys-terraform-state
+  TF_STATE_ENDPOINT: https://dac1cf154520a028d48ef279669ccf87.r2.cloudflarestorage.com
+  AWS_REGION: auto
+  AWS_DEFAULT_REGION: auto
+
+jobs:
+  reject-non-master-operation:
+    if: github.ref != 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reject authenticated operation outside master
+        run: |
+          echo "Authenticated Terraform operations are permitted only from refs/heads/master." >&2
+          exit 1
+
+  plan:
+    if: inputs.operation == 'plan' && github.ref == 'refs/heads/master'
+    environment: cloudflare-plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+        working-directory: terraform/cloudflare
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_version: 1.16.5
+          terraform_wrapper: false
+
+      - name: Check required secrets
+        run: |
+          : "${CLOUDFLARE_API_TOKEN:?cloudflare-plan/CLOUDFLARE_API_TOKEN is required}"
+          : "${AWS_ACCESS_KEY_ID:?cloudflare-plan/TF_STATE_ACCESS_KEY_ID is required}"
+          : "${AWS_SECRET_ACCESS_KEY:?cloudflare-plan/TF_STATE_SECRET_ACCESS_KEY is required}"
+          command -v aws >/dev/null
+          command -v jq >/dev/null
+          command -v sha256sum >/dev/null
+
+      - name: Initialize remote backend
+        run: |
+          cp backend.hcl.example backend.hcl
+          terraform init -reconfigure -input=false -backend-config=backend.hcl
+
+      - name: Validate configuration
+        run: terraform validate -no-color
+
+      - name: Create plan
+        id: plan
+        run: |
+          set +e
+          terraform plan \
+            -detailed-exitcode \
+            -input=false \
+            -lock-timeout=5m \
+            -out="$RUNNER_TEMP/cloudflare.tfplan" \
+            >"$RUNNER_TEMP/cloudflare-plan.log" 2>&1
+          exit_code=$?
+          set -e
+          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+          case "$exit_code" in
+            0|2)
+              ;;
+            *)
+              echo "Terraform plan failed; detailed output is intentionally withheld from this public repository's logs." >&2
+              exit "$exit_code"
+              ;;
+          esac
+
+      - name: Summarize plan
+        run: |
+          terraform show -json "$RUNNER_TEMP/cloudflare.tfplan" > "$RUNNER_TEMP/cloudflare-plan.json"
+          imports=$(jq '[.resource_changes[]? | select(.change.importing != null)] | length' "$RUNNER_TEMP/cloudflare-plan.json")
+          creates=$(jq '[.resource_changes[]? | select(.change.actions == ["create"])] | length' "$RUNNER_TEMP/cloudflare-plan.json")
+          updates=$(jq '[.resource_changes[]? | select(.change.actions == ["update"])] | length' "$RUNNER_TEMP/cloudflare-plan.json")
+          deletes=$(jq '[.resource_changes[]? | select(.change.actions == ["delete"])] | length' "$RUNNER_TEMP/cloudflare-plan.json")
+          replaces=$(jq '[.resource_changes[]? | select((.change.actions | index("create")) != null and (.change.actions | index("delete")) != null)] | length' "$RUNNER_TEMP/cloudflare-plan.json")
+          {
+            echo "## Cloudflare Terraform plan"
+            echo
+            echo "- Ref: \`$GITHUB_REF\`"
+            echo "- Commit: \`$GITHUB_SHA\`"
+            echo "- Imports: $imports"
+            echo "- Creates: $creates"
+            echo "- Updates: $updates"
+            echo "- Deletes: $deletes"
+            echo "- Replacements: $replaces"
+            echo
+            echo "### Resource actions"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+          jq -r '
+            def action_text: (.change.actions | join(" + "));
+            .resource_changes[]?
+            | select(.change.importing != null or .change.actions != ["no-op"])
+            | "- `\(.address)`: "
+              + (if .change.importing != null then "import / " + action_text else action_text end)
+          ' "$RUNNER_TEMP/cloudflare-plan.json" >> "$GITHUB_STEP_SUMMARY"
+          echo >> "$GITHUB_STEP_SUMMARY"
+          echo "Source run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Store reviewed plan in private R2
+        if: steps.plan.outputs.exit_code == '2'
+        run: |
+          plan_key="plans/cloudflare/${GITHUB_SHA}/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.tfplan"
+          plan_sha256=$(sha256sum "$RUNNER_TEMP/cloudflare.tfplan" | cut -d ' ' -f 1)
+          aws s3api put-object \
+            --bucket "$TF_STATE_BUCKET" \
+            --key "$plan_key" \
+            --body "$RUNNER_TEMP/cloudflare.tfplan" \
+            --metadata "sha256=$plan_sha256" \
+            --if-none-match '*' \
+            --endpoint-url "$TF_STATE_ENDPOINT" >/dev/null
+          stored_sha256=$(aws s3api head-object \
+            --bucket "$TF_STATE_BUCKET" \
+            --key "$plan_key" \
+            --endpoint-url "$TF_STATE_ENDPOINT" \
+            --query 'Metadata.sha256' \
+            --output text)
+          if [ "$stored_sha256" != "$plan_sha256" ]; then
+            echo "Saved plan verification failed." >&2
+            exit 1
+          fi
+          {
+            echo
+            echo "### Saved plan"
+            echo
+            echo "- Plan key: \`$plan_key\`"
+            echo "- SHA-256: \`$plan_sha256\`"
+            echo
+            echo "Use these exact values when manually dispatching an apply from \`master\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Record empty plan
+        if: steps.plan.outputs.exit_code == '0'
+        run: echo "No changes; no plan object was stored." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Store private redacted diagnostics
+        if: failure()
+        continue-on-error: true
+        working-directory: ${{ github.workspace }}
+        env:
+          DIAGNOSTIC_JOB: plan
+        run: |
+          python3 - <<'PY'
+          import os
+          import pathlib
+          import re
+
+          runner_temp = pathlib.Path(os.environ["RUNNER_TEMP"])
+          sources = [runner_temp / "cloudflare-plan.log"]
+          text = "\n\n".join(path.read_text(errors="replace") for path in sources if path.exists())
+          for name in ("CLOUDFLARE_API_TOKEN", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"):
+              value = os.environ.get(name)
+              if value:
+                  text = text.replace(value, "[REDACTED]")
+          text = re.sub(r"cf(?:ut|pat)_[A-Za-z0-9_-]{20,}", "[REDACTED]", text)
+          text = re.sub(r"(?i)(authorization:\s*bearer\s+)[^\s]+", r"\1[REDACTED]", text)
+          text = re.sub(r"AKIA[0-9A-Z]{16}", "[REDACTED]", text)
+          (runner_temp / "cloudflare-diagnostic.log").write_text(text)
+          PY
+          if [ -s "$RUNNER_TEMP/cloudflare-diagnostic.log" ] && [ -n "${AWS_ACCESS_KEY_ID:-}" ] && [ -n "${AWS_SECRET_ACCESS_KEY:-}" ]; then
+            diagnostic_key="diagnostics/cloudflare/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${DIAGNOSTIC_JOB}.log"
+            aws s3 cp \
+              "$RUNNER_TEMP/cloudflare-diagnostic.log" \
+              "s3://$TF_STATE_BUCKET/$diagnostic_key" \
+              --endpoint-url "$TF_STATE_ENDPOINT" \
+              --only-show-errors
+            echo "Private diagnostic log: \`$diagnostic_key\`" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Remove ephemeral plan files
+        if: always()
+        working-directory: ${{ github.workspace }}
+        run: rm -f "$RUNNER_TEMP/cloudflare.tfplan" "$RUNNER_TEMP/cloudflare-plan.json" "$RUNNER_TEMP/cloudflare-plan.log" "$RUNNER_TEMP/cloudflare-diagnostic.log"
+
+  apply:
+    if: inputs.operation == 'apply' && github.ref == 'refs/heads/master'
+    environment: cloudflare-production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+        working-directory: terraform/cloudflare
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}
+      REVIEWED_PLAN_KEY: ${{ inputs.plan_key }}
+      REVIEWED_PLAN_SHA256: ${{ inputs.plan_sha256 }}
+      ALLOW_DESTRUCTIVE: ${{ inputs.allow_destructive }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Validate reviewed plan inputs
+        run: |
+          expected_prefix="plans/cloudflare/${GITHUB_SHA}/"
+          if [[ ! "$REVIEWED_PLAN_KEY" =~ ^plans/cloudflare/[0-9a-f]{40}/[0-9]+-[0-9]+\.tfplan$ ]]; then
+            echo "plan_key does not have the required format." >&2
+            exit 1
+          fi
+          if [[ "$REVIEWED_PLAN_KEY" != "$expected_prefix"* ]]; then
+            echo "The plan was not created from the current master commit." >&2
+            exit 1
+          fi
+          if [[ ! "$REVIEWED_PLAN_SHA256" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "plan_sha256 must be a lowercase SHA-256 digest." >&2
+            exit 1
+          fi
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_version: 1.16.5
+          terraform_wrapper: false
+
+      - name: Check required secrets
+        run: |
+          : "${CLOUDFLARE_API_TOKEN:?cloudflare-production/CLOUDFLARE_API_TOKEN is required}"
+          : "${AWS_ACCESS_KEY_ID:?cloudflare-production/TF_STATE_ACCESS_KEY_ID is required}"
+          : "${AWS_SECRET_ACCESS_KEY:?cloudflare-production/TF_STATE_SECRET_ACCESS_KEY is required}"
+          command -v aws >/dev/null
+          command -v jq >/dev/null
+          command -v sha256sum >/dev/null
+
+      - name: Initialize remote backend
+        run: |
+          cp backend.hcl.example backend.hcl
+          terraform init -reconfigure -input=false -backend-config=backend.hcl
+
+      - name: Download and verify reviewed plan
+        run: |
+          aws s3 cp \
+            "s3://$TF_STATE_BUCKET/$REVIEWED_PLAN_KEY" \
+            "$RUNNER_TEMP/cloudflare.tfplan" \
+            --endpoint-url "$TF_STATE_ENDPOINT" \
+            --only-show-errors
+          actual_sha256=$(sha256sum "$RUNNER_TEMP/cloudflare.tfplan" | cut -d ' ' -f 1)
+          if [ "$actual_sha256" != "$REVIEWED_PLAN_SHA256" ]; then
+            echo "Reviewed plan SHA-256 does not match." >&2
+            exit 1
+          fi
+
+      - name: Summarize reviewed plan
+        run: |
+          terraform show -json "$RUNNER_TEMP/cloudflare.tfplan" > "$RUNNER_TEMP/cloudflare-plan.json"
+          imports=$(jq '[.resource_changes[]? | select(.change.importing != null)] | length' "$RUNNER_TEMP/cloudflare-plan.json")
+          creates=$(jq '[.resource_changes[]? | select(.change.actions == ["create"])] | length' "$RUNNER_TEMP/cloudflare-plan.json")
+          updates=$(jq '[.resource_changes[]? | select(.change.actions == ["update"])] | length' "$RUNNER_TEMP/cloudflare-plan.json")
+          deletes=$(jq '[.resource_changes[]? | select(.change.actions == ["delete"])] | length' "$RUNNER_TEMP/cloudflare-plan.json")
+          replaces=$(jq '[.resource_changes[]? | select((.change.actions | index("create")) != null and (.change.actions | index("delete")) != null)] | length' "$RUNNER_TEMP/cloudflare-plan.json")
+          {
+            echo "## Reviewed Cloudflare Terraform apply plan"
+            echo
+            echo "- Plan key: \`$REVIEWED_PLAN_KEY\`"
+            echo "- SHA-256: \`$REVIEWED_PLAN_SHA256\`"
+            echo "- Imports: $imports"
+            echo "- Creates: $creates"
+            echo "- Updates: $updates"
+            echo "- Deletes: $deletes"
+            echo "- Replacements: $replaces"
+            echo
+            echo "### Resource actions"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+          jq -r '
+            def action_text: (.change.actions | join(" + "));
+            .resource_changes[]?
+            | select(.change.importing != null or .change.actions != ["no-op"])
+            | "- `\(.address)`: "
+              + (if .change.importing != null then "import / " + action_text else action_text end)
+          ' "$RUNNER_TEMP/cloudflare-plan.json" >> "$GITHUB_STEP_SUMMARY"
+          destructive=$(jq '[.resource_changes[]? | select((.change.actions | index("delete")) != null)] | length' "$RUNNER_TEMP/cloudflare-plan.json")
+          if [ "$destructive" -gt 0 ] && [ "$ALLOW_DESTRUCTIVE" != "true" ]; then
+            echo "The reviewed plan contains $destructive destructive action(s); allow_destructive was not enabled." >&2
+            exit 1
+          fi
+
+      - name: Back up current remote state
+        run: |
+          state_key="cloudflare/terraform.tfstate"
+          aws s3api list-objects-v2 \
+            --bucket "$TF_STATE_BUCKET" \
+            --prefix "$state_key" \
+            --endpoint-url "$TF_STATE_ENDPOINT" \
+            --output json > "$RUNNER_TEMP/state-objects.json"
+          state_count=$(jq --arg key "$state_key" '[.Contents[]? | select(.Key == $key)] | length' "$RUNNER_TEMP/state-objects.json")
+          if [ "$state_count" -eq 0 ]; then
+            echo "No existing state was available to back up." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$state_count" -eq 1 ]; then
+            terraform state pull > "$RUNNER_TEMP/pre-apply.tfstate"
+            jq -e 'type == "object" and (.version | type == "number") and (.serial | type == "number")' \
+              "$RUNNER_TEMP/pre-apply.tfstate" >/dev/null
+            state_sha256=$(sha256sum "$RUNNER_TEMP/pre-apply.tfstate" | cut -d ' ' -f 1)
+            backup_key="backups/cloudflare/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${GITHUB_SHA}.tfstate"
+            aws s3api put-object \
+              --bucket "$TF_STATE_BUCKET" \
+              --key "$backup_key" \
+              --body "$RUNNER_TEMP/pre-apply.tfstate" \
+              --metadata "sha256=$state_sha256" \
+              --if-none-match '*' \
+              --endpoint-url "$TF_STATE_ENDPOINT" >/dev/null
+            backup_sha256=$(aws s3api head-object \
+              --bucket "$TF_STATE_BUCKET" \
+              --key "$backup_key" \
+              --endpoint-url "$TF_STATE_ENDPOINT" \
+              --query 'Metadata.sha256' \
+              --output text)
+            if [ "$backup_sha256" != "$state_sha256" ]; then
+              echo "Remote state backup verification failed." >&2
+              exit 1
+            fi
+            echo "Remote state backup: \`$backup_key\`" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "R2 returned duplicate active state keys; refusing apply." >&2
+            exit 1
+          fi
+
+      - name: Verify master has not advanced
+        run: |
+          current_master_sha=$(git ls-remote --exit-code origin refs/heads/master | cut -f 1)
+          if [ "$current_master_sha" != "$GITHUB_SHA" ]; then
+            echo "master advanced after this workflow was dispatched; create and review a new plan." >&2
+            exit 1
+          fi
+
+      - name: Apply exact reviewed plan
+        run: |
+          set +e
+          terraform apply \
+            -auto-approve \
+            -input=false \
+            -lock-timeout=5m \
+            "$RUNNER_TEMP/cloudflare.tfplan" \
+            >"$RUNNER_TEMP/cloudflare-apply.log" 2>&1
+          exit_code=$?
+          set -e
+          if [ "$exit_code" -ne 0 ]; then
+            echo "Terraform apply failed; detailed output is intentionally withheld from this public repository's logs." >&2
+            exit "$exit_code"
+          fi
+          echo "Apply completed successfully." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify post-apply convergence
+        run: |
+          set +e
+          terraform plan \
+            -detailed-exitcode \
+            -input=false \
+            -lock-timeout=5m \
+            -out="$RUNNER_TEMP/cloudflare-post-apply.tfplan" \
+            >"$RUNNER_TEMP/cloudflare-post-apply.log" 2>&1
+          exit_code=$?
+          set -e
+          case "$exit_code" in
+            0)
+              echo "Post-apply plan is empty." >> "$GITHUB_STEP_SUMMARY"
+              ;;
+            2)
+              echo "Post-apply plan is not empty." >&2
+              exit 1
+              ;;
+            *)
+              echo "Post-apply plan failed; detailed output is intentionally withheld from this public repository's logs." >&2
+              exit "$exit_code"
+              ;;
+          esac
+
+      - name: Delete consumed reviewed plan
+        run: |
+          aws s3 rm \
+            "s3://$TF_STATE_BUCKET/$REVIEWED_PLAN_KEY" \
+            --endpoint-url "$TF_STATE_ENDPOINT" \
+            --only-show-errors
+
+      - name: Store private redacted diagnostics
+        if: failure()
+        continue-on-error: true
+        working-directory: ${{ github.workspace }}
+        env:
+          DIAGNOSTIC_JOB: apply
+        run: |
+          python3 - <<'PY'
+          import os
+          import pathlib
+          import re
+
+          runner_temp = pathlib.Path(os.environ["RUNNER_TEMP"])
+          sources = [
+              runner_temp / "cloudflare-apply.log",
+              runner_temp / "cloudflare-post-apply.log",
+          ]
+          text = "\n\n".join(path.read_text(errors="replace") for path in sources if path.exists())
+          for name in ("CLOUDFLARE_API_TOKEN", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"):
+              value = os.environ.get(name)
+              if value:
+                  text = text.replace(value, "[REDACTED]")
+          text = re.sub(r"cf(?:ut|pat)_[A-Za-z0-9_-]{20,}", "[REDACTED]", text)
+          text = re.sub(r"(?i)(authorization:\s*bearer\s+)[^\s]+", r"\1[REDACTED]", text)
+          text = re.sub(r"AKIA[0-9A-Z]{16}", "[REDACTED]", text)
+          (runner_temp / "cloudflare-diagnostic.log").write_text(text)
+          PY
+          if [ -s "$RUNNER_TEMP/cloudflare-diagnostic.log" ] && [ -n "${AWS_ACCESS_KEY_ID:-}" ] && [ -n "${AWS_SECRET_ACCESS_KEY:-}" ]; then
+            diagnostic_key="diagnostics/cloudflare/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${DIAGNOSTIC_JOB}.log"
+            aws s3 cp \
+              "$RUNNER_TEMP/cloudflare-diagnostic.log" \
+              "s3://$TF_STATE_BUCKET/$diagnostic_key" \
+              --endpoint-url "$TF_STATE_ENDPOINT" \
+              --only-show-errors
+            echo "Private diagnostic log: \`$diagnostic_key\`" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Remove ephemeral state and plan files
+        if: always()
+        working-directory: ${{ github.workspace }}
+        run: rm -f "$RUNNER_TEMP/cloudflare.tfplan" "$RUNNER_TEMP/cloudflare-plan.json" "$RUNNER_TEMP/cloudflare-apply.log" "$RUNNER_TEMP/cloudflare-post-apply.tfplan" "$RUNNER_TEMP/cloudflare-post-apply.log" "$RUNNER_TEMP/pre-apply.tfstate" "$RUNNER_TEMP/state-objects.json" "$RUNNER_TEMP/cloudflare-diagnostic.log"
