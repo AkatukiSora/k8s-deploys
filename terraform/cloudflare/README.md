@@ -73,8 +73,8 @@ terraform init -reconfigure -backend-config=backend.hcl
 
 `backend.hcl`、credentials、state、plan files は Git に追加しません。R2 は Terraform が
 公式検証する Amazon S3 ではないため、初回 adoption 前に2つの同時 `terraform plan` で
-片方が lock 待ちまたは失敗になることを確認し、state bucket の backup/versioning も
-別途検証してください。
+片方が lock 待ちまたは失敗になることを確認し、state backupとretentionも別途検証して
+ください。
 
 ## 認証
 
@@ -88,23 +88,20 @@ token を `*.tf`、`*.tfvars`、backend 設定、shell history、CI log に書�
 初回 import には読み取り権限だけで足ります。通常の drift correction には、管理対象を
 限定した別の最小権限 write token を secret store から渡します。
 
-## 初回 adoption
+## GitHub Actionsと初回adoption
 
-remote backend を用意した後、次の順序で実行します。
+通常のauthenticated plan / applyはGitHub Actionsから手動実行します。Environment、Secrets、
+Cloudflare API token権限、R2 saved plan、承認手順は
+[GITHUB_ACTIONS.md](./GITHUB_ACTIONS.md)を参照してください。
 
-```bash
-terraform init -reconfigure -backend-config=backend.hcl
-terraform fmt -check -recursive
-terraform validate
-terraform plan -out=adoption.tfplan
-terraform apply adoption.tfplan
-terraform plan -detailed-exitcode
-```
+PRではsecretを使用しない静的validationだけを実行します。authenticated operationは
+レビュー・merge済みの`master`に限定し、planとapplyの間はprivate R2に保存したplan fileと
+SHA-256で接続します。
 
 期待値は、初回 plan が **import のみ**、`add/change/destroy` がすべて 0 であることです。
 この repository 作成時の読み取り専用検証では、98 imports、0 add、0 change、0 destroy
 でした。差分が出た場合は apply せず、実環境の drift または provider 差異を確認します。
 
-import が remote state に反映され、直後の plan が空であることを確認したら、
+import がremote stateに反映され、GitHub Actionsのpost-apply planが空であることを確認したら、
 `imports.tf` は別 PR で削除します。dashboard の read-only 化や自動 apply は、その後に
 最小権限 write token、plan review、承認 gate、state backup/locking を整備してから行います。

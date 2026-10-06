@@ -5,12 +5,14 @@ on:
     paths:
       - terraform/cloudflare/**
       - .github/workflows/cloudflare-terraform.yml
+      - .github/workflows/cloudflare-terraform-operation.yml
   push:
     branches:
       - master
     paths:
       - terraform/cloudflare/**
       - .github/workflows/cloudflare-terraform.yml
+      - .github/workflows/cloudflare-terraform-operation.yml
 
 permissions:
   contents: read
