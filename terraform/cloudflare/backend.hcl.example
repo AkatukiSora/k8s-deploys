@@ -1,9 +1,9 @@
-bucket = "REPLACE_WITH_STATE_BUCKET"
+bucket = "k8s-deploys-terraform-state"
 key    = "cloudflare/terraform.tfstate"
 region = "auto"
 
 endpoints = {
-  s3 = "https://REPLACE_WITH_ACCOUNT_ID.r2.cloudflarestorage.com"
+  s3 = "https://dac1cf154520a028d48ef279669ccf87.r2.cloudflarestorage.com"
 }
 
 use_path_style              = true

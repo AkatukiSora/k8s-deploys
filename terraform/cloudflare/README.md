@@ -57,10 +57,12 @@ Cloudflare から検証可能な証明書へ更新後、別 PR で `false` に�
 
 ## State backend
 
-ローカル state は使用しません。`backend.hcl.example` をコピーして、アクセス制御と
-暗号化を有効にした remote backend を設定してください。R2 S3 backend を使う例を
-置いていますが、bucket と state 用 credentials は別途 bootstrap が必要です。
-例では S3 native lockfile (`use_lockfile = true`) を有効にしています。
+ローカル state は使用しません。bootstrap bucket は
+`k8s-deploys-terraform-state`、state key は `cloudflare/terraform.tfstate` とします。
+`backend.hcl.example` をコピーして、アクセス制御と暗号化を有効にしたremote backendを
+設定してください。R2 S3 backendを使いますが、bucketとstate用credentialsはDashboardで
+先にbootstrapする必要があります。例ではS3 native lockfile (`use_lockfile = true`)を
+有効にしています。
 
 ```bash
 cp backend.hcl.example backend.hcl
