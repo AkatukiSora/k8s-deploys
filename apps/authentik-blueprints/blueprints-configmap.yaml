@@ -208,7 +208,9 @@ data:
       # team:* groups
       #
       # Team groups are the primary assignment targets for users.
-      # Assign users to team:* groups, not app:* groups.
+      # Assign users to team:* groups, not app:* groups. Direct membership in
+      # app:cloudflare:* is generated and owned by the Cloudflare group
+      # materializer; do not edit those generated memberships manually.
       #
       # team:* groups inherit app:* groups through parents.
       # Application OIDC claims should continue exposing only app:* groups.
@@ -820,6 +822,32 @@ data:
             - !Find [authentik_providers_oauth2.scopemapping, [name, "Service email claims"]]
             - !Find [authentik_providers_oauth2.scopemapping, [name, "Cloudflare Access profile claims"]]
 
+      - id: cloudflare-access-scim-provider
+        model: authentik_providers_scim.scimprovider
+        identifiers:
+          name: Cloudflare Access SCIM
+        attrs:
+          url: !Env CLOUDFLARE_SCIM_BASE_URL
+          auth_mode: token
+          token: !Env CLOUDFLARE_SCIM_TOKEN
+          verify_certificates: true
+          exclude_users_service_account: true
+          compatibility_mode: default
+          dry_run: false
+          property_mappings:
+            - !Find [authentik_providers_scim.scimmapping, [managed, "goauthentik.io/providers/scim/user"]]
+          property_mappings_group:
+            - !Find [authentik_providers_scim.scimmapping, [managed, "goauthentik.io/providers/scim/group"]]
+          # The materializer CronJob reconciles effective team:* membership into
+          # direct membership of these groups. This keeps SCIM display names and
+          # memberships identical to the groups emitted in the OIDC claim.
+          group_filters:
+            - !KeyOf app-cloudflare-resource-argocd-access-group
+            - !KeyOf app-cloudflare-resource-proxmox-access-group
+            - !KeyOf app-cloudflare-one-regist-group
+            - !KeyOf app-cloudflare-resource-kubernetes-access-group
+            - !KeyOf app-cloudflare-profile-external-kubernetes-group
+
   10-brand.yaml: |
     version: 1
     metadata:
@@ -947,6 +975,8 @@ data:
         attrs:
           name: Cloudflare Access
           provider: !Find [authentik_providers_oauth2.oauth2provider, [name, "Cloudflare Access OIDC"]]
+          backchannel_providers:
+            - !Find [authentik_providers_scim.scimprovider, [name, "Cloudflare Access SCIM"]]
           meta_launch_url: https://sora-lab.cloudflareaccess.com
           icon: https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/cloudflare.svg
           open_in_new_tab: true
@@ -1167,6 +1197,20 @@ data:
           order: 2
         attrs:
           group: !Find [authentik_core.group, [name, "app:cloudflare:resource:kubernetes:access"]]
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, cloudflare-access]]
+          order: 3
+        attrs:
+          group: !Find [authentik_core.group, [name, "app:cloudflare:one:regist"]]
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, cloudflare-access]]
+          order: 4
+        attrs:
+          group: !Find [authentik_core.group, [name, "app:cloudflare:profile:external-kubernetes"]]
   50-identification-stage.yaml: |
     version: 1
     metadata:

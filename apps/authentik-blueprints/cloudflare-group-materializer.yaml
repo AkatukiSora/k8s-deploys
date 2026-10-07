@@ -1,0 +1,215 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentik-cloudflare-group-materializer
+  namespace: authentik
+data:
+  reconcile.py: |
+    import json
+
+    from django.conf import settings
+    from django.db import transaction
+
+    from authentik.core.models import Group, User, UserTypes
+    from authentik.providers.scim.models import SCIMProvider
+    from authentik.providers.scim.tasks import scim_sync
+
+
+    TARGET_GROUP_NAMES = (
+        "app:cloudflare:resource:argocd:access",
+        "app:cloudflare:resource:proxmox:access",
+        "app:cloudflare:one:regist",
+        "app:cloudflare:resource:kubernetes:access",
+        "app:cloudflare:profile:external-kubernetes",
+    )
+    EXCLUDED_USER_TYPES = (
+        UserTypes.SERVICE_ACCOUNT,
+        UserTypes.INTERNAL_SERVICE_ACCOUNT,
+    )
+    SCIM_PROVIDER_NAME = "Cloudflare Access SCIM"
+
+
+    provider = SCIMProvider.objects.get(name=SCIM_PROVIDER_NAME)
+    targets = {
+        group.name: group
+        for group in Group.objects.filter(name__in=TARGET_GROUP_NAMES)
+    }
+    missing_targets = sorted(set(TARGET_GROUP_NAMES) - set(targets))
+    if missing_targets:
+        raise RuntimeError(f"Missing Cloudflare entitlement groups: {missing_targets}")
+
+    results = []
+    with transaction.atomic():
+        for target_name in TARGET_GROUP_NAMES:
+            target = targets[target_name]
+            assignment_groups = Group.objects.filter(
+                ancestor_nodes__ancestor=target,
+                name__startswith="team:",
+            )
+            desired_ids = set(
+                User.objects.filter(
+                    groups__in=assignment_groups,
+                    is_active=True,
+                )
+                .exclude(username=settings.ANONYMOUS_USER_NAME)
+                .exclude(type__in=EXCLUDED_USER_TYPES)
+                .values_list("pk", flat=True)
+                .distinct()
+            )
+            current_ids = set(target.users.values_list("pk", flat=True))
+            added_ids = desired_ids - current_ids
+            removed_ids = current_ids - desired_ids
+
+            if added_ids:
+                target.users.add(*added_ids)
+            if removed_ids:
+                target.users.remove(*removed_ids)
+
+            results.append(
+                {
+                    "group": target_name,
+                    "desired_members": len(desired_ids),
+                    "added": len(added_ids),
+                    "removed": len(removed_ids),
+                }
+            )
+
+        # A full sync is intentionally queued on every run, even when local
+        # membership is already converged. This provisions newly eligible users
+        # before group membership is applied and repairs lost/failed SCIM tasks.
+        transaction.on_commit(lambda: scim_sync.send(provider.pk))
+
+    print(
+        json.dumps(
+            {
+                "cloudflare_group_materialization": results,
+                "full_scim_sync_queued": True,
+            },
+            sort_keys=True,
+        )
+    )
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: authentik-cloudflare-group-materializer
+  namespace: authentik
+spec:
+  schedule: "*/2 * * * *"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 120
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      activeDeadlineSeconds: 300
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: authentik-cloudflare-group-materializer
+            app.kubernetes.io/part-of: authentik
+        spec:
+          automountServiceAccountToken: false
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: materializer
+              image: ghcr.io/goauthentik/server@sha256:b8b216e6d5ca11027d37a7bd72bcc410cada87adc7b00caff53851540f8b66f7
+              imagePullPolicy: IfNotPresent
+              args:
+                - shell
+                - -c
+                - exec(open('/scripts/reconcile.py').read())
+              env:
+                - name: AUTHENTIK_POSTGRESQL__HOST
+                  value: authentik-postgres-rw.authentik
+                - name: AUTHENTIK_POSTGRESQL__PORT
+                  value: "5432"
+                - name: AUTHENTIK_POSTGRESQL__NAME
+                  value: authentik
+                - name: AUTHENTIK_POSTGRESQL__USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: authentik-postgres-app
+                      key: username
+                - name: AUTHENTIK_POSTGRESQL__PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: authentik-postgres-app
+                      key: password
+                - name: AUTHENTIK_SECRET_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: authentik-secret
+                      key: AUTHENTIK_SECRET_KEY
+              resources:
+                requests:
+                  cpu: 25m
+                  memory: 128Mi
+                limits:
+                  cpu: 250m
+                  memory: 512Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                readOnlyRootFilesystem: true
+              volumeMounts:
+                - name: script
+                  mountPath: /scripts
+                  readOnly: true
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: script
+              configMap:
+                name: authentik-cloudflare-group-materializer
+            - name: tmp
+              emptyDir: {}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: authentik-cloudflare-group-materializer
+  namespace: authentik
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: authentik-cloudflare-group-materializer
+      app.kubernetes.io/part-of: authentik
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress: []
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: coredns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: authentik-postgres
+      ports:
+        - protocol: TCP
+          port: 5432
