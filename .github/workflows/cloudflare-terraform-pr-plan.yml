@@ -14,8 +14,9 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: terraform-cloudflare-pr-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  # PR plans and master plan/apply share the same remote state lock.
+  group: terraform-cloudflare-state
+  cancel-in-progress: false
 
 env:
   TF_IN_AUTOMATION: "true"
@@ -143,14 +144,19 @@ jobs:
                   if value:
                       log = log.replace(value, "[REDACTED]")
               log = re.sub(r"cf(?:ut|pat)_[A-Za-z0-9_-]{20,}", "[REDACTED]", log)
-              header = next((line.strip() for line in log.splitlines() if "Error:" in line), "No Terraform diagnostic header was produced.")
-              header = re.sub(r"(['\"]).*?\1", "[REDACTED]", header)
-              header = re.sub(r"\b[A-Za-z0-9_./:+=-]{24,}\b", "[REDACTED]", header)[:240]
+              def redact(line):
+                  line = re.sub(r"\x1b\[[0-9;]*m", "", line)
+                  line = re.sub(r"(['\"]).*?\1", "[REDACTED]", line)
+                  return re.sub(r"\b[A-Za-z0-9_./:+=-]{24,}\b", "[REDACTED]", line)[:240]
+              header = redact(next((line.strip() for line in log.splitlines() if "Error:" in line), "No Terraform diagnostic header was produced."))
+              detail = redact(next((line.strip() for line in log.splitlines() if "Error message:" in line), ""))
               body += [
                   "Plan failed. No raw plan, state, or credential values were published.",
                   "",
                   f"Failure class: `{header}`",
               ]
+              if detail:
+                  body.append(f"Detail: `{detail}`")
 
           body += ["", f"Source run: {os.environ['GITHUB_SERVER_URL']}/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"]
           comment = "\n".join(body)
