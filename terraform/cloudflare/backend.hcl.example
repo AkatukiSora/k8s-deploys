@@ -1,4 +1,4 @@
-bucket = "k8s-deploys-terraform-state"
+bucket = "sora-cloudflare-terraform-state"
 key    = "cloudflare/terraform.tfstate"
 region = "auto"
 

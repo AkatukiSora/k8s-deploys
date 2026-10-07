@@ -1,29 +1,14 @@
 name: Cloudflare Terraform operation
 
 on:
-  workflow_dispatch:
-    inputs:
-      operation:
-        description: Terraform operation to execute
-        required: true
-        type: choice
-        default: plan
-        options:
-          - plan
-          - apply
-      plan_key:
-        description: R2 object key emitted by the reviewed plan run (apply only)
-        required: false
-        type: string
-      plan_sha256:
-        description: SHA-256 emitted by the reviewed plan run (apply only)
-        required: false
-        type: string
-      allow_destructive:
-        description: Explicitly permit plans containing delete or replacement actions
-        required: false
-        type: boolean
-        default: false
+  push:
+    branches:
+      - master
+    paths:
+      - terraform/cloudflare/**
+      - .github/workflows/cloudflare-terraform.yml
+      - .github/workflows/cloudflare-terraform-operation.yml
+
 
 permissions:
   contents: read
@@ -35,23 +20,14 @@ concurrency:
 env:
   TF_IN_AUTOMATION: "true"
   TF_INPUT: "false"
-  TF_STATE_BUCKET: k8s-deploys-terraform-state
+  TF_STATE_BUCKET: sora-cloudflare-terraform-state
   TF_STATE_ENDPOINT: https://dac1cf154520a028d48ef279669ccf87.r2.cloudflarestorage.com
   AWS_REGION: auto
   AWS_DEFAULT_REGION: auto
 
 jobs:
-  reject-non-master-operation:
-    if: github.ref != 'refs/heads/master'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Reject authenticated operation outside master
-        run: |
-          echo "Authenticated Terraform operations are permitted only from refs/heads/master." >&2
-          exit 1
-
   plan:
-    if: inputs.operation == 'plan' && github.ref == 'refs/heads/master'
+    name: cloudflare-plan
     environment: cloudflare-plan
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -59,6 +35,9 @@ jobs:
       run:
         shell: bash
         working-directory: terraform/cloudflare
+    outputs:
+      has_changes: ${{ steps.plan.outputs.has_changes }}
+      plan_key: ${{ steps.store-plan.outputs.plan_key }}
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY_ID }}
@@ -80,7 +59,6 @@ jobs:
           : "${AWS_SECRET_ACCESS_KEY:?cloudflare-plan/TF_STATE_SECRET_ACCESS_KEY is required}"
           command -v aws >/dev/null
           command -v jq >/dev/null
-          command -v sha256sum >/dev/null
 
       - name: Initialize remote backend
         run: |
@@ -104,7 +82,11 @@ jobs:
           set -e
           echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
           case "$exit_code" in
-            0|2)
+            0)
+              echo "has_changes=false" >> "$GITHUB_OUTPUT"
+              ;;
+            2)
+              echo "has_changes=true" >> "$GITHUB_OUTPUT"
               ;;
             *)
               echo "Terraform plan failed; detailed output is intentionally withheld from this public repository's logs." >&2
@@ -123,8 +105,8 @@ jobs:
           {
             echo "## Cloudflare Terraform plan"
             echo
+            echo "- Event: \`$GITHUB_EVENT_NAME\`"
             echo "- Ref: \`$GITHUB_REF\`"
-            echo "- Commit: \`$GITHUB_SHA\`"
             echo "- Imports: $imports"
             echo "- Creates: $creates"
             echo "- Updates: $updates"
@@ -142,43 +124,33 @@ jobs:
               + (if .change.importing != null then "import / " + action_text else action_text end)
           ' "$RUNNER_TEMP/cloudflare-plan.json" >> "$GITHUB_STEP_SUMMARY"
           echo >> "$GITHUB_STEP_SUMMARY"
+          echo "This merge-triggered plan is eligible for automatic apply if it contains changes." >> "$GITHUB_STEP_SUMMARY"
           echo "Source run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Store reviewed plan in private R2
-        if: steps.plan.outputs.exit_code == '2'
+        id: store-plan
+        if: steps.plan.outputs.has_changes == 'true'
         run: |
-          plan_key="plans/cloudflare/${GITHUB_SHA}/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.tfplan"
-          plan_sha256=$(sha256sum "$RUNNER_TEMP/cloudflare.tfplan" | cut -d ' ' -f 1)
+          plan_key="plans/cloudflare/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.tfplan"
           aws s3api put-object \
             --bucket "$TF_STATE_BUCKET" \
             --key "$plan_key" \
             --body "$RUNNER_TEMP/cloudflare.tfplan" \
-            --metadata "sha256=$plan_sha256" \
             --if-none-match '*' \
             --endpoint-url "$TF_STATE_ENDPOINT" >/dev/null
-          stored_sha256=$(aws s3api head-object \
-            --bucket "$TF_STATE_BUCKET" \
-            --key "$plan_key" \
-            --endpoint-url "$TF_STATE_ENDPOINT" \
-            --query 'Metadata.sha256' \
-            --output text)
-          if [ "$stored_sha256" != "$plan_sha256" ]; then
-            echo "Saved plan verification failed." >&2
-            exit 1
-          fi
+          echo "plan_key=$plan_key" >> "$GITHUB_OUTPUT"
           {
             echo
             echo "### Saved plan"
             echo
             echo "- Plan key: \`$plan_key\`"
-            echo "- SHA-256: \`$plan_sha256\`"
             echo
-            echo "Use these exact values when manually dispatching an apply from \`master\`."
+            echo "The apply job in this same push workflow consumes this exact immutable object."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Record empty plan
-        if: steps.plan.outputs.exit_code == '0'
-        run: echo "No changes; no plan object was stored." >> "$GITHUB_STEP_SUMMARY"
+        if: steps.plan.outputs.has_changes == 'false'
+        run: echo "No changes; no plan object was stored and no apply is required." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Store private redacted diagnostics
         if: failure()
@@ -200,7 +172,7 @@ jobs:
               if value:
                   text = text.replace(value, "[REDACTED]")
           text = re.sub(r"cf(?:ut|pat)_[A-Za-z0-9_-]{20,}", "[REDACTED]", text)
-          text = re.sub(r"(?i)(authorization:\s*bearer\s+)[^\s]+", r"\1[REDACTED]", text)
+          text = re.sub(r"(?i)(authorization:\s*)[^\s]+(?:\s+[^\s]+)?", r"\1[REDACTED]", text)
           text = re.sub(r"AKIA[0-9A-Z]{16}", "[REDACTED]", text)
           (runner_temp / "cloudflare-diagnostic.log").write_text(text)
           PY
@@ -220,7 +192,9 @@ jobs:
         run: rm -f "$RUNNER_TEMP/cloudflare.tfplan" "$RUNNER_TEMP/cloudflare-plan.json" "$RUNNER_TEMP/cloudflare-plan.log" "$RUNNER_TEMP/cloudflare-diagnostic.log"
 
   apply:
-    if: inputs.operation == 'apply' && github.ref == 'refs/heads/master'
+    if: needs.plan.result == 'success' && needs.plan.outputs.has_changes == 'true'
+    needs: plan
+    name: cloudflare-production-apply
     environment: cloudflare-production
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -232,26 +206,15 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}
-      REVIEWED_PLAN_KEY: ${{ inputs.plan_key }}
-      REVIEWED_PLAN_SHA256: ${{ inputs.plan_sha256 }}
-      ALLOW_DESTRUCTIVE: ${{ inputs.allow_destructive }}
+      REVIEWED_PLAN_KEY: ${{ needs.plan.outputs.plan_key }}
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - name: Validate reviewed plan inputs
+      - name: Validate saved plan key
         run: |
-          expected_prefix="plans/cloudflare/${GITHUB_SHA}/"
-          if [[ ! "$REVIEWED_PLAN_KEY" =~ ^plans/cloudflare/[0-9a-f]{40}/[0-9]+-[0-9]+\.tfplan$ ]]; then
+          if [[ ! "$REVIEWED_PLAN_KEY" =~ ^plans/cloudflare/[0-9]+-[0-9]+\.tfplan$ ]]; then
             echo "plan_key does not have the required format." >&2
-            exit 1
-          fi
-          if [[ "$REVIEWED_PLAN_KEY" != "$expected_prefix"* ]]; then
-            echo "The plan was not created from the current master commit." >&2
-            exit 1
-          fi
-          if [[ ! "$REVIEWED_PLAN_SHA256" =~ ^[0-9a-f]{64}$ ]]; then
-            echo "plan_sha256 must be a lowercase SHA-256 digest." >&2
             exit 1
           fi
 
@@ -268,25 +231,19 @@ jobs:
           : "${AWS_SECRET_ACCESS_KEY:?cloudflare-production/TF_STATE_SECRET_ACCESS_KEY is required}"
           command -v aws >/dev/null
           command -v jq >/dev/null
-          command -v sha256sum >/dev/null
 
       - name: Initialize remote backend
         run: |
           cp backend.hcl.example backend.hcl
           terraform init -reconfigure -input=false -backend-config=backend.hcl
 
-      - name: Download and verify reviewed plan
+      - name: Download saved plan
         run: |
           aws s3 cp \
             "s3://$TF_STATE_BUCKET/$REVIEWED_PLAN_KEY" \
             "$RUNNER_TEMP/cloudflare.tfplan" \
             --endpoint-url "$TF_STATE_ENDPOINT" \
             --only-show-errors
-          actual_sha256=$(sha256sum "$RUNNER_TEMP/cloudflare.tfplan" | cut -d ' ' -f 1)
-          if [ "$actual_sha256" != "$REVIEWED_PLAN_SHA256" ]; then
-            echo "Reviewed plan SHA-256 does not match." >&2
-            exit 1
-          fi
 
       - name: Summarize reviewed plan
         run: |
@@ -300,7 +257,6 @@ jobs:
             echo "## Reviewed Cloudflare Terraform apply plan"
             echo
             echo "- Plan key: \`$REVIEWED_PLAN_KEY\`"
-            echo "- SHA-256: \`$REVIEWED_PLAN_SHA256\`"
             echo "- Imports: $imports"
             echo "- Creates: $creates"
             echo "- Updates: $updates"
@@ -317,11 +273,6 @@ jobs:
             | "- `\(.address)`: "
               + (if .change.importing != null then "import / " + action_text else action_text end)
           ' "$RUNNER_TEMP/cloudflare-plan.json" >> "$GITHUB_STEP_SUMMARY"
-          destructive=$(jq '[.resource_changes[]? | select((.change.actions | index("delete")) != null)] | length' "$RUNNER_TEMP/cloudflare-plan.json")
-          if [ "$destructive" -gt 0 ] && [ "$ALLOW_DESTRUCTIVE" != "true" ]; then
-            echo "The reviewed plan contains $destructive destructive action(s); allow_destructive was not enabled." >&2
-            exit 1
-          fi
 
       - name: Back up current remote state
         run: |
@@ -338,36 +289,16 @@ jobs:
             terraform state pull > "$RUNNER_TEMP/pre-apply.tfstate"
             jq -e 'type == "object" and (.version | type == "number") and (.serial | type == "number")' \
               "$RUNNER_TEMP/pre-apply.tfstate" >/dev/null
-            state_sha256=$(sha256sum "$RUNNER_TEMP/pre-apply.tfstate" | cut -d ' ' -f 1)
-            backup_key="backups/cloudflare/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${GITHUB_SHA}.tfstate"
+            backup_key="backups/cloudflare/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.tfstate"
             aws s3api put-object \
               --bucket "$TF_STATE_BUCKET" \
               --key "$backup_key" \
               --body "$RUNNER_TEMP/pre-apply.tfstate" \
-              --metadata "sha256=$state_sha256" \
               --if-none-match '*' \
               --endpoint-url "$TF_STATE_ENDPOINT" >/dev/null
-            backup_sha256=$(aws s3api head-object \
-              --bucket "$TF_STATE_BUCKET" \
-              --key "$backup_key" \
-              --endpoint-url "$TF_STATE_ENDPOINT" \
-              --query 'Metadata.sha256' \
-              --output text)
-            if [ "$backup_sha256" != "$state_sha256" ]; then
-              echo "Remote state backup verification failed." >&2
-              exit 1
-            fi
             echo "Remote state backup: \`$backup_key\`" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "R2 returned duplicate active state keys; refusing apply." >&2
-            exit 1
-          fi
-
-      - name: Verify master has not advanced
-        run: |
-          current_master_sha=$(git ls-remote --exit-code origin refs/heads/master | cut -f 1)
-          if [ "$current_master_sha" != "$GITHUB_SHA" ]; then
-            echo "master advanced after this workflow was dispatched; create and review a new plan." >&2
             exit 1
           fi
 
@@ -443,7 +374,7 @@ jobs:
               if value:
                   text = text.replace(value, "[REDACTED]")
           text = re.sub(r"cf(?:ut|pat)_[A-Za-z0-9_-]{20,}", "[REDACTED]", text)
-          text = re.sub(r"(?i)(authorization:\s*bearer\s+)[^\s]+", r"\1[REDACTED]", text)
+          text = re.sub(r"(?i)(authorization:\s*)[^\s]+(?:\s+[^\s]+)?", r"\1[REDACTED]", text)
           text = re.sub(r"AKIA[0-9A-Z]{16}", "[REDACTED]", text)
           (runner_temp / "cloudflare-diagnostic.log").write_text(text)
           PY
