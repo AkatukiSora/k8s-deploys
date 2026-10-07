@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Client for the bounded loopback Vikunja secretary adapter."""
+"""Client for the bounded loopback Vikunja 2.x/API-v1 secretary adapter."""
 
 from __future__ import annotations
 
@@ -65,7 +65,10 @@ def task_payload(args: argparse.Namespace, *, create: bool) -> dict:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        epilog="Uses Vikunja API v1, which remains supported in Vikunja 2.x."
+    )
     groups = parser.add_subparsers(dest="group", required=True)
 
     projects = groups.add_parser("projects")

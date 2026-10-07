@@ -11,7 +11,9 @@ spec:
   sources:
     - repoURL: https://github.com/go-vikunja/helm-chart.git
       path: .
-      targetRevision: v2.0.2
+      # Chart v2.3.0 packages Vikunja 2.6.0. Keep this aligned with the
+      # explicitly pinned application image in apps/vikunja/values.yaml.
+      targetRevision: v2.3.0
       helm:
         releaseName: vikunja
         valueFiles:

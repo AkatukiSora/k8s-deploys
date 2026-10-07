@@ -204,6 +204,14 @@ completion. It rejects arbitrary upstream paths, methods, and request fields;
 it does not expose deletion. Every task write is read back from Vikunja before
 the result is returned.
 
+This adapter is deliberately retained on API v1 for the Vikunja 2.6.0 upgrade:
+v1 remains supported throughout the 2.x series. API v2 has different paths,
+verbs, query names, pagination envelopes, and error semantics, so it requires
+a separately reviewed adapter migration rather than an unsafe path-prefix
+replacement. Plan that migration before Vikunja 3.0, when upstream intends to
+deprecate v1. Do not add a v1/v2 fallback because it could conceal a partial
+upgrade.
+
 The sidecar's readiness probe calls `/ready`, which makes a value-free
 authenticated `GET /api/v1/projects` probe. This uses the same least-privilege
 project-read permission required by the adapter's normal task workflow; it does
