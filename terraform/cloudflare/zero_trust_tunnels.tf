@@ -12,6 +12,13 @@ resource "cloudflare_zero_trust_tunnel_cloudflared" "home_node1" {
   }
 }
 
+resource "cloudflare_zero_trust_tunnel_cloudflared_route" "home_node1_proxmox_network" {
+  account_id = local.account_id
+  tunnel_id  = cloudflare_zero_trust_tunnel_cloudflared.home_node1.id
+  network    = "10.0.0.0/16"
+  comment    = "Proxmox internal network via home-node1"
+}
+
 resource "cloudflare_zero_trust_tunnel_cloudflared_config" "home_node1" {
   account_id = local.account_id
   source     = "cloudflare"
