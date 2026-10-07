@@ -76,53 +76,41 @@ or everyone, and isolates all group and thread sessions per user.
 
 ## Coding and infrastructure orchestration
 
-The default parent is GPT-5.6 Sol at High effort. It is the lead/planner: it
-clarifies requirements, investigates repository-wide context, makes
-architecture and security decisions, builds the dependency DAG, defines
-acceptance criteria and mechanical validation, and integrates or reviews
-results. Do not spend Sol on routine implementation after this contract is
-clear. Escalate to Sol when acceptance criteria conflict, requirements are
-missing, a security boundary or migration is involved, a Terraform plan is
-unexpectedly broad, multiple Kubernetes networking/storage/auth layers are
-affected, or retries have become unexplained trial and error. Use Sol XHigh
-only when High is insufficient for that decision.
+The default parent is GPT-5.6 Sol at Medium effort. It is the lead/planner:
+it resolves ambiguous requirements, makes architecture and risk decisions,
+builds the dependency DAG, defines acceptance criteria and exact mechanical
+validation, and integrates or reviews evidence. Do not spend Sol on routine
+implementation after that contract is clear. Escalate to Sol when acceptance
+criteria conflict, requirements are missing, a security boundary or migration
+is involved, a Terraform plan is unexpectedly broad, multiple Kubernetes
+networking/storage/auth layers are affected, or retries have become unexplained
+trial and error.
 
-Delegated children default to GPT-5.6 Luna at XHigh effort with OpenAI/Codex
-Priority Processing (Luna Fast). Luna implements well-specified features and
-bug fixes, makes targeted Terraform/Ansible/manifest changes, writes tests and
-documentation, investigates bounded questions, and runs validation. Each
+Workers default to GPT-5.6 Luna at XHigh effort with OpenAI/Codex Priority
+Processing. Luna implements already-decided features and bug fixes, makes
+targeted Terraform/Ansible/manifest changes, writes tests and documentation,
+investigates bounded questions, and runs mechanical validation. It must not
+choose a specification, architecture, priority, or acceptable risk. Each
 handoff must state the objective, context, constraints, non-goals, likely
-files, dependencies, acceptance criteria, exact validation commands, and risk
-level. Workers must not enlarge that scope. They remain limited to one flat
-child and no automatic approval.
+files, dependencies, acceptance criteria, exact validation commands, risk
+level, and the condition that requires escalation rather than a guess.
 
-The intended recovery route is Luna, then Terra at High only after Luna has
-failed or is insufficient despite a clear specification, then Sol for an
-architecture issue. This is an escalation decision, not an automatic
-`delegate_task` fallback: a lead must explicitly route the retry through a
-separate managed worker path or Kanban task. Low/medium-risk work receives a
-Luna self-check or a separate Luna review where practical. Sol at High reviews high-risk IAM/RBAC,
-authentication/authorization, NetworkPolicy/firewall/routing, secrets,
-database migrations, destructive Terraform potential, control-plane, and
-production changes. Trust acceptance criteria, mechanical validation, diff
+The durable Kanban dispatcher admits at most six concurrent workers, including
+six assigned to the same profile. Sol must split work into independently owned,
+decision-free Luna cards before that parallelism is used; cards that write the
+same file or external state remain serial. Since the default profile is Sol,
+every Kanban worker card must explicitly set `model: gpt-5.6-luna` and
+`provider: openai-codex`; otherwise it would accidentally consume Sol. Luna
+reports changed files, exact validation results, remaining risks, and blockers.
+Sol reads that evidence before integrating, retrying, or changing scope.
+
+A typical issue uses one Sol planning pass, up to six independent Luna workers,
+a Luna validation/review card, and a final Sol review only when the risk
+warrants it. For high-risk IAM/RBAC, authentication/authorization,
+NetworkPolicy/firewall/routing, secrets, database migrations, destructive
+Terraform potential, control-plane, or production changes, Sol performs the
+final decision review. Trust acceptance criteria, mechanical validation, diff
 review, and LLM review in that order.
-
-Independently owned files/modules/components may be delegated in parallel only
-after Sol has separated their dependencies; never assign concurrent writers to
-the same surface. Prefer Luna Fast for user-blocking and critical-path work.
-For independent research, large parallel batches, documentation, non-critical
-tests, or subscription-preservation work, prefer Luna Standard when the
-orchestration primitive can select it.
-
-Hermes `delegate_task` currently has one global child model and one global
-request-override policy, so this Managed Scope makes Luna Fast the baseline;
-it cannot select Luna Standard or Terra per individual delegated call. Use a
-separate managed worker/profile path, or a durable Kanban task with its own
-per-task model override, when that distinction is required; an ordinary
-session-level override cannot supersede this Managed Scope. Do not change the
-managed default ad hoc. A typical issue uses one Sol planning pass, three to six Luna workers,
-one Luna validation/review pass, and a final Sol review only when risk warrants
-it.
 
 Discord progress visibility is enabled through interim assistant messages and
 accumulated tool-progress updates. Background delegation completion and failure
