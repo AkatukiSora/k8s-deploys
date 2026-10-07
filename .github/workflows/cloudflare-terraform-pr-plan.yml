@@ -1,0 +1,188 @@
+name: Cloudflare Terraform pull-request plan
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - terraform/cloudflare/**
+      - .github/workflows/cloudflare-terraform.yml
+      - .github/workflows/cloudflare-terraform-operation.yml
+      - .github/workflows/cloudflare-terraform-pr-plan.yml
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  # PR plans and master plan/apply share the same remote state lock.
+  group: terraform-cloudflare-state
+  cancel-in-progress: false
+
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+  TF_STATE_BUCKET: sora-cloudflare-terraform-state
+  TF_STATE_ENDPOINT: https://dac1cf154520a028d48ef279669ccf87.r2.cloudflarestorage.com
+  AWS_REGION: auto
+  AWS_DEFAULT_REGION: auto
+
+jobs:
+  plan:
+    # Fork pull requests never receive Environment secrets.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    name: cloudflare-pr-plan
+    environment: cloudflare-plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+        working-directory: terraform/cloudflare
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}
+      GH_TOKEN: ${{ github.token }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Checkout pull request head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_version: 1.16.5
+          terraform_wrapper: false
+
+      - name: Check required secrets
+        run: |
+          : "${CLOUDFLARE_API_TOKEN:?cloudflare-plan/CLOUDFLARE_API_TOKEN is required}"
+          : "${AWS_ACCESS_KEY_ID:?cloudflare-plan/TF_STATE_ACCESS_KEY_ID is required}"
+          : "${AWS_SECRET_ACCESS_KEY:?cloudflare-plan/TF_STATE_SECRET_ACCESS_KEY is required}"
+          command -v aws >/dev/null
+          command -v jq >/dev/null
+
+      - name: Initialize remote backend
+        run: |
+          cp backend.hcl.example backend.hcl
+          terraform init -reconfigure -input=false -backend-config=backend.hcl
+
+      - name: Create plan
+        id: plan
+        run: |
+          set +e
+          terraform plan \
+            -detailed-exitcode \
+            -input=false \
+            -lock-timeout=5m \
+            -out="$RUNNER_TEMP/cloudflare-pr.tfplan" \
+            >"$RUNNER_TEMP/cloudflare-pr-plan.log" 2>&1
+          exit_code=$?
+          set -e
+          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+
+      - name: Create safe pull-request comment
+        if: always()
+        working-directory: ${{ github.workspace }}
+        env:
+          PLAN_EXIT_CODE: ${{ steps.plan.outputs.exit_code }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import pathlib
+          import re
+          import subprocess
+          import urllib.request
+
+          temp = pathlib.Path(os.environ["RUNNER_TEMP"])
+          marker = "<!-- cloudflare-terraform-pr-plan -->"
+          exit_code = os.environ.get("PLAN_EXIT_CODE", "unavailable")
+          body = [marker, "## Cloudflare Terraform plan", ""]
+
+          if exit_code in {"0", "2"} and (temp / "cloudflare-pr.tfplan").exists():
+              shown = temp / "cloudflare-pr-plan.json"
+              subprocess.run(
+                  ["terraform", "-chdir=terraform/cloudflare", "show", "-json", str(temp / "cloudflare-pr.tfplan")],
+                  check=True,
+                  stdout=shown.open("w"),
+              )
+              plan = json.loads(shown.read_text())
+              changes = plan.get("resource_changes", [])
+              def is_replacement(actions):
+                  return "create" in actions and "delete" in actions
+              imports = sum(1 for c in changes if c.get("change", {}).get("importing") is not None)
+              creates = sum(1 for c in changes if c.get("change", {}).get("actions") == ["create"])
+              updates = sum(1 for c in changes if c.get("change", {}).get("actions") == ["update"])
+              deletes = sum(1 for c in changes if c.get("change", {}).get("actions") == ["delete"])
+              replacements = sum(1 for c in changes if is_replacement(c.get("change", {}).get("actions", [])))
+              body += [
+                  "Plan completed successfully.",
+                  "",
+                  f"- Imports: {imports}",
+                  f"- Creates: {creates}",
+                  f"- Updates: {updates}",
+                  f"- Deletes: {deletes}",
+                  f"- Replacements: {replacements}",
+                  "",
+                  "### Resource actions",
+                  "",
+              ]
+              for change in changes:
+                  details = change.get("change", {})
+                  actions = details.get("actions", [])
+                  if details.get("importing") is None and actions == ["no-op"]:
+                      continue
+                  action = " + ".join(actions)
+                  if details.get("importing") is not None:
+                      action = "import / " + action
+                  body.append(f"- `{change['address']}`: {action}")
+          else:
+              log = (temp / "cloudflare-pr-plan.log").read_text(errors="replace") if (temp / "cloudflare-pr-plan.log").exists() else ""
+              for name in ("CLOUDFLARE_API_TOKEN", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"):
+                  value = os.environ.get(name)
+                  if value:
+                      log = log.replace(value, "[REDACTED]")
+              log = re.sub(r"cf(?:ut|pat)_[A-Za-z0-9_-]{20,}", "[REDACTED]", log)
+              def redact(line):
+                  line = re.sub(r"\x1b\[[0-9;]*m", "", line)
+                  line = re.sub(r"(['\"]).*?\1", "[REDACTED]", line)
+                  return re.sub(r"\b[A-Za-z0-9_./:+=-]{24,}\b", "[REDACTED]", line)[:240]
+              header = redact(next((line.strip() for line in log.splitlines() if "Error:" in line), "No Terraform diagnostic header was produced."))
+              raw_lines = log.splitlines()
+              detail_index = next((index for index, line in enumerate(raw_lines) if "Error message:" in line), None)
+              detail = ""
+              if detail_index is not None:
+                  detail = redact(" ".join(line.strip() for line in raw_lines[detail_index:detail_index + 4]))
+              body += [
+                  "Plan failed. No raw plan, state, or credential values were published.",
+                  "",
+                  f"Failure class: `{header}`",
+              ]
+              if detail:
+                  body.append(f"Detail: `{detail}`")
+
+          body += ["", f"Source run: {os.environ['GITHUB_SERVER_URL']}/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"]
+          comment = "\n".join(body)
+          api = os.environ["GITHUB_API_URL"]
+          repository = os.environ["GITHUB_REPOSITORY"]
+          number = os.environ["PR_NUMBER"]
+          headers = {"Authorization": f"Bearer {os.environ['GH_TOKEN']}", "Accept": "application/vnd.github+json"}
+          request = urllib.request.Request(f"{api}/repos/{repository}/issues/{number}/comments?per_page=100", headers=headers)
+          comments = json.load(urllib.request.urlopen(request))
+          existing = next((item for item in comments if marker in item.get("body", "")), None)
+          payload = json.dumps({"body": comment}).encode()
+          url = f"{api}/repos/{repository}/issues/comments/{existing['id']}" if existing else f"{api}/repos/{repository}/issues/{number}/comments"
+          method = "PATCH" if existing else "POST"
+          request = urllib.request.Request(url, data=payload, headers={**headers, "Content-Type": "application/json"}, method=method)
+          urllib.request.urlopen(request).read()
+          PY
+
+      - name: Fail when Terraform plan failed
+        if: steps.plan.outputs.exit_code != '0' && steps.plan.outputs.exit_code != '2'
+        run: exit "${{ steps.plan.outputs.exit_code }}"
+
+      - name: Remove ephemeral plan files
+        if: always()
+        working-directory: ${{ github.workspace }}
+        run: rm -f "$RUNNER_TEMP/cloudflare-pr.tfplan" "$RUNNER_TEMP/cloudflare-pr-plan.json" "$RUNNER_TEMP/cloudflare-pr-plan.log"
