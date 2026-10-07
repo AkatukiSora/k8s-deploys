@@ -19,6 +19,16 @@ data:
         identifiers:
           name: "app:k8s:cluster:admin"
 
+      - id: app-k8s-cluster-viewer-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:k8s:cluster:viewer"
+
+      - id: app-k8s-cluster-operator-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:k8s:cluster:operator"
+
       - id: app-proxmox-cluster-main-admin-group
         model: authentik_core.group
         identifiers:
@@ -149,6 +159,16 @@ data:
         identifiers:
           name: "app:cloudflare:one:regist"
 
+      - id: app-cloudflare-resource-kubernetes-access-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:cloudflare:resource:kubernetes:access"
+
+      - id: app-cloudflare-profile-external-kubernetes-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:cloudflare:profile:external-kubernetes"
+
       - id: app-vikunja-team-personal-member-group
         model: authentik_core.group
         identifiers:
@@ -257,6 +277,37 @@ data:
           parents:
             - !KeyOf app-nextcloud-team-g9k-group
             - !KeyOf app-nextcloud-global-user-group
+
+      # External Kubernetes access is deliberately split across three team
+      # groups. Assign the network group and exactly one Kubernetes role group
+      # to a user; Cloudflare edge admission and Kubernetes RBAC stay separate.
+      - id: team-k8s-external-group
+        model: authentik_core.group
+        identifiers:
+          name: "team:k8s-external"
+        attrs:
+          parents:
+            - !KeyOf app-cloudflare-one-regist-group
+            - !KeyOf app-cloudflare-resource-kubernetes-access-group
+            - !KeyOf app-cloudflare-profile-external-kubernetes-group
+
+      - id: team-k8s-external-viewer-group
+        model: authentik_core.group
+        identifiers:
+          name: "team:k8s-external-viewer"
+        attrs:
+          parents:
+            - !KeyOf team-k8s-external-group
+            - !KeyOf app-k8s-cluster-viewer-group
+
+      - id: team-k8s-external-operator-group
+        model: authentik_core.group
+        identifiers:
+          name: "team:k8s-external-operator"
+        attrs:
+          parents:
+            - !KeyOf team-k8s-external-group
+            - !KeyOf app-k8s-cluster-operator-group
 
       # ---------------------------------------------------------------------
       # Deprecated legacy team groups
@@ -914,6 +965,20 @@ data:
 
       - model: authentik_policies.policybinding
         identifiers:
+          target: !Find [authentik_core.application, [slug, kubernetes]]
+          order: 1
+        attrs:
+          group: !Find [authentik_core.group, [name, "app:k8s:cluster:viewer"]]
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, kubernetes]]
+          order: 2
+        attrs:
+          group: !Find [authentik_core.group, [name, "app:k8s:cluster:operator"]]
+
+      - model: authentik_policies.policybinding
+        identifiers:
           target: !Find [authentik_core.application, [slug, proxmox]]
           order: 0
         attrs:
@@ -1095,6 +1160,13 @@ data:
           order: 1
         attrs:
           group: !Find [authentik_core.group, [name, "app:cloudflare:resource:proxmox:access"]]
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, cloudflare-access]]
+          order: 2
+        attrs:
+          group: !Find [authentik_core.group, [name, "app:cloudflare:resource:kubernetes:access"]]
   50-identification-stage.yaml: |
     version: 1
     metadata:
