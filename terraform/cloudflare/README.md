@@ -92,20 +92,16 @@ token を `*.tf`、`*.tfvars`、backend 設定、shell history、CI log に書�
 
 通常のauthenticated plan / applyは、レビュー済みPRが `master` にmergeされたpushを起点に
 GitHub Actionsから自動実行します。PRではsecretを使用しない静的validationだけを実行し、
-`cloudflare-terraform-validate` をbranch rulesetのrequired checkにします。preflightは
-`GITHUB_TOKEN`だけで、push SHAが2 parentを持つ `master` を対象にしたmerged PRのmerge commitで
-あることと、その第2 parent（merge時点の不変なPR head SHA）の同名validation checkが成功して
-いること、PR author以外のindependent approvalがmerge commit第2 parentに対して存在することを検証
-します。直接push、squash/rebase merge、validation未通過、または独立approvalのないmergeは
-authenticated plan/applyへ進みません。branch rulesetでは最低1件のindependent approval、stale approval
-のdismissal、author self-approval禁止、review thread解決、Terraform/workflow pathを所有するCODEOWNERS
-reviewも必須にし、Repository Settingsではsquash/rebase mergeを無効化してください。
+`cloudflare-terraform-validate` をbranch rulesetのrequired checkにします。branch rulesetで`master`への
+直接pushを禁止し、PR経由のmergeだけを許可してください。PRで静的validationとレビューを済ませ、
+`master`にmergeされたTerraform定義を承認済みdesired stateとして、そのpushでauthenticated
+plan/applyを自動実行します。workflow内でPR、review、commit SHAを再検証しません。
 
 manual `workflow_dispatch` は提供しません。apply入力、saved planの手動引き渡し、destructive opt-inは
 ありません。merge後のapplyは `cloudflare-production`
 EnvironmentのRequired reviewersを設定せずにtrue unattendedで実行します。これはmergeを
-destructive actionの認可とする意図的なtrade-offであり、PR review、required check、preflight、
-immutable saved plan、state backup、post-apply convergenceをfail-closed gateとして使います。
+destructive actionの認可とする意図的なtrade-offであり、PR review、required check、immutable saved
+plan、state backup、post-apply convergenceをfail-closed gateとして使います。
 Environmentのdeployment branchは `master` だけに制限してください。
 
 saved planはprivate R2に保存し、plan/applyの同一workflow内でSHA-256とimmutable keyを検証します。

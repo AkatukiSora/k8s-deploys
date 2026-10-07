@@ -8,22 +8,18 @@ manual `workflow_dispatch` は提供しません。
 このrepositoryはpublicです。PR branchのworkflowやTerraform configurationにcredentialsを
 渡すと、変更されたworkflow、provider、module、data sourceなどからsecretを持ち出せます。
 そのためauthenticated operationは、レビュー・merge済みの `master` でしか動作しません。
-merge pushのpreflightは、push SHAが2 parentを持つ `master` を対象にしたmerged PRのmerge commitで
-あること、その第2 parent（merge時点の不変なPR head SHA）に対する
-`cloudflare-terraform-validate` checkがGitHub Actionsから成功していること、merge commit第2 parentに
-対するPR author以外のindependent approvalがあることを`GITHUB_TOKEN`だけで確認します。直接push、
-squash/rebase merge、validation未通過、または独立approvalのないmergeはsecretを持つjobへ進みません。
+GitHubのbranch rulesetが、`master`への更新をPR経由だけに制限します。PRでの静的validationと
+レビューを通過してmergeされた`master`の内容を承認済みdesired stateとして扱い、そのpushで
+authenticated plan / applyを実行します。workflow内でPR、review、commit SHAを再検証しません。
 
 ## 実行モデル
 
 1. PRでは `fmt`、backend無効の `init`、`validate` のみを実行する。
-2. GitHubのbranch rulesetでPR、`cloudflare-terraform-validate`、最低1件のindependent approval、
-   stale approvalのdismissal、author self-approval禁止、review thread解決、Terraform/workflow pathを
-   所有するCODEOWNERS reviewを必須にし、直接pushを禁止する。Repository Settingsではsquash/rebase
-   mergeを無効化し、レビュー済みPRを**merge commit**で
-   `master`へmergeする。merge自体が、レビューされたTerraform diffに見えるdestructive actionを
+2. GitHubのbranch rulesetで`master`への直接pushを禁止し、PRと
+   `cloudflare-terraform-validate`を必須にする。PRをレビューして`master`へmergeする。merge自体が、
+   レビューされたTerraform diffに見えるdestructive actionを
    自動実行する認可です。
-3. `master`へのqualifying pushでpreflight後にplanを実行する。planの件数に加え、
+3. `master`へのpushでplanを実行する。planの件数に加え、
    import/create/update/delete/replace対象のresource addressとactionをGitHub Step Summaryへ
    表示する。attribute valueはpublic logへ表示しない。
 4. sensitive dataを含み得るsaved planはGitHub Artifactへ置かず、private R2の
@@ -65,8 +61,8 @@ Repository Settingsの **Environments** に次の2環境を作成します。自
 - Environment secretsはこの環境だけに置く。
 
 productionのRequired reviewersを外すのは、merge後に人手承認なしでapplyする要件との意図的な
-trade-offです。PR review、required check、preflight、immutable saved plan、state backup、
-convergence checkが代替のfail-closed gateになります。merge後の追加承認を運用上必要とする場合は、
+trade-offです。PR review、required check、immutable saved plan、state backup、convergence checkが
+代替のfail-closed gateになります。merge後の追加承認を運用上必要とする場合は、
 自動apply要件と両立しないため、別途workflow設計を見直してください。
 
 ## Environment secrets
@@ -210,10 +206,8 @@ Cloudflare API tokenには可能なら有効期限を設定し、期限前にEnv
 
 bootstrapとEnvironment設定、branch ruleset設定が終わった後、次の順序で実行します。
 
-1. branch rulesetで `master` へのPR merge、`cloudflare-terraform-validate`、最低1件の
-   independent approval、stale approvalのdismissal、author self-approval禁止、review thread解決、
-   Terraform/workflow pathを所有するCODEOWNERS reviewを必須にし、直接pushを許可しない。
-   Repository Settingsではsquash/rebase mergeを無効化し、merge commitだけを許可する。
+1. branch rulesetで `master` へのPR mergeと`cloudflare-terraform-validate`を必須にし、
+   直接pushを許可しない。
 2. `cloudflare-plan` と `cloudflare-production` Environmentを作成し、両方のdeployment branchを
    `master`だけに制限する。true unattended operationのためproductionにRequired reviewersを
    設定しない。

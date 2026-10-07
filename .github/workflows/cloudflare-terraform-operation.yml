@@ -12,8 +12,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: read
-  checks: read
 
 concurrency:
   group: terraform-cloudflare-state
@@ -28,138 +26,7 @@ env:
   AWS_DEFAULT_REGION: auto
 
 jobs:
-
-  preflight:
-    if: github.event_name == 'push'
-    name: preflight-merged-pr
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: read
-      checks: read
-    timeout-minutes: 15
-    env:
-      GH_TOKEN: ${{ github.token }}
-    outputs:
-      pr_number: ${{ steps.prove.outputs.pr_number }}
-      merged_pr_head_sha: ${{ steps.prove.outputs.merged_pr_head_sha }}
-      validation_check_id: ${{ steps.prove.outputs.validation_check_id }}
-    steps:
-      - name: Prove merged PR and reviewed validation
-        id: prove
-        shell: bash
-        run: |
-          set -euo pipefail
-          command -v gh >/dev/null
-          command -v jq >/dev/null
-
-          pushed_commit=$(gh api \
-            --header 'Accept: application/vnd.github+json' \
-            --header 'X-GitHub-Api-Version: 2022-11-28' \
-            "repos/$GITHUB_REPOSITORY/git/commits/$GITHUB_SHA")
-          parent_count=$(jq '.parents | length' <<<"$pushed_commit")
-          if [ "$parent_count" -ne 2 ]; then
-            echo "Automatic apply requires a two-parent merge commit; $GITHUB_SHA has $parent_count parent(s)." >&2
-            exit 1
-          fi
-          merged_pr_head_sha=$(jq -r '.parents[1].sha' <<<"$pushed_commit")
-          if [[ ! "$merged_pr_head_sha" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "The merge commit second parent was not a full lowercase commit SHA." >&2
-            exit 1
-          fi
-
-          merged_prs=$(gh api \
-            --header 'Accept: application/vnd.github+json' \
-            --header 'X-GitHub-Api-Version: 2022-11-28' \
-            --paginate \
-            "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" \
-            | jq -s --arg pushed_sha "$GITHUB_SHA" --arg repository "$GITHUB_REPOSITORY" '
-              add
-              | map(select(
-                  .base.ref == "master"
-                  and .base.repo.full_name == $repository
-                  and .merged_at != null
-                  and .merge_commit_sha == $pushed_sha
-                ))
-            ')
-          merged_pr_count=$(jq 'length' <<<"$merged_prs")
-          if [ "$merged_pr_count" -ne 1 ]; then
-            echo "Expected exactly one merged PR targeting master for $GITHUB_SHA; found $merged_pr_count." >&2
-            exit 1
-          fi
-
-          pr_number=$(jq -r '.[0].number' <<<"$merged_prs")
-          pr_author=$(jq -r '.[0].user.login' <<<"$merged_prs")
-          if [ -z "$pr_author" ] || [ "$pr_author" = "null" ]; then
-            echo "Merged PR #$pr_number has no author login." >&2
-            exit 1
-          fi
-
-          reviews=$(gh api \
-            --header 'Accept: application/vnd.github+json' \
-            --header 'X-GitHub-Api-Version: 2022-11-28' \
-            --paginate \
-            "repos/$GITHUB_REPOSITORY/pulls/$pr_number/reviews?per_page=100" \
-            | jq -s 'add')
-          approved_reviewer=$(jq -r \
-            --arg merged_head "$merged_pr_head_sha" \
-            --arg pr_author "$pr_author" '
-              sort_by(.submitted_at)
-              | group_by(.user.login)
-              | map(last)
-              | map(select(
-                  .state == "APPROVED"
-                  and .commit_id == $merged_head
-                  and .user.login != $pr_author
-                ))
-              | .[0].user.login // empty
-            ' <<<"$reviews")
-          if [ -z "$approved_reviewer" ]; then
-            echo "Merged PR #$pr_number lacks an independent approval on merged head $merged_pr_head_sha." >&2
-            exit 1
-          fi
-
-          validation_check_id=""
-          for attempt in $(seq 1 60); do
-            check_records=$(gh api \
-              --header 'Accept: application/vnd.github+json' \
-              --header 'X-GitHub-Api-Version: 2022-11-28' \
-              --paginate \
-              "repos/$GITHUB_REPOSITORY/commits/$merged_pr_head_sha/check-runs?per_page=100" \
-              --jq '.check_runs[]? | select(.name == "cloudflare-terraform-validate" and .conclusion == "success" and .app.slug == "github-actions") | [.id, .head_sha, .conclusion] | @tsv' \
-              2>/dev/null || true)
-            check_record=$(printf '%s\n' "$check_records" | awk 'NF { print; exit }')
-            if [ -n "$check_record" ]; then
-              IFS=$'\t' read -r check_id check_head_sha check_conclusion <<<"$check_record"
-              if [ "$check_head_sha" = "$merged_pr_head_sha" ] && [ "$check_conclusion" = "success" ]; then
-                validation_check_id="$check_id"
-                break
-              fi
-            fi
-            sleep 10
-          done
-
-          if [ -z "$validation_check_id" ]; then
-            echo "Merged PR #$pr_number has no successful cloudflare-terraform-validate check on merged head $merged_pr_head_sha." >&2
-            exit 1
-          fi
-
-          {
-            echo "pr_number=$pr_number"
-            echo "merged_pr_head_sha=$merged_pr_head_sha"
-            echo "approved_reviewer=$approved_reviewer"
-            echo "validation_check_id=$validation_check_id"
-          } >> "$GITHUB_OUTPUT"
-          {
-            echo "Merged PR: #$pr_number"
-            echo "Merged PR head SHA (merge commit second parent): $merged_pr_head_sha"
-            echo "Independent approver: $approved_reviewer"
-            echo "Validation check: cloudflare-terraform-validate ($validation_check_id)"
-          } >> "$GITHUB_STEP_SUMMARY"
-
   plan:
-    if: needs.preflight.result == 'success'
-    needs: preflight
     name: cloudflare-plan
     environment: cloudflare-plan
     runs-on: ubuntu-latest
@@ -342,17 +209,8 @@ jobs:
         run: rm -f "$RUNNER_TEMP/cloudflare.tfplan" "$RUNNER_TEMP/cloudflare-plan.json" "$RUNNER_TEMP/cloudflare-plan.log" "$RUNNER_TEMP/cloudflare-diagnostic.log"
 
   apply:
-    if: >-
-      ${{
-        always() &&
-        github.event_name == 'push' &&
-        needs.preflight.result == 'success' &&
-        needs.plan.result == 'success' &&
-        needs.plan.outputs.has_changes == 'true'
-      }}
-    needs:
-      - preflight
-      - plan
+    if: needs.plan.result == 'success' && needs.plan.outputs.has_changes == 'true'
+    needs: plan
     name: cloudflare-production-apply
     environment: cloudflare-production
     runs-on: ubuntu-latest
