@@ -20,7 +20,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/hermes-config: 3a3f5224192becf66de67c0d7da027f0f0bf2ac0dad20895500ca62fd9ea4040
+        checksum/hermes-config: 4a522b5cb976892e55b0e3af9cb0e310fd1e381b8ca661e2b2cf7c6a4ad28ab3
         checksum/hermes-vikunja-adapter: 0f3d6b30946cb4156d951ad1b7f370400270fc49adc4ba80333764ef13f3409c
         checksum/hermes-vikunja-read-proxy: df88414001005fcf57beb05c7700fa76579dfc1f96eb8aa634ce6ba2d1e7e41c
         checksum/hermes-vikunja-tools: a1dc6a5c66bfdeaf83fb835bfc865217011fec638070f9b082713ffd6d81895f

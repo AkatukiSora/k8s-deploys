@@ -3,7 +3,10 @@ model:
   default: gpt-5.6-sol
   provider: openai-codex
 agent:
-  reasoning_effort: high
+  # Kanban workers inherit this unless a task explicitly overrides it. Luna
+  # work is deliberately decomposed into deterministic execution cards, so use
+  # XHigh effort for reliable implementation and mechanical validation.
+  reasoning_effort: xhigh
 database:
   journal_mode: wal
 display:
@@ -29,11 +32,11 @@ kanban:
   review_dispatch: true
   dispatch_interval_seconds: 30
   failure_limit: 2
-  # This Deployment is intentionally one replica and one active Kanban worker.
-  # A restarted Pod reclaims a dead worker from the durable board rather than
-  # competing with it through a second process.
-  max_in_progress: 1
-  max_in_progress_per_profile: 1
+  # Sol creates dependency-safe, decision-free worker cards. The dispatcher may
+  # then run six Luna cards concurrently; every card must use an explicit Luna
+  # model override rather than the Sol planner default.
+  max_in_progress: 6
+  max_in_progress_per_profile: 6
   dispatch_stale_timeout_seconds: 14400
   reconcile_orphans: true
 
@@ -45,7 +48,9 @@ delegation:
   request_overrides:
     service_tier: priority
   max_iterations: 120
-  max_concurrent_children: 1
+  # Independent, well-specified Luna execution cards may fan out after Sol has
+  # separated ownership; never use this concurrency for unresolved decisions.
+  max_concurrent_children: 6
   max_spawn_depth: 1
   orchestrator_enabled: false
   subagent_auto_approve: false
