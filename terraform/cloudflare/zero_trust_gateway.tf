@@ -74,7 +74,7 @@ resource "cloudflare_zero_trust_organization" "account" {
   deny_unmatched_requests                     = false
   deny_unmatched_requests_exempted_zone_names = []
   is_ui_read_only                             = false
-  name                                        = "akatuki.cloudflareaccess.com"
+  name                                        = "Sora-Lab"
   user_seat_expiration_inactive_time          = "730h"
   warp_auth_non_browser_401                   = true
   # Keep routine Cloudflare One Client reauthentication infrequent. SCIM on
