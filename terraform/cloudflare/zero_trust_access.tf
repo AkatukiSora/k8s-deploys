@@ -162,11 +162,10 @@ resource "cloudflare_zero_trust_access_identity_provider" "sora_lab_auth" {
     token_url    = "https://auth.akatuki-host.com/application/o/token/"
   }
   scim_config = {
-    enabled                  = false
-    group_member_deprovision = false
-    identity_update_behavior = "no_action"
-    seat_deprovision         = false
-    user_deprovision         = false
+    enabled                  = true
+    identity_update_behavior = "reauth"
+    seat_deprovision         = true
+    user_deprovision         = true
   }
 
   # client_secret is write-only and is deliberately not committed. Replacement

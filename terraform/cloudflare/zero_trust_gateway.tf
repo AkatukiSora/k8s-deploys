@@ -77,7 +77,9 @@ resource "cloudflare_zero_trust_organization" "account" {
   name                                        = "akatuki.cloudflareaccess.com"
   user_seat_expiration_inactive_time          = "730h"
   warp_auth_non_browser_401                   = true
-  warp_auth_session_duration                  = "8h"
+  # Keep routine Cloudflare One Client reauthentication infrequent. SCIM on
+  # the Authentik IdP below revokes sessions when authorization groups change.
+  warp_auth_session_duration = "720h"
   mfa_config = {
     allowed_authenticators = []
     session_duration       = "24h"
