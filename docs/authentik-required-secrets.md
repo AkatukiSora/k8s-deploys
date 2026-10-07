@@ -10,7 +10,7 @@ Authentik とネイティブ OIDC 対応アプリを `auth.akatuki-host.com` で
 | ------------------------------ | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
 | `authentik-secret`             | `authentik`  | `AUTHENTIK_SECRET_KEY`                                                                                                                                                                                                                                                       | Authentik app secret                            |
 | `authentik-smtp`               | `authentik`  | `AUTHENTIK_EMAIL__HOST`, `AUTHENTIK_EMAIL__PORT`, `AUTHENTIK_EMAIL__USERNAME`, `AUTHENTIK_EMAIL__PASSWORD`, `AUTHENTIK_EMAIL__USE_TLS`, `AUTHENTIK_EMAIL__FROM`                                                                                                              | Authentik SMTP                                  |
-| `authentik-blueprints-oidc`    | `authentik`  | `PROXMOX_OIDC_CLIENT_SECRET`, `ARGOCD_OIDC_CLIENT_SECRET`, `CODER_OIDC_CLIENT_SECRET`, `IMMICH_OIDC_CLIENT_SECRET`, `GRAFANA_OIDC_CLIENT_SECRET`, `NEXTCLOUD_OIDC_CLIENT_SECRET`, `GITLAB_OIDC_CLIENT_SECRET`, `VIKUNJA_OIDC_CLIENT_SECRET`, `CLOUDFLARE_OIDC_CLIENT_SECRET` | Authentik Blueprint provider secrets            |
+| `authentik-blueprints-oidc`    | `authentik`  | `PROXMOX_OIDC_CLIENT_SECRET`, `ARGOCD_OIDC_CLIENT_SECRET`, `CODER_OIDC_CLIENT_SECRET`, `IMMICH_OIDC_CLIENT_SECRET`, `GRAFANA_OIDC_CLIENT_SECRET`, `NEXTCLOUD_OIDC_CLIENT_SECRET`, `GITLAB_OIDC_CLIENT_SECRET`, `VIKUNJA_OIDC_CLIENT_SECRET`, `CLOUDFLARE_OIDC_CLIENT_SECRET`, `CLOUDFLARE_SCIM_BASE_URL`, `CLOUDFLARE_SCIM_TOKEN` | Authentik Blueprint OIDC and SCIM provider secrets |
 | `argocd-oidc-client-secret`    | `argocd`     | `client-secret`                                                                                                                                                                                                                                                              | Argo CD native OIDC client secret               |
 | `coder-oidc-client-secret`     | `coder`      | `client-secret`                                                                                                                                                                                                                                                              | Coder native OIDC client secret                 |
 | `immich-oidc-client-secret`    | `immich`     | `client-secret`                                                                                                                                                                                                                                                              | Immich native OIDC client secret                |
@@ -63,7 +63,7 @@ GitLab 用 client secret は `authentik-blueprints-oidc` の `GITLAB_OIDC_CLIENT
 
 用途:
 
-- Blueprint 内の `!Env` 参照で OIDC provider の client secret を注入
+- Blueprint 内の `!Env` 参照で OIDC provider の client secret と Cloudflare SCIM 接続情報を注入
 
 期待するキー:
 
@@ -77,7 +77,12 @@ NEXTCLOUD_OIDC_CLIENT_SECRET
 GITLAB_OIDC_CLIENT_SECRET
 VIKUNJA_OIDC_CLIENT_SECRET
 CLOUDFLARE_OIDC_CLIENT_SECRET
+CLOUDFLARE_SCIM_BASE_URL
+CLOUDFLARE_SCIM_TOKEN
 ```
+
+`CLOUDFLARE_SCIM_TOKEN` は Cloudflare Dashboard で生成時または再生成時にのみ取得できます。
+値は Git、Terraform state、CI ログへ保存せず、この 1Password item を source of truth として扱います。
 
 不要になったキー:
 

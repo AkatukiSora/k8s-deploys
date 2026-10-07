@@ -820,6 +820,33 @@ data:
             - !Find [authentik_providers_oauth2.scopemapping, [name, "Service email claims"]]
             - !Find [authentik_providers_oauth2.scopemapping, [name, "Cloudflare Access profile claims"]]
 
+      - id: cloudflare-access-scim-provider
+        model: authentik_providers_scim.scimprovider
+        identifiers:
+          name: Cloudflare Access SCIM
+        attrs:
+          url: !Env CLOUDFLARE_SCIM_BASE_URL
+          auth_mode: token
+          token: !Env CLOUDFLARE_SCIM_TOKEN
+          verify_certificates: true
+          exclude_users_service_account: true
+          compatibility_mode: default
+          dry_run: false
+          property_mappings:
+            - !Find [authentik_providers_scim.scimmapping, [managed, "goauthentik.io/providers/scim/user"]]
+          property_mappings_group:
+            - !Find [authentik_providers_scim.scimmapping, [managed, "goauthentik.io/providers/scim/group"]]
+          # Authentik's SCIM group client exports direct members only. Users are
+          # assigned directly to team:* groups while app:cloudflare:* access is
+          # inherited, so export the assignment groups that can change a user's
+          # Cloudflare authorization rather than their parent permission groups.
+          group_filters:
+            - !KeyOf team-owner-group
+            - !KeyOf team-pek-member-group
+            - !KeyOf team-k8s-external-group
+            - !KeyOf team-k8s-external-viewer-group
+            - !KeyOf team-k8s-external-operator-group
+
   10-brand.yaml: |
     version: 1
     metadata:
@@ -947,6 +974,8 @@ data:
         attrs:
           name: Cloudflare Access
           provider: !Find [authentik_providers_oauth2.oauth2provider, [name, "Cloudflare Access OIDC"]]
+          backchannel_providers:
+            - !Find [authentik_providers_scim.scimprovider, [name, "Cloudflare Access SCIM"]]
           meta_launch_url: https://sora-lab.cloudflareaccess.com
           icon: https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/cloudflare.svg
           open_in_new_tab: true
@@ -1167,6 +1196,20 @@ data:
           order: 2
         attrs:
           group: !Find [authentik_core.group, [name, "app:cloudflare:resource:kubernetes:access"]]
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, cloudflare-access]]
+          order: 3
+        attrs:
+          group: !Find [authentik_core.group, [name, "app:cloudflare:one:regist"]]
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, cloudflare-access]]
+          order: 4
+        attrs:
+          group: !Find [authentik_core.group, [name, "app:cloudflare:profile:external-kubernetes"]]
   50-identification-stage.yaml: |
     version: 1
     metadata:
