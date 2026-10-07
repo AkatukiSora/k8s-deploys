@@ -3,9 +3,9 @@ model:
   default: gpt-5.6-sol
   provider: openai-codex
 agent:
-  # The main interactive Sol session stays at High. Kanban cards and delegated
+  # The main interactive Sol session stays at Medium. Kanban cards and delegated
   # workers explicitly routed to Luna inherit this model-specific XHigh effort.
-  reasoning_effort: high
+  reasoning_effort: medium
   reasoning_overrides:
     gpt-5.6-luna: xhigh
 database:
