@@ -175,6 +175,19 @@ jobs:
           text = re.sub(r"(?i)(authorization:\s*)[^\s]+(?:\s+[^\s]+)?", r"\1[REDACTED]", text)
           text = re.sub(r"AKIA[0-9A-Z]{16}", "[REDACTED]", text)
           (runner_temp / "cloudflare-diagnostic.log").write_text(text)
+
+          # Publish only a redacted, single-line error class to the job summary.
+          # Full diagnostics remain in the private R2 object above.
+          headers = [line.strip() for line in text.splitlines() if "Error:" in line]
+          if headers:
+              header = headers[0]
+              header = re.sub(r"(['\"]).*?\1", "[REDACTED]", header)
+              header = re.sub(r"\b[A-Za-z0-9_./:+=-]{24,}\b", "[REDACTED]", header)
+              header = header[:240]
+              summary = pathlib.Path(os.environ["GITHUB_STEP_SUMMARY"])
+              with summary.open("a") as handle:
+                  handle.write("\n### Terraform plan failure class\n\n")
+                  handle.write(f"`{header}`\n")
           PY
           if [ -s "$RUNNER_TEMP/cloudflare-diagnostic.log" ] && [ -n "${AWS_ACCESS_KEY_ID:-}" ] && [ -n "${AWS_SECRET_ACCESS_KEY:-}" ]; then
             diagnostic_key="diagnostics/cloudflare/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${DIAGNOSTIC_JOB}.log"
