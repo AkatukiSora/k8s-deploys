@@ -2,19 +2,24 @@
 
 Cloudflare Terraform の authenticated `plan` / `apply` は、GitHub Actions の
 `Cloudflare Terraform operation` workflow がレビュー済みPRの `master` へのmerge pushを
-起点に自動実行します。Pull Requestではsecretを使用しない静的validationだけを実行し、
+起点に自動実行します。`Cloudflare Terraform pull-request plan` workflow は同一repository内の
+Pull Requestでread-only credentialを使ってplanを実行し、redact済みの結果をPR commentへ更新します。
 manual `workflow_dispatch` は提供しません。
 
 このrepositoryはpublicです。PR branchのworkflowやTerraform configurationにcredentialsを
 渡すと、変更されたworkflow、provider、module、data sourceなどからsecretを持ち出せます。
-そのためauthenticated operationは、レビュー・merge済みの `master` でしか動作しません。
+そのためwrite credentialを使うauthenticated applyは、レビュー・merge済みの `master` でしか動作しません。
+PR planは同一repositoryのbranchに限定し、fork PRではsecretsを使わずjobをskipします。repositoryへの
+write権限を持つPR authorがplan Environmentのread credentialを利用できることは、このPR plan運用の
+明示的なtrade-offです。
 GitHubのbranch rulesetが、`master`への更新をPR経由だけに制限します。PRでの静的validationと
 レビューを通過してmergeされた`master`の内容を承認済みdesired stateとして扱い、そのpushで
 authenticated plan / applyを実行します。workflow内でPR、review、commit SHAを再検証しません。
 
 ## 実行モデル
 
-1. PRでは `fmt`、backend無効の `init`、`validate` のみを実行する。
+1. PRでは `fmt`、backend無効の `init`、`validate` に加え、同一repository内のPRならremote stateを
+   使うread-only planを実行する。planのaction件数とresource addressだけをPR commentに表示する。
 2. GitHubのbranch rulesetで`master`への直接pushを禁止し、PRと
    `cloudflare-terraform-validate`を必須にする。PRをレビューして`master`へmergeする。merge自体が、
    レビューされたTerraform diffに見えるdestructive actionを
@@ -38,8 +43,9 @@ Workflow全体に単一のconcurrency groupを設定し、planとapplyが同じs
 ## GitHub Environments
 
 Repository Settingsの **Environments** に次の2環境を作成します。自動実行を止めないため、
-`cloudflare-plan` と `cloudflare-production` のdeployment branchは `master` だけを許可し、
-両方ともRequired reviewersは設定しません。
+`cloudflare-plan` は同一repository PR planにもsecretsを渡せるbranch rule（例: `*`）を設定します。
+`cloudflare-production` のdeployment branchは `master` だけを許可します。両方ともRequired reviewersは
+設定しません。
 
 ### `cloudflare-plan`
 

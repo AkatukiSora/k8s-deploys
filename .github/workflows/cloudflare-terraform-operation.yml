@@ -8,6 +8,7 @@ on:
       - terraform/cloudflare/**
       - .github/workflows/cloudflare-terraform.yml
       - .github/workflows/cloudflare-terraform-operation.yml
+      - .github/workflows/cloudflare-terraform-pr-plan.yml
 
 
 permissions:
