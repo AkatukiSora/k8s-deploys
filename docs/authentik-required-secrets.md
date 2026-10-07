@@ -84,6 +84,11 @@ CLOUDFLARE_SCIM_TOKEN
 `CLOUDFLARE_SCIM_TOKEN` は Cloudflare Dashboard で生成時または再生成時にのみ取得できます。
 値は Git、Terraform state、CI ログへ保存せず、この 1Password item を source of truth として扱います。
 
+Cloudflare 向け SCIM は OIDC と同じ `app:cloudflare:*` グループを同期します。ユーザーへの割り当ては
+引き続き `team:*` だけを操作し、`authentik-cloudflare-group-materializer` CronJob がグループ階層から
+有効な Cloudflare 権限を計算して、対象 `app:cloudflare:*` グループの直接メンバーを生成します。
+生成された直接メンバーは手動で編集しないでください。
+
 不要になったキー:
 
 - `KUBERNETES_OIDC_CLIENT_SECRET`

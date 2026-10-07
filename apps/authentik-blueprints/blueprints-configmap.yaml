@@ -208,7 +208,9 @@ data:
       # team:* groups
       #
       # Team groups are the primary assignment targets for users.
-      # Assign users to team:* groups, not app:* groups.
+      # Assign users to team:* groups, not app:* groups. Direct membership in
+      # app:cloudflare:* is generated and owned by the Cloudflare group
+      # materializer; do not edit those generated memberships manually.
       #
       # team:* groups inherit app:* groups through parents.
       # Application OIDC claims should continue exposing only app:* groups.
@@ -836,16 +838,15 @@ data:
             - !Find [authentik_providers_scim.scimmapping, [managed, "goauthentik.io/providers/scim/user"]]
           property_mappings_group:
             - !Find [authentik_providers_scim.scimmapping, [managed, "goauthentik.io/providers/scim/group"]]
-          # Authentik's SCIM group client exports direct members only. Users are
-          # assigned directly to team:* groups while app:cloudflare:* access is
-          # inherited, so export the assignment groups that can change a user's
-          # Cloudflare authorization rather than their parent permission groups.
+          # The materializer CronJob reconciles effective team:* membership into
+          # direct membership of these groups. This keeps SCIM display names and
+          # memberships identical to the groups emitted in the OIDC claim.
           group_filters:
-            - !KeyOf team-owner-group
-            - !KeyOf team-pek-member-group
-            - !KeyOf team-k8s-external-group
-            - !KeyOf team-k8s-external-viewer-group
-            - !KeyOf team-k8s-external-operator-group
+            - !KeyOf app-cloudflare-resource-argocd-access-group
+            - !KeyOf app-cloudflare-resource-proxmox-access-group
+            - !KeyOf app-cloudflare-one-regist-group
+            - !KeyOf app-cloudflare-resource-kubernetes-access-group
+            - !KeyOf app-cloudflare-profile-external-kubernetes-group
 
   10-brand.yaml: |
     version: 1
