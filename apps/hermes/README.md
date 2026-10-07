@@ -76,7 +76,7 @@ or everyone, and isolates all group and thread sessions per user.
 
 ## Coding and infrastructure orchestration
 
-The default parent is GPT-5.6 Sol at XHigh effort. It is the lead/planner:
+The default parent is GPT-5.6 Sol at High effort. It is the lead/planner:
 it resolves ambiguous requirements, makes architecture and risk decisions,
 builds the dependency DAG, defines acceptance criteria and exact mechanical
 validation, and integrates or reviews evidence. Do not spend Sol on routine

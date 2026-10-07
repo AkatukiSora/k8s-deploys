@@ -3,10 +3,11 @@ model:
   default: gpt-5.6-sol
   provider: openai-codex
 agent:
-  # Kanban workers inherit this unless a task explicitly overrides it. Luna
-  # work is deliberately decomposed into deterministic execution cards, so use
-  # XHigh effort for reliable implementation and mechanical validation.
-  reasoning_effort: xhigh
+  # The main interactive Sol session stays at High. Kanban cards and delegated
+  # workers explicitly routed to Luna inherit this model-specific XHigh effort.
+  reasoning_effort: high
+  reasoning_overrides:
+    gpt-5.6-luna: xhigh
 database:
   journal_mode: wal
 display:
