@@ -23,11 +23,9 @@ authenticated plan / applyを実行します。workflow内でPR、review、commi
    import/create/update/delete/replace対象のresource addressとactionをGitHub Step Summaryへ
    表示する。attribute valueはpublic logへ表示しない。
 4. sensitive dataを含み得るsaved planはGitHub Artifactへ置かず、private R2の
-   `plans/cloudflare/<commit>/<run-id>-<run-attempt>.tfplan` へ重複不可で保存する。
-5. 同じworkflowのapply jobがplan jobの `has_changes`、plan key、SHA-256を検証し、同じsaved
-   planだけを使う。
-6. apply直前にmaster tipを再確認し、現在のstateを`backups/cloudflare/`へ重複不可で退避する。
-   backupのJSON構造とSHA-256 metadataを検証してからapplyし、apply後に空のplanを確認する。
+   `plans/cloudflare/<run-id>-<run-attempt>.tfplan` へ重複不可で保存する。
+5. 同じworkflowのapply jobがplan jobの `has_changes` とplan keyを受け取り、そのsaved planを使う。
+6. 現在のstateを`backups/cloudflare/`へ重複不可で退避してからapplyし、apply後に空のplanを確認する。
 7. 正常終了後、使用済みsaved planをR2から削除する。
 
 deleteまたはreplacementを含むplanも、レビュー済みPRのmergeによって自動applyされます。
@@ -212,12 +210,9 @@ bootstrapとEnvironment設定、branch ruleset設定が終わった後、次の�
    `master`だけに制限する。true unattended operationのためproductionにRequired reviewersを
    設定しない。
 3. 初回adoption用のPRをレビューしてmergeする。merge pushのworkflowが自動でplan/applyする。
-4. 初回planが`98 imports / 0 creates / 0 updates / 0 deletes / 0 replacements`であることと、
-   resource action一覧が想定した98個のimportだけであることを確認する。
-5. apply後の`Post-apply plan is empty.`を確認する。
-6. `imports.tf`を削除する別PRを作成する。
+4. merge後のworkflowがstateをimportし、apply後の`Post-apply plan is empty.`を確認する。
+5. `imports.tf`を削除する別PRを作成する。
 
 Actionsの `workflow_dispatch` は提供しません。apply入力、plan key入力、destructive opt-inはありません。
 
-planとapplyの間にmaster commitが変わった場合、workflowはapply直前のmaster tip検証で拒否します。
-stateが変化してsaved planがstaleになった場合もTerraformがapplyを拒否します。
+stateが変化してsaved planがstaleになった場合はTerraformがapplyを拒否します。

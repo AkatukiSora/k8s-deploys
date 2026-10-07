@@ -104,7 +104,7 @@ destructive actionの認可とする意図的なtrade-offであり、PR review�
 plan、state backup、post-apply convergenceをfail-closed gateとして使います。
 Environmentのdeployment branchは `master` だけに制限してください。
 
-saved planはprivate R2に保存し、plan/applyの同一workflow内でSHA-256とimmutable keyを検証します。
+saved planはprivate R2に保存し、plan/applyの同一workflow内で同じplan keyを使用します。
 plan summaryにはaction addressと件数だけを表示し、raw plan/stateやsensitive valueはpublic logへ
 出しません。
 

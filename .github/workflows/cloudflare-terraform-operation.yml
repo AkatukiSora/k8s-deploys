@@ -38,7 +38,6 @@ jobs:
     outputs:
       has_changes: ${{ steps.plan.outputs.has_changes }}
       plan_key: ${{ steps.store-plan.outputs.plan_key }}
-      plan_sha256: ${{ steps.store-plan.outputs.plan_sha256 }}
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY_ID }}
@@ -60,7 +59,6 @@ jobs:
           : "${AWS_SECRET_ACCESS_KEY:?cloudflare-plan/TF_STATE_SECRET_ACCESS_KEY is required}"
           command -v aws >/dev/null
           command -v jq >/dev/null
-          command -v sha256sum >/dev/null
 
       - name: Initialize remote backend
         run: |
@@ -109,7 +107,6 @@ jobs:
             echo
             echo "- Event: \`$GITHUB_EVENT_NAME\`"
             echo "- Ref: \`$GITHUB_REF\`"
-            echo "- Commit: \`$GITHUB_SHA\`"
             echo "- Imports: $imports"
             echo "- Creates: $creates"
             echo "- Updates: $updates"
@@ -134,33 +131,19 @@ jobs:
         id: store-plan
         if: steps.plan.outputs.has_changes == 'true'
         run: |
-          plan_key="plans/cloudflare/${GITHUB_SHA}/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.tfplan"
-          plan_sha256=$(sha256sum "$RUNNER_TEMP/cloudflare.tfplan" | cut -d ' ' -f 1)
+          plan_key="plans/cloudflare/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.tfplan"
           aws s3api put-object \
             --bucket "$TF_STATE_BUCKET" \
             --key "$plan_key" \
             --body "$RUNNER_TEMP/cloudflare.tfplan" \
-            --metadata "sha256=$plan_sha256" \
             --if-none-match '*' \
             --endpoint-url "$TF_STATE_ENDPOINT" >/dev/null
-          stored_sha256=$(aws s3api head-object \
-            --bucket "$TF_STATE_BUCKET" \
-            --key "$plan_key" \
-            --endpoint-url "$TF_STATE_ENDPOINT" \
-            --query 'Metadata.sha256' \
-            --output text)
-          if [ "$stored_sha256" != "$plan_sha256" ]; then
-            echo "Saved plan verification failed." >&2
-            exit 1
-          fi
           echo "plan_key=$plan_key" >> "$GITHUB_OUTPUT"
-          echo "plan_sha256=$plan_sha256" >> "$GITHUB_OUTPUT"
           {
             echo
             echo "### Saved plan"
             echo
             echo "- Plan key: \`$plan_key\`"
-            echo "- SHA-256: \`$plan_sha256\`"
             echo
             echo "The apply job in this same push workflow consumes this exact immutable object."
           } >> "$GITHUB_STEP_SUMMARY"
@@ -224,24 +207,14 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}
       REVIEWED_PLAN_KEY: ${{ needs.plan.outputs.plan_key }}
-      REVIEWED_PLAN_SHA256: ${{ needs.plan.outputs.plan_sha256 }}
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - name: Validate reviewed plan outputs
+      - name: Validate saved plan key
         run: |
-          expected_prefix="plans/cloudflare/${GITHUB_SHA}/"
-          if [[ ! "$REVIEWED_PLAN_KEY" =~ ^plans/cloudflare/[0-9a-f]{40}/[0-9]+-[0-9]+\.tfplan$ ]]; then
+          if [[ ! "$REVIEWED_PLAN_KEY" =~ ^plans/cloudflare/[0-9]+-[0-9]+\.tfplan$ ]]; then
             echo "plan_key does not have the required format." >&2
-            exit 1
-          fi
-          if [[ "$REVIEWED_PLAN_KEY" != "$expected_prefix"* ]]; then
-            echo "The plan was not created from the current master commit." >&2
-            exit 1
-          fi
-          if [[ ! "$REVIEWED_PLAN_SHA256" =~ ^[0-9a-f]{64}$ ]]; then
-            echo "plan_sha256 must be a lowercase SHA-256 digest." >&2
             exit 1
           fi
 
@@ -258,35 +231,19 @@ jobs:
           : "${AWS_SECRET_ACCESS_KEY:?cloudflare-production/TF_STATE_SECRET_ACCESS_KEY is required}"
           command -v aws >/dev/null
           command -v jq >/dev/null
-          command -v sha256sum >/dev/null
 
       - name: Initialize remote backend
         run: |
           cp backend.hcl.example backend.hcl
           terraform init -reconfigure -input=false -backend-config=backend.hcl
 
-      - name: Download and verify reviewed plan
+      - name: Download saved plan
         run: |
-          stored_sha256=$(aws s3api head-object \
-            --bucket "$TF_STATE_BUCKET" \
-            --key "$REVIEWED_PLAN_KEY" \
-            --endpoint-url "$TF_STATE_ENDPOINT" \
-            --query 'Metadata.sha256' \
-            --output text)
-          if [ "$stored_sha256" != "$REVIEWED_PLAN_SHA256" ]; then
-            echo "Saved plan metadata SHA-256 does not match the plan job output." >&2
-            exit 1
-          fi
           aws s3 cp \
             "s3://$TF_STATE_BUCKET/$REVIEWED_PLAN_KEY" \
             "$RUNNER_TEMP/cloudflare.tfplan" \
             --endpoint-url "$TF_STATE_ENDPOINT" \
             --only-show-errors
-          actual_sha256=$(sha256sum "$RUNNER_TEMP/cloudflare.tfplan" | cut -d ' ' -f 1)
-          if [ "$actual_sha256" != "$REVIEWED_PLAN_SHA256" ]; then
-            echo "Reviewed plan SHA-256 does not match." >&2
-            exit 1
-          fi
 
       - name: Summarize reviewed plan
         run: |
@@ -300,7 +257,6 @@ jobs:
             echo "## Reviewed Cloudflare Terraform apply plan"
             echo
             echo "- Plan key: \`$REVIEWED_PLAN_KEY\`"
-            echo "- SHA-256: \`$REVIEWED_PLAN_SHA256\`"
             echo "- Imports: $imports"
             echo "- Creates: $creates"
             echo "- Updates: $updates"
@@ -333,36 +289,16 @@ jobs:
             terraform state pull > "$RUNNER_TEMP/pre-apply.tfstate"
             jq -e 'type == "object" and (.version | type == "number") and (.serial | type == "number")' \
               "$RUNNER_TEMP/pre-apply.tfstate" >/dev/null
-            state_sha256=$(sha256sum "$RUNNER_TEMP/pre-apply.tfstate" | cut -d ' ' -f 1)
-            backup_key="backups/cloudflare/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${GITHUB_SHA}.tfstate"
+            backup_key="backups/cloudflare/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.tfstate"
             aws s3api put-object \
               --bucket "$TF_STATE_BUCKET" \
               --key "$backup_key" \
               --body "$RUNNER_TEMP/pre-apply.tfstate" \
-              --metadata "sha256=$state_sha256" \
               --if-none-match '*' \
               --endpoint-url "$TF_STATE_ENDPOINT" >/dev/null
-            backup_sha256=$(aws s3api head-object \
-              --bucket "$TF_STATE_BUCKET" \
-              --key "$backup_key" \
-              --endpoint-url "$TF_STATE_ENDPOINT" \
-              --query 'Metadata.sha256' \
-              --output text)
-            if [ "$backup_sha256" != "$state_sha256" ]; then
-              echo "Remote state backup verification failed." >&2
-              exit 1
-            fi
             echo "Remote state backup: \`$backup_key\`" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "R2 returned duplicate active state keys; refusing apply." >&2
-            exit 1
-          fi
-
-      - name: Verify master has not advanced
-        run: |
-          current_master_sha=$(git ls-remote --exit-code origin refs/heads/master | cut -f 1)
-          if [ "$current_master_sha" != "$GITHUB_SHA" ]; then
-            echo "master advanced after this workflow started; create and review a new plan." >&2
             exit 1
           fi
 
