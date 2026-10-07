@@ -16,6 +16,7 @@ import block です。
 - controller 管理外の DNS records
 - Email Routing、Rulesets
 - Access applications / reusable policies / groups / Authentik OIDC IdP
+- Authentik IdP の Zero Trust SCIM、ユーザー無効化とグループ変更時の session revoke
 - WARP device profiles、Gateway settings、custom Gateway policy
 - 手動管理の `home-node1` Tunnel と ingress configuration
 - Pages project、Turnstile、zone-bound Web Analytics
@@ -54,6 +55,29 @@ Pages project、OIDC IdP、Tunnel、Tunnel configuration、および production 
 `proxmox.akatuki-host.com` の origin は、現環境に合わせて `no_tls_verify = true` を保持して
 います。これは private network を信頼境界とする暫定例外です。origin certificate を
 Cloudflare から検証可能な証明書へ更新後、別 PR で `false` に変更してください。
+
+## Cloudflare One Client session と SCIM
+
+Cloudflare One Client で Access application を利用する際の定期的な IdP 再認証は
+`warp_auth_session_duration = "720h"`（30日）です。これはブラウザの Access application
+session や MFA session の有効期限とは別の設定です。
+
+Authentik OIDC IdP では Zero Trust SCIM を有効にし、次の例外イベントでは30日を待たずに
+active sessionを失効させます。
+
+- AuthentikのSCIM applicationからユーザーが外れた場合（`user_deprovision = true`）
+- ユーザーのgroup membershipが変更された場合（`identity_update_behavior = "reauth"`）
+
+AccessのauthorizationはSCIM group membershipそのものではなく、再認証時のOIDC claimを
+評価します。そのため `automatic` ではなく `reauth` を使い、権限group変更時に新しいOIDC
+claimを取り直します。Gateway policyとdevice profileだけを無中断で追従させたい場合は
+`automatic` が候補ですが、Access policyの即時更新は保証しません。
+
+SCIMを初めて有効にしたapplyでは、CloudflareがSCIM base URLとsecretを生成します。secretは
+Terraform state上でsensitiveとして扱い、Gitやplan summaryへ出力しません。apply後にsecretを
+安全な経路でAuthentikのSCIM backchannel providerへ登録し、対象groupを明示的に絞ってください。
+Cloudflare側のIaCだけではAuthentikからのprovisioningは開始されません。secretの受け渡しと
+Authentik側providerは、Cloudflare apply完了後に別のreview対象変更として構成します。
 
 ## State backend
 
