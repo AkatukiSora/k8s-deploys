@@ -103,7 +103,7 @@ jobs:
           if exit_code in {"0", "2"} and (temp / "cloudflare-pr.tfplan").exists():
               shown = temp / "cloudflare-pr-plan.json"
               subprocess.run(
-                  ["terraform", "show", "-json", str(temp / "cloudflare-pr.tfplan")],
+                  ["terraform", "-chdir=terraform/cloudflare", "show", "-json", str(temp / "cloudflare-pr.tfplan")],
                   check=True,
                   stdout=shown.open("w"),
               )
