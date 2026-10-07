@@ -56,7 +56,9 @@ class VikunjaClientTests(unittest.TestCase):
             ):
                 adapter.VikunjaClient().request("GET", "/api/v1/tasks")
 
-            self.assertEqual(captured[0].get_header("User-agent"), "Hermes-Vikunja-Adapter/1.0")
+            self.assertEqual(captured[0].get_header("User-agent"), adapter.USER_AGENT)
+            self.assertIn("Vikunja-2.x", adapter.USER_AGENT)
+            self.assertIn("API-v1", adapter.USER_AGENT)
 
 
 if __name__ == "__main__":

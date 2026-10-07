@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Loopback-only, bounded Vikunja v1 task adapter.
+"""Loopback-only, bounded Vikunja API v1 task adapter for Vikunja 2.x.
 
 The Hermes container never receives the Vikunja bearer token. This sidecar is
 the only token consumer and exposes only the secretary task operations below.
@@ -26,6 +26,7 @@ MAX_BODY_BYTES = 32 * 1024
 MAX_TITLE_LENGTH = 512
 MAX_DESCRIPTION_LENGTH = 16 * 1024
 ID_RE = re.compile(r"^[1-9][0-9]*$")
+USER_AGENT = "Hermes-Vikunja-Adapter/1.1 (Vikunja-2.x; API-v1)"
 
 
 class AdapterError(Exception):
@@ -59,7 +60,7 @@ class VikunjaClient:
         headers = {
             "Accept": "application/json",
             "Authorization": f"Bearer {self.token}",
-            "User-Agent": "Hermes-Vikunja-Adapter/1.0",
+            "User-Agent": USER_AGENT,
         }
         if body is not None:
             headers["Content-Type"] = "application/json"
