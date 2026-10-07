@@ -74,6 +74,8 @@ Proxmox は例外で、Authentik 内部の `app:proxmox:*` から Proxmox-safe �
 | Application | Groups                                   | Role / intent                   |
 | ----------- | ---------------------------------------- | ------------------------------- |
 | Authentik   | `app:authentik:global:admin`             | Authentik admin candidate       |
+| Kubernetes  | `app:k8s:cluster:viewer`                 | custom cluster-wide read-only role |
+| Kubernetes  | `app:k8s:cluster:operator`               | namespace-bound operator role   |
 | Kubernetes  | `app:k8s:cluster:admin`                  | cluster-admin candidate         |
 | Proxmox     | `app:proxmox:cluster:main:admin`         | Proxmox admin candidate         |
 | Proxmox     | `app:proxmox:cluster:main:auditor`       | Proxmox read-only candidate     |
@@ -100,6 +102,8 @@ Proxmox は例外で、Authentik 内部の `app:proxmox:*` から Proxmox-safe �
 | GitLab      | `app:gitlab:global:external-user`        | `external_groups`               |
 | Cloudflare  | `app:cloudflare:resource:argocd:access`  | Access to Argo CD at the edge   |
 | Cloudflare  | `app:cloudflare:resource:proxmox:access` | Access to Proxmox at the edge   |
+| Cloudflare  | `app:cloudflare:resource:kubernetes:access` | Access to private Kubernetes API at the edge |
+| Cloudflare  | `app:cloudflare:profile:external-kubernetes` | Selects the external-only WARP profile through SCIM |
 
 ## Callback URLs
 
@@ -229,7 +233,9 @@ Current limitation:
 - OIDC `groups` claim is scoped to `app:cloudflare:*` only
 - Argo CD and Proxmox continue to use their own downstream RBAC after Cloudflare admission
 - Use `CLOUDFLARE_OIDC_CLIENT_SECRET` from `authentik-blueprints-oidc` as the canonical stored secret
-- Current edge access groups are `app:cloudflare:resource:argocd:access` and `app:cloudflare:resource:proxmox:access`
+- Current edge access groups include `app:cloudflare:resource:argocd:access`, `app:cloudflare:resource:proxmox:access`, and `app:cloudflare:resource:kubernetes:access`
+- `team:k8s-external-viewer` and `team:k8s-external-operator` each inherit the baseline `team:k8s-external` network grant and exactly one Kubernetes authorization role
+- Cloudflare Device Profile and Gateway group selectors require SCIM to synchronize `app:cloudflare:profile:external-kubernetes`; Access login itself continues to evaluate the OIDC `groups` claim
 - Existing Argo CD / Proxmox people-facing assignment stays on the current `team:*` groups that already inherit those app permissions
 - In the current IaC, `team:owner` inherits both Cloudflare Access groups so the existing owner path remains functional
 
