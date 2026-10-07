@@ -23,7 +23,21 @@ resource "cloudflare_zero_trust_device_custom_profile" "onboarding" {
   uninstall_protection           = false
   dns_search_suffixes            = []
   exclude = [{
-    address = "10.0.0.0/8"
+    address = "10.1.0.0/16"
+    }, {
+    address = "10.2.0.0/15"
+    }, {
+    address = "10.4.0.0/14"
+    }, {
+    address = "10.8.0.0/13"
+    }, {
+    address = "10.16.0.0/12"
+    }, {
+    address = "10.32.0.0/11"
+    }, {
+    address = "10.64.0.0/10"
+    }, {
+    address = "10.128.0.0/9"
     }, {
     address = "100.64.0.0/10"
     }, {
@@ -61,6 +75,10 @@ resource "cloudflare_zero_trust_device_custom_profile" "onboarding" {
   service_mode_v2 = {
     mode = "warp"
   }
+
+  depends_on = [
+    cloudflare_zero_trust_tunnel_cloudflared_route.home_node1_proxmox_network,
+  ]
 }
 
 resource "cloudflare_zero_trust_device_default_profile" "default" {
