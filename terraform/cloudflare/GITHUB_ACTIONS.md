@@ -1,61 +1,73 @@
 # GitHub Actions operation guide
 
 Cloudflare Terraform の authenticated `plan` / `apply` は、GitHub Actions の
-`Cloudflare Terraform operation` workflow から手動実行します。Pull Request では secret を
-使用しない静的 validation のみを自動実行します。
+`Cloudflare Terraform operation` workflow がレビュー済みPRの `master` へのmerge pushを
+起点に自動実行します。Pull Requestではsecretを使用しない静的validationだけを実行し、
+manual `workflow_dispatch` は提供しません。
 
-この repository は public です。PR branch の workflow や Terraform configuration に
-credentials を渡すと、変更された workflow、provider、module、data source などから secret を
-持ち出せます。そのため authenticated operation は、レビュー・マージ済みの `master` でしか
-動作しません。
+このrepositoryはpublicです。PR branchのworkflowやTerraform configurationにcredentialsを
+渡すと、変更されたworkflow、provider、module、data sourceなどからsecretを持ち出せます。
+そのためauthenticated operationは、レビュー・merge済みの `master` でしか動作しません。
+merge pushのpreflightは、push SHAが2 parentを持つ `master` を対象にしたmerged PRのmerge commitで
+あること、その第2 parent（merge時点の不変なPR head SHA）に対する
+`cloudflare-terraform-validate` checkがGitHub Actionsから成功していること、merge commit第2 parentに
+対するPR author以外のindependent approvalがあることを`GITHUB_TOKEN`だけで確認します。直接push、
+squash/rebase merge、validation未通過、または独立approvalのないmergeはsecretを持つjobへ進みません。
 
 ## 実行モデル
 
 1. PRでは `fmt`、backend無効の `init`、`validate` のみを実行する。
-2. `master` で `plan` を手動実行する。
-3. planの件数に加え、import/create/update/delete/replace対象のresource addressとactionを
-   GitHub Step Summaryへ表示する。attribute valueはpublic logへ表示しない。
+2. GitHubのbranch rulesetでPR、`cloudflare-terraform-validate`、最低1件のindependent approval、
+   stale approvalのdismissal、author self-approval禁止、review thread解決、Terraform/workflow pathを
+   所有するCODEOWNERS reviewを必須にし、直接pushを禁止する。Repository Settingsではsquash/rebase
+   mergeを無効化し、レビュー済みPRを**merge commit**で
+   `master`へmergeする。merge自体が、レビューされたTerraform diffに見えるdestructive actionを
+   自動実行する認可です。
+3. `master`へのqualifying pushでpreflight後にplanを実行する。planの件数に加え、
+   import/create/update/delete/replace対象のresource addressとactionをGitHub Step Summaryへ
+   表示する。attribute valueはpublic logへ表示しない。
 4. sensitive dataを含み得るsaved planはGitHub Artifactへ置かず、private R2の
    `plans/cloudflare/<commit>/<run-id>-<run-attempt>.tfplan` へ重複不可で保存する。
-5. Step Summaryのresource action一覧、plan key、SHA-256をレビューする。
-6. `master` で `apply` を手動実行し、plan keyとSHA-256を入力する。
-7. `cloudflare-production` Environmentの承認後、同じcommitの同じsaved planだけをapplyする。
-8. apply直前にmaster tipを再確認し、現在のstateを`backups/cloudflare/`へ重複不可で退避する。
+5. 同じworkflowのapply jobがplan jobの `has_changes`、plan key、SHA-256を検証し、同じsaved
+   planだけを使う。
+6. apply直前にmaster tipを再確認し、現在のstateを`backups/cloudflare/`へ重複不可で退避する。
    backupのJSON構造とSHA-256 metadataを検証してからapplyし、apply後に空のplanを確認する。
-9. 正常終了後、使用済みsaved planをR2から削除する。
+7. 正常終了後、使用済みsaved planをR2から削除する。
 
-deleteまたはreplacementを含むplanは、apply dispatch時に`allow_destructive`を明示的に有効化
-しない限り拒否します。この指定はEnvironment approvalの代わりではなく、追加の安全装置です。
+deleteまたはreplacementを含むplanも、レビュー済みPRのmergeによって自動applyされます。
+Terraform resourcesの `prevent_destroy` は維持し、破壊防止を外す変更は別PRで明示的にレビュー
+してください。mergeは、Step Summaryのaction addressと件数も確認したうえで行います。
 
 Workflow全体に単一のconcurrency groupを設定し、planとapplyが同じstateに同時アクセスするのを
 防ぎます。Terraform S3 backendの`use_lockfile = true`も併用します。
 
 ## GitHub Environments
 
-Repository Settingsの **Environments** に次の2環境を作成します。
+Repository Settingsの **Environments** に次の2環境を作成します。自動実行を止めないため、
+`cloudflare-plan` と `cloudflare-production` のdeployment branchは `master` だけを許可し、
+両方ともRequired reviewersは設定しません。
 
 ### `cloudflare-plan`
 
-用途はread-only Cloudflare planです。
+用途はmerge済み `master` のread-only Cloudflare planです。
 
-推奨保護設定:
-
-- Required reviewersを1名以上設定する。
-- Prevent self-reviewを有効にする。
 - Deployment branchesは`master`だけを許可する。
+- Required reviewersは設定しない（mergeとbranch rulesetがreview gateです）。
 - Environment secretsはrepository secretsと共有せず、この環境だけに置く。
 
 ### `cloudflare-production`
 
-用途はCloudflareへのapplyです。
+用途はmerge済みPRのpushからのCloudflare applyです。
 
-必須保護設定:
-
-- Required reviewersを1名以上設定する。
-- Prevent self-reviewを有効にする。
+- Required reviewersは**設定しない**。mergeを認可とするtrue unattended operationのために必要です。
+- Prevent self-reviewや管理者bypassの設定は、reviewer gateを置かないため適用されません。
 - Deployment branchesは`master`だけを許可する。
-- 管理者による保護ルールのbypassを許可しない。
 - Environment secretsはこの環境だけに置く。
+
+productionのRequired reviewersを外すのは、merge後に人手承認なしでapplyする要件との意図的な
+trade-offです。PR review、required check、preflight、immutable saved plan、state backup、
+convergence checkが代替のfail-closed gateになります。merge後の追加承認を運用上必要とする場合は、
+自動apply要件と両立しないため、別途workflow設計を見直してください。
 
 ## Environment secrets
 
@@ -75,7 +87,7 @@ R2 credentialsもplan用とproduction用で別tokenにすると、個別に失�
 
 次の値はsecretではないため、GitHub Secretsへ入れずrepository内で宣言しています。
 
-- R2 bucket: `k8s-deploys-terraform-state`
+- R2 bucket: `sora-cloudflare-terraform-state`
 - state key: `cloudflare/terraform.tfstate`
 - R2 S3 endpoint
 - Cloudflare account ID / zone ID
@@ -88,7 +100,7 @@ Global API Keyは使用しません。必ずscoped API Tokenを`CLOUDFLARE_API_T
 
 - Permission: **Object Read & Write**
 - Bucket scope: **Apply to specific buckets only**
-- Bucket: `k8s-deploys-terraform-state`
+- Bucket: `sora-cloudflare-terraform-state`
 - Admin Read & Write: 不要
 - Public access: 無効
 
@@ -196,19 +208,22 @@ Cloudflare API tokenには可能なら有効期限を設定し、期限前にEnv
 
 ## 初回adoption
 
-bootstrapとEnvironment設定が終わった後、次の順序で実行します。
+bootstrapとEnvironment設定、branch ruleset設定が終わった後、次の順序で実行します。
 
-1. PRをmergeする。
-2. Actionsから`Cloudflare Terraform operation`を開く。
-3. branchに`master`、operationに`plan`を指定して実行する。
+1. branch rulesetで `master` へのPR merge、`cloudflare-terraform-validate`、最低1件の
+   independent approval、stale approvalのdismissal、author self-approval禁止、review thread解決、
+   Terraform/workflow pathを所有するCODEOWNERS reviewを必須にし、直接pushを許可しない。
+   Repository Settingsではsquash/rebase mergeを無効化し、merge commitだけを許可する。
+2. `cloudflare-plan` と `cloudflare-production` Environmentを作成し、両方のdeployment branchを
+   `master`だけに制限する。true unattended operationのためproductionにRequired reviewersを
+   設定しない。
+3. 初回adoption用のPRをレビューしてmergeする。merge pushのworkflowが自動でplan/applyする。
 4. 初回planが`98 imports / 0 creates / 0 updates / 0 deletes / 0 replacements`であることと、
    resource action一覧が想定した98個のimportだけであることを確認する。
-5. Step Summaryのsource run URL、plan key、SHA-256を保存する。
-6. branchに`master`、operationに`apply`を指定し、plan keyとSHA-256を入力する。
-   初回adoptionでは`allow_destructive`を無効のままにする。
-7. `cloudflare-production` deploymentをレビューして承認する。
-8. apply後の`Post-apply plan is empty.`を確認する。
-9. `imports.tf`を削除する別PRを作成する。
+5. apply後の`Post-apply plan is empty.`を確認する。
+6. `imports.tf`を削除する別PRを作成する。
 
-planとapplyの間にmaster commitが変わった場合、workflowはplan keyのcommit prefix検証でapplyを
-拒否します。stateが変化してsaved planがstaleになった場合もTerraformがapplyを拒否します。
+Actionsの `workflow_dispatch` は提供しません。apply入力、plan key入力、destructive opt-inはありません。
+
+planとapplyの間にmaster commitが変わった場合、workflowはapply直前のmaster tip検証で拒否します。
+stateが変化してsaved planがstaleになった場合もTerraformがapplyを拒否します。

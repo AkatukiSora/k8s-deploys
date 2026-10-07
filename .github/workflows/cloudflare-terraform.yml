@@ -18,10 +18,12 @@ permissions:
   contents: read
 
 jobs:
-  validate:
+  cloudflare-terraform-validate:
+    name: cloudflare-terraform-validate
     runs-on: ubuntu-latest
     defaults:
       run:
+        shell: bash
         working-directory: terraform/cloudflare
     steps:
       - name: Checkout

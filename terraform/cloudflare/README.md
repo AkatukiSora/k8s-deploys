@@ -58,7 +58,7 @@ Cloudflare から検証可能な証明書へ更新後、別 PR で `false` に�
 ## State backend
 
 ローカル state は使用しません。bootstrap bucket は
-`k8s-deploys-terraform-state`、state key は `cloudflare/terraform.tfstate` とします。
+`sora-cloudflare-terraform-state`、state key は `cloudflare/terraform.tfstate` とします。
 `backend.hcl.example` をコピーして、アクセス制御と暗号化を有効にしたremote backendを
 設定してください。R2 S3 backendを使いますが、bucketとstate用credentialsはDashboardで
 先にbootstrapする必要があります。例ではS3 native lockfile (`use_lockfile = true`)を
@@ -90,18 +90,37 @@ token を `*.tf`、`*.tfvars`、backend 設定、shell history、CI log に書�
 
 ## GitHub Actionsと初回adoption
 
-通常のauthenticated plan / applyはGitHub Actionsから手動実行します。Environment、Secrets、
-Cloudflare API token権限、R2 saved plan、承認手順は
+通常のauthenticated plan / applyは、レビュー済みPRが `master` にmergeされたpushを起点に
+GitHub Actionsから自動実行します。PRではsecretを使用しない静的validationだけを実行し、
+`cloudflare-terraform-validate` をbranch rulesetのrequired checkにします。preflightは
+`GITHUB_TOKEN`だけで、push SHAが2 parentを持つ `master` を対象にしたmerged PRのmerge commitで
+あることと、その第2 parent（merge時点の不変なPR head SHA）の同名validation checkが成功して
+いること、PR author以外のindependent approvalがmerge commit第2 parentに対して存在することを検証
+します。直接push、squash/rebase merge、validation未通過、または独立approvalのないmergeは
+authenticated plan/applyへ進みません。branch rulesetでは最低1件のindependent approval、stale approval
+のdismissal、author self-approval禁止、review thread解決、Terraform/workflow pathを所有するCODEOWNERS
+reviewも必須にし、Repository Settingsではsquash/rebase mergeを無効化してください。
+
+manual `workflow_dispatch` は提供しません。apply入力、saved planの手動引き渡し、destructive opt-inは
+ありません。merge後のapplyは `cloudflare-production`
+EnvironmentのRequired reviewersを設定せずにtrue unattendedで実行します。これはmergeを
+destructive actionの認可とする意図的なtrade-offであり、PR review、required check、preflight、
+immutable saved plan、state backup、post-apply convergenceをfail-closed gateとして使います。
+Environmentのdeployment branchは `master` だけに制限してください。
+
+saved planはprivate R2に保存し、plan/applyの同一workflow内でSHA-256とimmutable keyを検証します。
+plan summaryにはaction addressと件数だけを表示し、raw plan/stateやsensitive valueはpublic logへ
+出しません。
+
+branch ruleset、GitHub Environments、Environment secrets、R2 credentials、Cloudflare tokenの
+権限はGitHub Settings/Cloudflare側で事前設定が必要です。詳細は
 [GITHUB_ACTIONS.md](./GITHUB_ACTIONS.md)を参照してください。
 
-PRではsecretを使用しない静的validationだけを実行します。authenticated operationは
-レビュー・merge済みの`master`に限定し、planとapplyの間はprivate R2に保存したplan fileと
-SHA-256で接続します。
-
-期待値は、初回 plan が **import のみ**、`add/change/destroy` がすべて 0 であることです。
-この repository 作成時の読み取り専用検証では、98 imports、0 add、0 change、0 destroy
-でした。差分が出た場合は apply せず、実環境の drift または provider 差異を確認します。
+初回adoptionの期待値は、plan が **import のみ**、`add/change/destroy` がすべて 0 であることです。
+この repository 作成時の読み取り専用検証では、98 imports、0 add、0 change、0 destroyでした。
+自動applyではmergeが実行認可になるため、初回adoption PRをmergeする前に、この期待値を前提として
+Terraform定義とCloudflareの現状をレビューしてください。実行時に想定外のdriftが見つかった場合も、
+workflowはreview済みの`master`定義をdesired stateとして適用します。
 
 import がremote stateに反映され、GitHub Actionsのpost-apply planが空であることを確認したら、
-`imports.tf` は別 PR で削除します。dashboard の read-only 化や自動 apply は、その後に
-最小権限 write token、plan review、承認 gate、state backup/locking を整備してから行います。
+`imports.tf` は別 PR で削除します。
