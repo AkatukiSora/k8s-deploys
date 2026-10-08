@@ -13,7 +13,7 @@ spec:
       path: .
       # Chart v2.3.0 packages Vikunja 2.6.0. Keep this aligned with the
       # explicitly pinned application image in apps/vikunja/values.yaml.
-      targetRevision: v2.3.0
+      targetRevision: v2.4.0
       helm:
         releaseName: vikunja
         valueFiles:
