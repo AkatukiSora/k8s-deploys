@@ -567,6 +567,21 @@ data:
     metadata:
       name: OIDC providers
     entries:
+      # Providers resolve group and scope-mapping objects managed by separate
+      # Blueprint instances. Apply those dependencies first so fresh bootstrap
+      # and multi-worker discovery cannot resolve !Find references to null.
+      - model: authentik_blueprints.metaapplyblueprint
+        attrs:
+          identifiers:
+            name: Authentik permission groups
+          required: true
+
+      - model: authentik_blueprints.metaapplyblueprint
+        attrs:
+          identifiers:
+            name: OIDC scope mappings
+          required: true
+
       - id: kubernetes-provider
         model: authentik_providers_oauth2.oauth2provider
         identifiers:
@@ -847,11 +862,14 @@ data:
           # direct membership of these groups. This keeps SCIM display names and
           # memberships identical to the groups emitted in the OIDC claim.
           group_filters:
-            - !KeyOf app-cloudflare-resource-argocd-access-group
-            - !KeyOf app-cloudflare-resource-proxmox-access-group
-            - !KeyOf app-cloudflare-one-regist-group
-            - !KeyOf app-cloudflare-resource-kubernetes-access-group
-            - !KeyOf app-cloudflare-profile-external-kubernetes-group
+            # These groups are defined in the separate 10-groups.yaml Blueprint.
+            # Use !Find for existing database objects; !KeyOf only resolves entry
+            # IDs within this 30-oauth-providers.yaml Blueprint instance.
+            - !Find [authentik_core.group, [name, "app:cloudflare:resource:argocd:access"]]
+            - !Find [authentik_core.group, [name, "app:cloudflare:resource:proxmox:access"]]
+            - !Find [authentik_core.group, [name, "app:cloudflare:one:regist"]]
+            - !Find [authentik_core.group, [name, "app:cloudflare:resource:kubernetes:access"]]
+            - !Find [authentik_core.group, [name, "app:cloudflare:profile:external-kubernetes"]]
 
   10-brand.yaml: |
     version: 1
@@ -874,6 +892,15 @@ data:
     metadata:
       name: Authentik applications
     entries:
+      # Applications resolve providers from 30-oauth-providers.yaml. Explicitly
+      # apply that Blueprint first so backchannel providers cannot resolve to
+      # null during fresh bootstrap or concurrent discovery.
+      - model: authentik_blueprints.metaapplyblueprint
+        attrs:
+          identifiers:
+            name: OIDC providers
+          required: true
+
       - id: kubernetes-application
         model: authentik_core.application
         identifiers:
@@ -991,6 +1018,21 @@ data:
     metadata:
       name: Application access policy bindings
     entries:
+      # Bindings resolve both applications and permission groups managed by
+      # separate Blueprint instances. Apply both before evaluating !Find
+      # references during fresh bootstrap or concurrent discovery.
+      - model: authentik_blueprints.metaapplyblueprint
+        attrs:
+          identifiers:
+            name: Authentik permission groups
+          required: true
+
+      - model: authentik_blueprints.metaapplyblueprint
+        attrs:
+          identifiers:
+            name: Authentik applications
+          required: true
+
       - model: authentik_policies.policybinding
         identifiers:
           target: !Find [authentik_core.application, [slug, kubernetes]]
