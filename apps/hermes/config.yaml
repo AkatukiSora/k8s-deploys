@@ -1,13 +1,13 @@
 _config_version: 37
 model:
-  default: gpt-5.6-sol
+  default: gpt-6.1-sol
   provider: openai-codex
 agent:
   # The main interactive Sol session stays at Medium. Kanban cards and delegated
   # workers explicitly routed to Luna inherit this model-specific XHigh effort.
   reasoning_effort: medium
   reasoning_overrides:
-    gpt-5.6-luna: xhigh
+    gpt-6-luna: xhigh
 database:
   journal_mode: wal
 display:
@@ -23,7 +23,7 @@ display:
       tool_progress_grouping: accumulate
 cron:
   # Keep unattended secretary routines independent from the interactive model.
-  model: gpt-5.6-luna
+  model: gpt-6-luna
   model_provider: openai-codex
 
 # Durable task queue. Its SQLite DB, worker logs, attachments, and workspaces
@@ -43,7 +43,7 @@ kanban:
 
 delegation:
   provider: openai-codex
-  model: gpt-5.6-luna
+  model: gpt-6-luna
   reasoning_effort: xhigh
   # Luna Fast is the default for user-blocking and critical-path work.
   request_overrides:
