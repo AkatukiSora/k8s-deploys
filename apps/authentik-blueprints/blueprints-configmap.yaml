@@ -207,10 +207,15 @@ data:
       # ---------------------------------------------------------------------
       # team:* groups
       #
-      # Team groups are the primary assignment targets for users.
-      # Assign users to team:* groups, not app:* groups. Direct membership in
-      # app:cloudflare:* is generated and owned by the Cloudflare group
-      # materializer; do not edit those generated memberships manually.
+      # Team groups are the primary assignment targets for users because they
+      # bundle reusable permissions. Direct app:* membership remains valid for
+      # narrowly scoped, user-specific grants that should not be modeled as a
+      # team; document those exceptions so they remain reviewable.
+      #
+      # Exception: direct membership in the five app:cloudflare:* groups synced
+      # by cloudflare-group-materializer is generated state. Assign Cloudflare
+      # access through an eligible team:* parent instead; the materializer will
+      # remove direct memberships not backed by an eligible team:* group.
       #
       # team:* groups inherit app:* groups through parents.
       # Application OIDC claims should continue exposing only app:* groups.
