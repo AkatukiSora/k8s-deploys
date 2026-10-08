@@ -39,6 +39,9 @@ jobs:
       - name: Validate GitOps references and contracts
         run: python .github/scripts/validate_gitops.py
 
+      - name: Run repository unit tests
+        run: python -m unittest discover -s tests -v
+
       - name: Validate Kubernetes manifests
         run: |
           shopt -s globstar nullglob
