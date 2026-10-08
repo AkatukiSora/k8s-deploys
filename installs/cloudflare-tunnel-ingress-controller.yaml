@@ -9,7 +9,7 @@ spec:
     server: https://kubernetes.default.svc
   sources:
     - repoURL: https://helm.strrl.dev
-      targetRevision: 0.0.21
+      targetRevision: 0.1.0
       chart: cloudflare-tunnel-ingress-controller
       helm:
         valueFiles:
