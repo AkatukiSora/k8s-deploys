@@ -80,7 +80,7 @@ or everyone, and isolates all group and thread sessions per user.
 
 ## Coding and infrastructure orchestration
 
-The default parent is GPT-5.6 Sol at Medium effort. It is the lead/planner:
+The default parent is GPT-6.1 Sol at Medium effort. It is the lead/planner:
 it resolves ambiguous requirements, makes architecture and risk decisions,
 builds the dependency DAG, defines acceptance criteria and exact mechanical
 validation, and integrates or reviews evidence. Do not spend Sol on routine
@@ -90,8 +90,11 @@ is involved, a Terraform plan is unexpectedly broad, multiple Kubernetes
 networking/storage/auth layers are affected, or retries have become unexplained
 trial and error.
 
-Workers default to GPT-5.6 Luna at XHigh effort with OpenAI/Codex Priority
-Processing. Luna implements already-decided features and bug fixes, makes
+Delegated children default to GPT-6 Luna at XHigh effort with OpenAI/Codex
+Priority Processing. Cron and Kanban workers also use GPT-6 Luna at XHigh, but
+run at Standard processing because those schedulers do not inherit
+`delegation.request_overrides`. Luna implements already-decided features and
+bug fixes, makes
 targeted Terraform/Ansible/manifest changes, writes tests and documentation,
 investigates bounded questions, and runs mechanical validation. It must not
 choose a specification, architecture, priority, or acceptable risk. Each
@@ -103,7 +106,7 @@ The durable Kanban dispatcher admits at most six concurrent workers, including
 six assigned to the same profile. Sol must split work into independently owned,
 decision-free Luna cards before that parallelism is used; cards that write the
 same file or external state remain serial. Since the default profile is Sol,
-every Kanban worker card must explicitly set `model: gpt-5.6-luna` and
+every Kanban worker card must explicitly set `model: gpt-6-luna` and
 `provider: openai-codex`; otherwise it would accidentally consume Sol. Luna
 reports changed files, exact validation results, remaining risks, and blockers.
 Sol reads that evidence before integrating, retrying, or changing scope.
@@ -331,14 +334,22 @@ planned encrypted east-west service-traffic layer is available.
    `github-commit-staged`, and confirm the resulting commit is Verified before
    opening a test pull request.
 
-The Managed Scope pins GPT-5.6 Sol / High for the parent and GPT-5.6 Luna /
-XHigh / Fast for delegated workers. Preserve this split in future changes;
-Terra is a manually routed fallback rather than a standing worker. The
+The Managed Scope pins GPT-6.1 Sol / Medium for the parent, GPT-6 Luna / XHigh /
+Priority Processing for delegated children, and GPT-6 Luna / XHigh / Standard
+for cron and Kanban workers. Preserve this split in future changes; GPT-6 Astra
+is a manually routed escalation rather than a standing model. The
 `checksum/hermes-config` Pod-template annotation is the SHA-256 of
 `apps/hermes/config.yaml`; update it with every configuration edit so an Argo
 CD synchronization recreates the Pod and rereads Managed Scope. After sync,
 exercise one non-destructive delegated task and confirm that the provider
 accepts Priority Processing without exposing credentials.
+
+Unpinned cron jobs retain a provider/model snapshot and fail closed after a
+global model change. After rollout, re-save each affected job's inference axes
+or explicitly pin it to `gpt-6-luna` / `openai-codex`, then verify its next
+execution. Inspect every nonterminal Kanban card before dispatch and replace
+stale `model_override` values; a missing override inherits the Sol parent and
+must not be treated as a Luna worker.
 
 ## Rollback
 
