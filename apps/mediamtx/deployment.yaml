@@ -22,7 +22,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: mediamtx
-          image: bluenviron/mediamtx:1.21.1
+          image: bluenviron/mediamtx:1.21.2
           imagePullPolicy: IfNotPresent
           env:
             - name: MTX_AUTHINTERNALUSERS_2_USER
