@@ -80,43 +80,52 @@ or everyone, and isolates all group and thread sessions per user.
 
 ## Coding and infrastructure orchestration
 
-The default parent is GPT-6.1 Sol at Medium effort. It is the lead/planner:
-it resolves ambiguous requirements, makes architecture and risk decisions,
-builds the dependency DAG, defines acceptance criteria and exact mechanical
-validation, and integrates or reviews evidence. Do not spend Sol on routine
-implementation after that contract is clear. Escalate to Sol when acceptance
-criteria conflict, requirements are missing, a security boundary or migration
-is involved, a Terraform plan is unexpectedly broad, multiple Kubernetes
-networking/storage/auth layers are affected, or retries have become unexplained
-trial and error.
+The default interactive parent is Claude Sonnet 5.5 / Anthropic at Medium effort.
+It owns the user conversation and can define the task scope, acceptance criteria,
+and validation. Use a Kanban card routed to GPT-6.1 Sol / OpenAI-Codex when a
+requirement is ambiguous, an architecture or risk decision is unresolved, or
+failure diagnosis requires judgment. Do not spend Sol on routine implementation
+after that contract is clear; use Luna for specified execution. Escalate to Sol
+when acceptance criteria conflict, requirements are missing, a security boundary
+or migration is involved, a Terraform plan is unexpectedly broad, multiple
+Kubernetes networking/storage/auth layers are affected, or retries have become
+unexplained trial and error.
 
 Delegated children default to GPT-6 Luna at XHigh effort with OpenAI/Codex
-Priority Processing. Cron and Kanban workers also use GPT-6 Luna at XHigh, but
-run at Standard processing because those schedulers do not inherit
-`delegation.request_overrides`. Luna implements already-decided features and
-bug fixes, makes
-targeted Terraform/Ansible/manifest changes, writes tests and documentation,
-investigates bounded questions, and runs mechanical validation. It must not
-choose a specification, architecture, priority, or acceptable risk. Each
-handoff must state the objective, context, constraints, non-goals, likely
-files, dependencies, acceptance criteria, exact validation commands, risk
-level, and the condition that requires escalation rather than a guess.
+Priority Processing and have an explicit Claude Sonnet 5.5 fallback. The
+`cron.model` and `cron.model_provider` defaults remain GPT-6 Luna / OpenAI-Codex
+at XHigh and Standard processing; `delegation.request_overrides` does not apply
+to that scheduler. Cron still inherits the top-level fallback chain, so a Codex
+failure can route it to Sonnet while Luna remains its primary model. Kanban cards
+select their model individually: use GPT-6 Luna / OpenAI-Codex for decided
+execution and GPT-6.1 Sol / OpenAI-Codex for unresolved decisions. Kanban workers
+run at Standard processing. A card without an explicit model override uses the
+Sonnet / Anthropic profile default, not Luna. The top-level fallback chain
+applies to Kanban CLI workers; an OpenAI-routed card can fall back to Sonnet,
+and a candidate on the currently failing backend is skipped. Luna implements
+already-decided features and bug fixes, makes targeted Terraform/Ansible/manifest
+changes, writes tests and documentation, investigates bounded questions, and
+runs mechanical validation. It must not choose a specification, architecture,
+priority, or acceptable risk. Each handoff must state the objective, context,
+constraints, non-goals, likely files, dependencies, acceptance criteria, exact
+validation commands, risk level, and the condition that requires escalation
+rather than a guess.
 
 The durable Kanban dispatcher admits at most six concurrent workers, including
-six assigned to the same profile. Sol must split work into independently owned,
-decision-free Luna cards before that parallelism is used; cards that write the
-same file or external state remain serial. Since the default profile is Sol,
-every Kanban worker card must explicitly set `model: gpt-6-luna` and
-`provider: openai-codex`; otherwise it would accidentally consume Sol. Luna
-reports changed files, exact validation results, remaining risks, and blockers.
+six assigned to the same profile. The planner selects and records the exact
+model and provider on every card; complexity alone does not require Sol when the
+contract is already decided, and a short card may still require Sol for a
+security or migration decision. Sol separates dependencies and ownership when
+needed; cards that write the same file or external state remain serial. Workers
+report changed files, exact validation results, remaining risks, and blockers;
 Sol reads that evidence before integrating, retrying, or changing scope.
 
-A typical issue uses one Sol planning pass, up to six independent Luna workers,
-a Luna validation/review card, and a final Sol review only when the risk
-warrants it. For high-risk IAM/RBAC, authentication/authorization,
-NetworkPolicy/firewall/routing, secrets, database migrations, destructive
-Terraform potential, control-plane, or production changes, Sol performs the
-final decision review. Trust acceptance criteria, mechanical validation, diff
+A typical issue uses a Sol planning/judgment card only when requirements or risk
+remain unresolved, up to six independent Luna workers after the contract is
+clear, and a validation/review card. Sol performs the final decision review for
+high-risk IAM/RBAC, authentication/authorization, NetworkPolicy/firewall/routing,
+secrets, database migrations, destructive Terraform potential, control-plane,
+or production changes. Trust acceptance criteria, mechanical validation, diff
 review, and LLM review in that order.
 
 Discord progress visibility is enabled through interim assistant messages and
@@ -334,22 +343,35 @@ planned encrypted east-west service-traffic layer is available.
    `github-commit-staged`, and confirm the resulting commit is Verified before
    opening a test pull request.
 
-The Managed Scope pins GPT-6.1 Sol / Medium for the parent, GPT-6 Luna / XHigh /
-Priority Processing for delegated children, and GPT-6 Luna / XHigh / Standard
-for cron and Kanban workers. Preserve this split in future changes; GPT-6 Astra
-is a manually routed escalation rather than a standing model. The
-`checksum/hermes-config` Pod-template annotation is the SHA-256 of
+The Managed Scope defaults the interactive parent to Claude Sonnet 5.5 /
+Anthropic at Medium effort. The top-level fallback chain lets the conversation
+fall back to GPT-6.1 Sol and lets an OpenAI-routed Kanban card fall back to
+Sonnet; a candidate on the currently failing backend is skipped. Select
+`gpt-6-luna` / `openai-codex` for bounded execution cards and
+`gpt-6.1-sol` / `openai-codex` for unresolved decisions. A card without an
+explicit model override uses the Sonnet profile default; it is not implicitly a
+Luna worker. Delegated children default to GPT-6 Luna / XHigh / Priority
+Processing and have an explicit Sonnet fallback. The `compression`,
+`title_generation`, `approval`, and `goal_judge` auxiliary tasks use GPT-6 Luna
+with Claude Haiku 5.5 as their fallback. Cron remains pinned to GPT-6 Luna /
+OpenAI-Codex as its primary model, but inherits the top-level fallback chain and
+can fail over to Sonnet on a Codex-side failure. Do not automatically select or fall back to GPT-6
+Astra or Fable.
+
+The `checksum/hermes-config` Pod-template annotation is the SHA-256 of
 `apps/hermes/config.yaml`; update it with every configuration edit so an Argo
-CD synchronization recreates the Pod and rereads Managed Scope. After sync,
-exercise one non-destructive delegated task and confirm that the provider
-accepts Priority Processing without exposing credentials.
+CD synchronization recreates the Pod and rereads Managed Scope. Because the
+Deployment uses `Recreate`, synchronization interrupts any in-flight Kanban
+worker; synchronize only when no card is running. After sync, exercise one
+non-destructive delegated task and confirm that the provider accepts Priority
+Processing without exposing credentials.
 
 Unpinned cron jobs retain a provider/model snapshot and fail closed after a
 global model change. After rollout, re-save each affected job's inference axes
 or explicitly pin it to `gpt-6-luna` / `openai-codex`, then verify its next
 execution. Inspect every nonterminal Kanban card before dispatch and replace
-stale `model_override` values; a missing override inherits the Sol parent and
-must not be treated as a Luna worker.
+stale `model_override` values; a missing override inherits the Sonnet profile
+default and must not be treated as a Luna worker.
 
 ## Rollback
 
