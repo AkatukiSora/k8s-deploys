@@ -103,13 +103,32 @@ files, dependencies, acceptance criteria, exact validation commands, risk
 level, and the condition that requires escalation rather than a guess.
 
 The durable Kanban dispatcher admits at most six concurrent workers, including
-six assigned to the same profile. Sol must split work into independently owned,
-decision-free Luna cards before that parallelism is used; cards that write the
-same file or external state remain serial. Since the default profile is Sol,
-every Kanban worker card must explicitly set `model: gpt-6-luna` and
-`provider: openai-codex`; otherwise it would accidentally consume Sol. Luna
-reports changed files, exact validation results, remaining risks, and blockers.
-Sol reads that evidence before integrating, retrying, or changing scope.
+six assigned to the same profile. The planner classifies each card before
+creation: a decision-free, testable execution card uses `gpt-6-luna`; an
+ambiguous requirement, cross-layer architecture decision, unexplained failure,
+or high-risk judgment card uses `gpt-6.1-sol`. Complexity alone does not require
+Sol if the contract is already decided. A short card may still require Sol if
+it makes a security or migration decision. Sol separates the dependencies and
+ownership, then creates decision-free Luna implementation cards. Sol also
+reviews high-risk results. `gpt-6-astra` is a human-approved escalation, never
+an automatic Kanban route.
+
+Set the selected exact `model` and `provider: openai-codex` on *every* card
+when using `kanban_create` (or `--model` / `--provider` via the CLI). Include a
+short selection rationale in its body. For existing blocked/todo/ready cards,
+inspect and correct a stale model override before unblocking or dispatching.
+The dispatcher does not infer difficulty from the title or body: it uses the
+persisted override and otherwise falls back to the profile default (Sol).
+This is classification by the planning agent at card creation, not a universal
+automatic classifier for externally created cards. The committed `SOUL.md` is
+the policy reference, but bootstrap does not overwrite a pre-existing PVC
+`/opt/data/SOUL.md`: apply and read back policy changes on the live PVC as a
+separate operational step, without replacing unrelated user-authored content.
+The current live policy was updated alongside this change. A Git sync alone
+will not activate later SOUL edits. Cards that write the same
+file or external state remain serial. Workers report changed files, exact
+validation results, remaining risks, and blockers; Sol reads that evidence
+before integrating, retrying, or changing scope.
 
 A typical issue uses one Sol planning pass, up to six independent Luna workers,
 a Luna validation/review card, and a final Sol review only when the risk
@@ -336,7 +355,8 @@ planned encrypted east-west service-traffic layer is available.
 
 The Managed Scope pins GPT-6.1 Sol / Medium for the parent, GPT-6 Luna / XHigh /
 Priority Processing for delegated children, and GPT-6 Luna / XHigh / Standard
-for cron and Kanban workers. Preserve this split in future changes; GPT-6 Astra
+for cron and bounded Kanban execution cards. Kanban decision cards explicitly
+use GPT-6.1 Sol / Standard. Preserve this split; GPT-6 Astra
 is a manually routed escalation rather than a standing model. The
 `checksum/hermes-config` Pod-template annotation is the SHA-256 of
 `apps/hermes/config.yaml`; update it with every configuration edit so an Argo

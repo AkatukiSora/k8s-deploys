@@ -33,9 +33,9 @@ kanban:
   review_dispatch: true
   dispatch_interval_seconds: 30
   failure_limit: 2
-  # Sol creates dependency-safe, decision-free worker cards. The dispatcher may
-  # then run six Luna cards concurrently; every card must use an explicit Luna
-  # model override rather than the Sol planner default.
+  # The planning agent selects an explicit per-card model: Luna for bounded
+  # execution, Sol 6.1 for unresolved decisions. The dispatcher does not
+  # classify cards and otherwise falls back to the Sol profile default.
   max_in_progress: 6
   max_in_progress_per_profile: 6
   dispatch_stale_timeout_seconds: 14400
