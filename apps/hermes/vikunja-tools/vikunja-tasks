@@ -13,50 +13,96 @@ from urllib.request import Request, urlopen
 BASE_URL = "http://127.0.0.1:8791"
 
 
+def _reject_nonfinite(value: str):
+    raise ValueError("non-finite number")
+
+
+def _unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON key")
+        result[key] = value
+    return result
+
+
 def request(method: str, path: str, payload: dict | None = None, query: dict | None = None) -> None:
     url = f"{BASE_URL}{path}"
     if query:
         url = f"{url}?{urlencode({key: value for key, value in query.items() if value is not None})}"
-    body = None if payload is None else json.dumps(payload).encode("utf-8")
+    body = None if payload is None else json.dumps(payload, allow_nan=False).encode("utf-8")
     headers = {"Accept": "application/json"}
     if body is not None:
         headers["Content-Type"] = "application/json"
     try:
         with urlopen(Request(url, data=body, headers=headers, method=method), timeout=15) as response:
-            print(json.dumps(json.loads(response.read().decode("utf-8")), ensure_ascii=False, indent=2))
+            raw = response.read().decode("utf-8")
+            data = json.loads(raw, object_pairs_hook=_unique_object, parse_constant=_reject_nonfinite)
+            print(json.dumps(data, ensure_ascii=False, indent=2))
     except HTTPError as error:
         try:
-            message = json.loads(error.read().decode("utf-8")).get("error", "adapter request failed")
-        except (json.JSONDecodeError, UnicodeDecodeError):
-            message = "adapter request failed"
-        print(f"ERROR: {message}", file=sys.stderr)
+            response = json.loads(error.read().decode("utf-8"), object_pairs_hook=_unique_object,
+                                  parse_constant=_reject_nonfinite)
+        except (ValueError, UnicodeDecodeError):
+            response = {}
+        if not isinstance(response, dict):
+            response = {}
+        safe = {key: response[key] for key in ("error", "write_state", "task_id", "operation", "verification")
+                if key in response}
+        if not isinstance(safe.get("error"), str):
+            safe["error"] = "adapter request failed"
+        print("ERROR: " + json.dumps(safe, ensure_ascii=False, separators=(",", ":")), file=sys.stderr)
         raise SystemExit(1)
     except URLError:
         print("ERROR: Vikunja adapter is unavailable", file=sys.stderr)
+        raise SystemExit(1)
+    except (ValueError, UnicodeDecodeError):
+        print("ERROR: adapter returned invalid JSON", file=sys.stderr)
         raise SystemExit(1)
 
 
 def add_task_fields(parser: argparse.ArgumentParser, *, create: bool) -> None:
     if create:
         parser.add_argument("--project", type=int, required=True)
-    parser.add_argument("--title")
+    parser.add_argument("--title", required=create)
     parser.add_argument("--description")
-    parser.add_argument("--due")
-    parser.add_argument("--start")
-    parser.add_argument("--end")
+    due = parser.add_mutually_exclusive_group()
+    due.add_argument("--due")
+    due.add_argument("--clear-due", action="store_true")
+    start = parser.add_mutually_exclusive_group()
+    start.add_argument("--start")
+    start.add_argument("--clear-start", action="store_true")
+    end = parser.add_mutually_exclusive_group()
+    end.add_argument("--end")
+    end.add_argument("--clear-end", action="store_true")
     parser.add_argument("--priority", type=int)
+    reminders = parser.add_mutually_exclusive_group()
+    reminders.add_argument("--reminders-json")
+    reminders.add_argument("--clear-reminders", action="store_true")
 
 
 def task_payload(args: argparse.Namespace, *, create: bool) -> dict:
     fields = {
         "title": args.title,
         "description": args.description,
-        "due_date": args.due,
-        "start_date": args.start,
-        "end_date": args.end,
+        "due_date": None if args.clear_due else args.due,
+        "start_date": None if args.clear_start else args.start,
+        "end_date": None if args.clear_end else args.end,
         "priority": args.priority,
     }
     payload = {key: value for key, value in fields.items() if value is not None}
+    for field, clearing in (("due_date", args.clear_due), ("start_date", args.clear_start), ("end_date", args.clear_end)):
+        if clearing:
+            payload[field] = None
+    if args.reminders_json is not None:
+        try:
+            payload["reminders"] = json.loads(args.reminders_json, object_pairs_hook=_unique_object,
+                                              parse_constant=_reject_nonfinite)
+        except (json.JSONDecodeError, ValueError) as error:
+            message = error.msg if isinstance(error, json.JSONDecodeError) else str(error)
+            raise SystemExit(f"ERROR: --reminders-json must contain valid JSON ({message})") from None
+    elif args.clear_reminders:
+        payload["reminders"] = []
     if create:
         payload["project_id"] = args.project
     if not create and not payload:
@@ -83,17 +129,48 @@ def main() -> None:
     tasks_list.add_argument("--search")
     tasks_get = tasks_sub.add_parser("get")
     tasks_get.add_argument("task_id", type=int)
+
+    labels = groups.add_parser("labels")
+    labels_sub = labels.add_subparsers(dest="command", required=True)
+    labels_list = labels_sub.add_parser("list")
+    labels_list.add_argument("--page", type=int)
+    labels_list.add_argument("--per-page", type=int)
+    labels_list.add_argument("--search")
+
     tasks_create = tasks_sub.add_parser("create")
     add_task_fields(tasks_create, create=True)
     tasks_update = tasks_sub.add_parser("update")
     tasks_update.add_argument("task_id", type=int)
     add_task_fields(tasks_update, create=False)
-    tasks_complete = tasks_sub.add_parser("complete")
-    tasks_complete.add_argument("task_id", type=int)
+    tasks_labels = tasks_sub.add_parser("labels")
+    tasks_labels_sub = tasks_labels.add_subparsers(dest="label_command", required=True)
+    for action in ("add", "remove"):
+        label_action = tasks_labels_sub.add_parser(action)
+        label_action.add_argument("task_id", type=int)
+        label_action.add_argument("--label", type=int, required=True)
+
+    tasks_relations = tasks_sub.add_parser("relations")
+    tasks_relations_sub = tasks_relations.add_subparsers(dest="relation_command", required=True)
+    relation_help = (
+        "Kind is oriented from A=task_id to B=--other: subtask=A child of B; "
+        "parenttask=A parent of B; related=A related to B; duplicates=A duplicates B; "
+        "blocking=A blocks B; blocked=A blocked by B; precedes=A precedes B; "
+        "follows=A follows B; copiedfrom=A copied from B; copiedto=A copied to B. "
+        "duplicateof exists in the API but is not offered by the UI."
+    )
+    relation_kinds = ("subtask", "parenttask", "related", "duplicates", "blocking", "blocked",
+                      "precedes", "follows", "copiedfrom", "copiedto")
+    for action in ("add", "remove"):
+        relation_action = tasks_relations_sub.add_parser(action)
+        relation_action.add_argument("task_id", type=int)
+        relation_action.add_argument("--other", type=int, required=True)
+        relation_action.add_argument("--kind", choices=relation_kinds, required=True, help=relation_help)
 
     args = parser.parse_args()
     if args.group == "projects":
         request("GET", "/projects", query={"page": args.page, "per_page": args.per_page, "s": args.search})
+    elif args.group == "labels":
+        request("GET", "/labels", query={"page": args.page, "per_page": args.per_page, "s": args.search})
     elif args.command == "list":
         request("GET", "/tasks", query={"page": args.page, "per_page": args.per_page, "s": args.search})
     elif args.command == "get":
@@ -102,8 +179,11 @@ def main() -> None:
         request("POST", "/tasks", task_payload(args, create=True))
     elif args.command == "update":
         request("POST", f"/tasks/{args.task_id}", task_payload(args, create=False))
-    elif args.command == "complete":
-        request("POST", f"/tasks/{args.task_id}/complete", {})
+    elif args.group == "tasks" and args.command == "labels":
+        request("POST", f"/tasks/{args.task_id}/labels/{args.label_command}", {"label_id": args.label})
+    elif args.group == "tasks" and args.command == "relations":
+        request("POST", f"/tasks/{args.task_id}/relations/{args.relation_command}",
+                {"other_task_id": args.other, "relation_kind": args.kind})
 
 
 if __name__ == "__main__":

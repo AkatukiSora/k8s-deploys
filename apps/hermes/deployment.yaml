@@ -20,9 +20,9 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/hermes-vikunja-adapter: 769ce2dc5ff77c7bfe5b9cf7e32635791cae3129d1863d052c02a38dbd2fc442
+        checksum/hermes-vikunja-adapter: 22baaf368b74dc2887069fe3a0c6c77419adf092df3b07d243b89fb7168560d4
         checksum/hermes-vikunja-read-proxy: df88414001005fcf57beb05c7700fa76579dfc1f96eb8aa634ce6ba2d1e7e41c
-        checksum/hermes-vikunja-tools: 37684218132f8595aca4f776937bbb10fc51e8fd2424142466dcae7a329ac610
+        checksum/hermes-vikunja-tools: 9429dbe0dde7224261b8650c7b69d0cd0bf68f4a9d761e1d718a8cb3882e115a
         checksum/hermes-google-oauth-broker: 00dc452ff55da77b59ce56b2dc8f779590dcf1625f75de2568f45c89dc68cf1b
         checksum/hermes-google-oauth-tools: 0cc5c6d671b6556c0246d03436346840638aa41abe494ec1742e429631c83997
       labels:
