@@ -207,7 +207,7 @@ mechanically: `APPROVE` or `DENY`. The policy judges effects, not syntax or
 length. Fully visible commands whose effects stay in recoverable areas are
 approved: non-secret reads, calculations, writes and deletes under the
 workspace, git worktrees, or `/opt/data/cache/scratch`, local reads of
-repository state, `git add`, the signed-commit helper on a non-default branch,
+repository state, `git add`, the signed-commit helpers on a non-default branch,
 pull-request creation and edits through `gh`, and read-only cluster or SQLite
 access. These are examples, not blanket permission for an interpreter or
 import.
@@ -220,13 +220,13 @@ Quoted command examples used only as data are not executed; passing them to
 subprocess or shell execution still requires checking the resulting operation.
 Non-secret reads may be outside write roots. Selecting `approvals.mode` from
 the Git-managed `/etc/hermes-managed/config.yaml` is allowed; credential files,
-secret stores, and environment dumps are not. The signed-commit helper enforces
-its own default-branch refusal, so a caller need not repeat that preflight.
+secret stores, and environment dumps are not. The signed-commit helpers enforce
+their own default-branch refusal, so a caller need not repeat that preflight.
 Unknown plugins, import-path replacement, unseen workspace scripts, unsafe YAML
 loaders, and forbidden operations through otherwise known helpers remain denied.
 
 Denied: local `git commit`, `push`, `rebase`, `merge`, and any force or
-default-branch push (commits are created only by the signed-commit helper);
+default-branch push (commits are created only by the signed-commit helpers);
 shell use of `hermes kanban` (Kanban is operated through MCP tools); merging a
 pull request; secret or credential access; unresolved code (`eval`/`exec`,
 encoded or constructed bodies, unseen scripts, unknown imports); writes outside
