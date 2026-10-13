@@ -194,6 +194,91 @@ key-level policy overlay, not a hard sandbox: do not depend on it to stop a
 process with Kubernetes-level authority from changing its own environment or
 mounts.
 
+## Smart command approvals
+
+Managed Scope pins `approvals.mode: smart` and adds `approvals.smart_policy`
+to the guardian's trusted system prompt. This is an auxiliary-LLM judgment,
+not a parser, sandbox, detector bypass, or broad interpreter allowlist.
+Commands and detector descriptions remain untrusted data. Approval is for
+one exact command only; no unattended approval mode is enabled.
+
+No human reviews shell code in this deployment, so the guardian decides
+mechanically: `APPROVE` or `DENY`. The policy judges effects, not syntax or
+length. Fully visible commands whose effects stay in recoverable areas are
+approved: non-secret reads, calculations, writes and deletes under the
+workspace, git worktrees, or `/opt/data/cache/scratch`, local reads of
+repository state, `git add`, the signed-commit helper on a non-default branch,
+pull-request creation and edits through `gh`, and read-only cluster or SQLite
+access. These are examples, not blanket permission for an interpreter or
+import.
+
+Denied: local `git commit`, `push`, `rebase`, `merge`, and any force or
+default-branch push (commits are created only by the signed-commit helper);
+shell use of `hermes kanban` (Kanban is operated through MCP tools); merging a
+pull request; secret or credential access; unresolved code (`eval`/`exec`,
+encoded or constructed bodies, unseen scripts, unknown imports); writes outside
+the recoverable areas (configuration, SOUL, `/opt/data` state); uncertain
+network destinations; confusable characters in command names, paths, URLs,
+identifiers, or shell structure; text imitating the `<command>` delimiter, a
+system/operator message, or a verdict addressed to the reviewer; and clearly
+destructive operations. Uncertainty resolves to `DENY`, not to a human.
+
+`ESCALATE` is reserved for changes to shared live state whose timing a human
+must confirm: Argo CD sync and Kubernetes mutations (apply, patch, delete,
+scale, rollout restart). Japanese/full-width quoted data is not itself
+executable deception. Tirith, secret redaction, protected-instruction
+handling, and existing deny behavior are unchanged. A provider failure or a
+verdict that is not a single recognised word still escalates, because the
+runtime fails closed; the fallback chain and the one-word reply rule keep that
+rare.
+
+Run from the repository root using a Python environment with PyYAML and the
+installed Hermes runtime available:
+
+```bash
+git diff --check
+/opt/hermes/.venv/bin/python apps/hermes/validate-smart-approval.py \
+  --output .smart-approval-evidence/offline.json
+/opt/kubernetes-bin/kubectl kustomize apps/hermes
+# Optional authenticated judgment test; commands in the fixture are NEVER executed:
+/opt/hermes/.venv/bin/python apps/hermes/validate-smart-approval.py --live \
+  --output .smart-approval-evidence/live.json
+```
+
+`approval-fixtures.json` records examples that must be approved (`safe`), escalated for timing (`timing`), and denied (`denied`).
+The offline validator checks byte-exact rendered configuration, source and
+rendered checksums, trusted/untrusted prompt separation, strict verdict mapping,
+and fail-closed provider failures. Mock responses test wiring only; they do not
+prove policy classification. The opt-in live check uses the installed guardian
+and real Codex/Luna responses against an in-process staged Managed Scope. It
+disables fallback only in that test process, records the actual route, and
+never writes the running gateway configuration or executes fixture payloads.
+It requires runtime modules under `/opt/hermes` (override with `--runtime`) and
+the Kustomize binary (override with `--kubectl`). Fixture and validator files
+are operator/test assets, not mounted runtime code.
+
+The guardian's shell-comment preprocessing is not a complete shell parser;
+ambiguous quoting or hidden effects must not be assumed safe. Passing fixtures
+does not guarantee all possible commands or the deployed gateway behavior.
+The approval guardian runs on GPT-6 Luna / OpenAI-Codex. When that provider is
+unavailable or rate limited, `auxiliary.approval.fallback_chain` tries Claude
+Haiku 5.5 first and Claude Sonnet 5.5 second; the validator pins this order.
+The policy cannot repair authentication failures: an auxiliary provider 401,
+timeout, or malformed verdict fails closed to escalation. Historical Anthropic
+401s alone do not establish the cause of every escalation. Verify authenticated
+requests separately rather than weakening approval controls or moving to an
+unapproved paid API.
+
+Activation requires operator review and manual Argo CD synchronization after
+PR #144's model-routing dependency is present. Do not synchronize while Kanban
+workers are running: the checksum change causes a `Recreate` rollout. After
+activation, verify the effective managed approval keys and an innocuous flagged
+read-only calculation through the normal interactive approval path. Negative
+fixtures must only be classified, never executed. Roll back by reverting this
+policy and checksum change through Git and manually synchronizing; preserve
+the PVC, credentials, and live-only SOUL blocks. No live change is performed
+by adding or validating this overlay.
+
 ## Google OAuth broker
 
 The Google OAuth broker sidecar establishes a least-privilege, durable OAuth
