@@ -587,7 +587,7 @@ spec:
               readOnly: true
         - name: vikunja-read-proxy
           command: ["python3", "/opt/vikunja-read-proxy/server.py"]
-          image: "nousresearch/hermes-agent@sha256:d4da4a40cd7a28aba983775d9fd31d94cbf153eeb0cb9e844d6d0f612b7c24db"
+          image: "nousresearch/hermes-agent@sha256:444b42594e7f467425872fc35e077a227d377f0fe0726bc818706d62175fad8b"
           ports:
             - name: vikunja-read
               containerPort: 8793
