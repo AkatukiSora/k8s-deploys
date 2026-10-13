@@ -1,10 +1,18 @@
 _config_version: 37
 model:
-  default: gpt-6.1-sol
-  provider: openai-codex
+  default: claude-sonnet-5-5
+  provider: anthropic
+# Chat defaults to Sonnet and falls back to Sol; OpenAI-routed Kanban cards can
+# fall back to Sonnet. Cron keeps its Luna primary but also inherits this chain.
+# Candidates on the failed backend are skipped automatically.
+fallback_providers:
+  - provider: anthropic
+    model: claude-sonnet-5-5
+  - provider: openai-codex
+    model: gpt-6.1-sol
 agent:
-  # The main interactive Sol session stays at Medium. Kanban cards and delegated
-  # workers explicitly routed to Luna inherit this model-specific XHigh effort.
+  # The main interactive Sonnet session uses Medium; Luna keeps model-specific
+  # XHigh effort for Kanban cards and delegated workers explicitly routed to Luna.
   reasoning_effort: medium
   reasoning_overrides:
     gpt-6-luna: xhigh
@@ -35,7 +43,7 @@ kanban:
   failure_limit: 2
   # The planning agent selects an explicit per-card model: Luna for bounded
   # execution, Sol 6.1 for unresolved decisions. The dispatcher does not
-  # classify cards and otherwise falls back to the Sol profile default.
+  # classify cards and otherwise falls back to the Sonnet profile default.
   max_in_progress: 6
   max_in_progress_per_profile: 6
   dispatch_stale_timeout_seconds: 14400
@@ -45,6 +53,9 @@ delegation:
   provider: openai-codex
   model: gpt-6-luna
   reasoning_effort: xhigh
+  fallback_providers:
+    - provider: anthropic
+      model: claude-sonnet-5-5
   # Luna Fast is the default for user-blocking and critical-path work.
   request_overrides:
     service_tier: priority
@@ -56,6 +67,31 @@ delegation:
   orchestrator_enabled: false
   subagent_auto_approve: false
   child_timeout_seconds: 0
+auxiliary:
+  compression:
+    provider: openai-codex
+    model: gpt-6-luna
+    fallback_chain:
+      - provider: anthropic
+        model: claude-haiku-5-5
+  title_generation:
+    provider: openai-codex
+    model: gpt-6-luna
+    fallback_chain:
+      - provider: anthropic
+        model: claude-haiku-5-5
+  approval:
+    provider: openai-codex
+    model: gpt-6-luna
+    fallback_chain:
+      - provider: anthropic
+        model: claude-haiku-5-5
+  goal_judge:
+    provider: openai-codex
+    model: gpt-6-luna
+    fallback_chain:
+      - provider: anthropic
+        model: claude-haiku-5-5
 group_sessions_per_user: true
 thread_sessions_per_user: true
 discord:
