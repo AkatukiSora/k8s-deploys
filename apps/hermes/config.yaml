@@ -29,6 +29,10 @@ display:
     discord:
       tool_progress: new
       tool_progress_grouping: accumulate
+platform_toolsets:
+  discord:
+    - hermes-cli
+    - kanban
 cron:
   # Keep unattended secretary routines independent from the interactive model.
   model: gpt-6-luna

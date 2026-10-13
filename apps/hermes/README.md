@@ -7,8 +7,12 @@ must review and synchronize its resources before the workload starts.
 
 ## Security boundary
 
-- The image is pinned to the official `v2026.9.7` multi-architecture image
-  digest. Do not replace it with a floating tag.
+- The main `hermes` container uses the official Hermes Agent `0.21.7` image,
+  pinned to `sha256:444b42594e7f467425872fc35e077a227d377f0fe0726bc818706d62175fad8b`.
+  The init containers and other existing sidecars remain pinned to the prior
+  `v2026.9.7` image digest `sha256:63bfb6d732f49a55d453e801057273785cc61e0f6ee43db3fa2f2a79846301b7`;
+  `vikunja-read-proxy` remains pinned to the `0.21.7` digest above. Do not
+  replace any of these pins with a floating tag.
 - There is no Service, Ingress, dashboard, API exposure, host mount, or
   privileged mode. The Discord gateway accepts only the users stored in the
   1Password-managed `hermes-discord` Secret.
@@ -77,6 +81,31 @@ messages, does not create threads or reactions, never mentions users, roles,
 or everyone, and isolates all group and thread sessions per user.
 `DISCORD_BOT_TOKEN` and `DISCORD_ALLOWED_USERS` are projected from the
 `hermes-discord` 1Password item and must never be copied into Git.
+
+### Discord Kanban visibility
+
+`platform_toolsets.discord` retains the `hermes-cli` tool bundle and adds
+`kanban` for normal Discord conversations. Upstream availability and ownership
+guards exclude `delegate_task` children; no other platform is opted in. Native
+Discord/admin API tools are not enabled by this setting.
+
+The `hermes-config` Managed Scope applies this setting after manual sync; start
+a new Discord session to pick it up. Because the Deployment uses `Recreate`,
+rollout interrupts an in-flight worker; confirm the Kanban worker queue is idle
+before synchronizing. Roll back by reverting this change (including the config
+checksum and main image) and manually synchronizing. Runtime tool visibility
+and image behavior have not yet been verified.
+
+Run the offline manifest checks with
+`python3 apps/hermes/test_kanban_visibility.py -v` (requires PyYAML).
+To also test the isolated upstream availability and delegated-child ownership
+functions, set `HERMES_SOURCE_DIR` to a local copy of the pinned image's
+source. The test harness hashes each required file against the digest this
+PR pins before compiling or executing any of it, and rejects a mismatch
+instead of running unverified code; it does not fetch or trust the directory
+contents itself. Those source checks skip without that variable; they do not
+start a gateway, assemble complete model schemas, mutate a board, or test
+dispatch.
 
 ## Coding and infrastructure orchestration
 
