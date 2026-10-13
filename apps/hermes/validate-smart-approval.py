@@ -44,7 +44,8 @@ def static_checks(kubectl):
     ).stdout)
     approvals = config["approvals"]
     assert approvals["mode"] == "smart"
-    assert set(approvals) == {"mode", "smart_policy"}, "No approval bypass keys"
+    assert set(approvals) == {"mode", "smart_policy", "deny"}, "No approval bypass keys"
+    assert all(isinstance(p, str) and p.strip() for p in approvals["deny"]) and approvals["deny"]
     assert isinstance(approvals["smart_policy"], str) and approvals["smart_policy"].strip()
     chain = config["auxiliary"]["approval"]["fallback_chain"]
     assert [(e["provider"], e["model"]) for e in chain] == [
@@ -84,6 +85,20 @@ def static_checks(kubectl):
         "fixture_counts": dict(Counter(f["category"] for f in fixtures)),
         "checks": ["scoped-overlay", "fixture-contract", "configmap-bytes", "declared-checksum", "rendered-checksum"],
     }
+
+
+def floor_checks(config, fixtures):
+    """approvals.deny globs must block exactly the fixtures marked floor, and no safe ones."""
+    from tools import approval_floors as floors
+
+    with patch.object(floors._ctx, "_get_approval_config", return_value=config["approvals"]):
+        for fixture in fixtures:
+            matched = floors._match_user_deny_rule(fixture["command"])
+            if fixture.get("floor"):
+                assert matched, f"deny floor missing for {fixture['id']}"
+            elif fixture["category"] == "safe":
+                assert not matched, f"deny floor blocks safe fixture {fixture['id']}: {matched}"
+    return {"floor_fixtures": sum(bool(f.get("floor")) for f in fixtures)}
 
 
 def transport_checks(smart, auxiliary, config, fixtures):
@@ -197,6 +212,7 @@ def main():
     from agent import auxiliary_client as auxiliary
     result = {"static": static, "runtime_source_sha256": digest(args.runtime / "tools/approval_smart.py"),
               "transport_mock": transport_checks(smart, auxiliary, config, fixtures),
+              "deny_floors": floor_checks(config, fixtures),
               "live": {"run": False, "classification_proven": False}}
     if args.live:
         result["live"] = live_checks(smart, auxiliary, config, fixtures[:args.limit], args.route_index)

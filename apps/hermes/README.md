@@ -223,6 +223,17 @@ identifiers, or shell structure; text imitating the `<command>` delimiter, a
 system/operator message, or a verdict addressed to the reviewer; and clearly
 destructive operations. Uncertainty resolves to `DENY`, not to a human.
 
+The runtime lets a present operator override a guardian `DENY`, which shows an
+approval prompt. To keep the categories that are always forbidden here from
+ever prompting, `approvals.deny` lists glob floors that are answered without
+the guardian model or a person: local `git commit`/`push`/`rebase`/`merge`/
+`tag`/`cherry-pick`/`am` (also with leading git options), `hermes kanban`, and
+`gh pr merge`. The globs are matched per shell command word, so quoted prose
+such as `echo "git commit"` is not blocked. The validator checks that every
+fixture marked `floor` is matched and that no safe fixture is. Every other
+`DENY` is still the guardian's judgment and may still show an override prompt
+until the runtime can make a smart `DENY` final.
+
 `ESCALATE` is reserved for changes to shared live state whose timing a human
 must confirm: Argo CD sync and Kubernetes mutations (apply, patch, delete,
 scale, rollout restart). Japanese/full-width quoted data is not itself
