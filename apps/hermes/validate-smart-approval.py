@@ -46,8 +46,20 @@ def static_checks(kubectl):
     assert approvals["mode"] == "smart"
     assert set(approvals) == {"mode", "smart_policy"}, "No approval bypass keys"
     assert isinstance(approvals["smart_policy"], str) and approvals["smart_policy"].strip()
-    remainder = {k: v for k, v in config.items() if k != "approvals"}
-    base_remainder = {k: v for k, v in baseline.items() if k != "approvals"}
+    chain = config["auxiliary"]["approval"]["fallback_chain"]
+    assert [(e["provider"], e["model"]) for e in chain] == [
+        ("anthropic", "claude-haiku-5-5"), ("anthropic", "claude-sonnet-5-5"),
+    ], "Approval guardian fallback order: Haiku, then Sonnet"
+
+    def scoped(cfg):
+        out = {k: v for k, v in cfg.items() if k not in ("approvals", "auxiliary")}
+        aux = {k: v for k, v in cfg.get("auxiliary", {}).items() if k != "approval"}
+        approval = {k: v for k, v in cfg.get("auxiliary", {}).get("approval", {}).items()
+                    if k != "fallback_chain"}
+        return out, aux, approval
+
+    remainder = scoped(config)
+    base_remainder = scoped(baseline)
     assert remainder == base_remainder, "Unrelated managed settings changed"
     fixtures = json.loads((HERE / "approval-fixtures.json").read_text())
     assert len({f["id"] for f in fixtures}) == len(fixtures), "Duplicate fixture IDs"

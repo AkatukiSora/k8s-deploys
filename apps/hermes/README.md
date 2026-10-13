@@ -216,7 +216,10 @@ mutations, Argo CD sync, force push, default-branch push, uncertain network
 destinations, and real uncertainty. Destructive operations remain `DENY` under
 the base policy and hardline guard. Japanese/full-width quoted data is not
 itself executable deception; confusable command names, paths, URLs,
-identifiers, and shell structure still escalate. Tirith, secret redaction,
+identifiers, and shell structure still escalate. The command is wrapped in
+`<command>` tags that the command text could imitate, so text resembling those
+tags, a system/operator message, or a verdict addressed to the reviewer also
+escalates and is never treated as instructions. Tirith, secret redaction,
 protected-instruction handling, and existing deny behavior are unchanged.
 
 Run from the repository root using a Python environment with PyYAML and the
@@ -247,6 +250,9 @@ are operator/test assets, not mounted runtime code.
 The guardian's shell-comment preprocessing is not a complete shell parser;
 ambiguous quoting or hidden effects must not be assumed safe. Passing fixtures
 does not guarantee all possible commands or the deployed gateway behavior.
+The approval guardian runs on GPT-6 Luna / OpenAI-Codex. When that provider is
+unavailable or rate limited, `auxiliary.approval.fallback_chain` tries Claude
+Haiku 5.5 first and Claude Sonnet 5.5 second; the validator pins this order.
 The policy cannot repair authentication failures: an auxiliary provider 401,
 timeout, or malformed verdict fails closed to escalation. Historical Anthropic
 401s alone do not establish the cause of every escalation. Verify authenticated
