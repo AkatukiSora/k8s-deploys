@@ -430,6 +430,23 @@ immutable ConfigMap provides these commands to Hermes:
   and accepts only regular `100644` files because the GraphQL file-change API
   cannot preserve executable, symlink, or submodule modes. GitHub creates the
   commit, so supported commits are GitHub-signed and shown as Verified.
+- `github-update-branch-staged [--dry-run] <second-parent-ref> <headline> [body]`:
+  brings the default branch into a pull-request work branch after the
+  conflicts have been resolved locally and the complete resolved tree is
+  staged. GraphQL `createCommitOnBranch` cannot create a two-parent commit, so
+  this helper uploads only the staged differences from the second parent as
+  Git blobs and a tree, then creates the commit through the Git data API with
+  the work branch head and the second parent as parents. No author or
+  committer is supplied, so GitHub signs it as the App installation. The
+  helper requires the local and remote work-branch heads to match, the second
+  parent to be an ancestor of the default branch, no unmerged index entries,
+  the remote tree to equal the staged tree, and the new commit to be
+  Verified. It then fast-forwards the work branch without force and aligns
+  local `HEAD` with `git reset --mixed`. It refuses the default branch and
+  regular-file modes other than `100644` and `100755`. `--dry-run` creates
+  and verifies the commit objects but does not move the branch. This is not a
+  pull-request merge and grants no approval-policy exception; the approval
+  guardian judges each invocation like any other command.
 
 The intended autonomous flow is: fetch or clone the repository, create or
 checkout a non-default work branch, edit and validate files, `git add` the

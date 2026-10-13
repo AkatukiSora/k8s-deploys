@@ -1,0 +1,172 @@
+#!/usr/bin/env python3
+"""Create one GitHub-signed merge commit from the staged Git index.
+
+Use this after resolving a pull-request branch's conflicts with the default
+branch. The staged index must contain the complete resolved tree on top of the
+second parent (normally ``origin/<default branch>``). The command uploads only
+the differences from that parent as Git blobs/trees, creates a two-parent commit
+through the Git data API as the authenticated GitHub App installation (no author
+or committer is supplied, so GitHub signs it), checks that GitHub reports it as
+Verified, and then fast-forwards the current work branch. It never forces a ref
+and refuses the default branch.
+"""
+from __future__ import annotations
+
+import base64
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+GH = os.environ.get("HERMES_GH", "/opt/hermes-tools/gh")
+ALLOWED_MODES = {"100644", "100755"}
+
+
+class Fail(RuntimeError):
+    pass
+
+
+def run(*args: str, input_bytes: bytes | None = None, check: bool = True) -> subprocess.CompletedProcess[bytes]:
+    p = subprocess.run(args, input=input_bytes, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+    if check and p.returncode != 0:
+        err = p.stderr.decode("utf-8", "replace").strip()
+        raise Fail(f"{' '.join(args)} failed: {err or f'exit {p.returncode}'}")
+    return p
+
+
+def git(*args: str) -> str:
+    return run("git", *args).stdout.decode("utf-8", "surrogateescape").strip()
+
+
+def gh_json(method: str, path: str, payload: dict | None = None) -> dict:
+    cmd = [GH, "api", "-X", method, path]
+    if payload is not None:
+        cmd.extend(["--input", "-"])
+    p = run(*cmd, input_bytes=(json.dumps(payload).encode() if payload is not None else None), check=False)
+    if p.returncode != 0:
+        err = p.stderr.decode("utf-8", "replace").strip()
+        raise Fail(f"gh api {method} {path} failed: {err or f'exit {p.returncode}'}")
+    try:
+        return json.loads(p.stdout or b"{}")
+    except json.JSONDecodeError as exc:
+        raise Fail(f"gh api returned invalid JSON: {exc}") from exc
+
+
+def repo_from_origin() -> str:
+    url = git("remote", "get-url", "origin")
+    for prefix in ("https://github.com/", "git@github.com:", "ssh://git@github.com/"):
+        if url.startswith(prefix):
+            name = url[len(prefix):]
+            if name.endswith(".git"):
+                name = name[:-4]
+            if name.count("/") == 1:
+                return name
+    raise Fail(f"origin is not a GitHub repository URL: {url}")
+
+
+def staged_changes(second_parent: str) -> list[dict]:
+    raw = run("git", "diff", "--cached", "--raw", "--no-renames", "-z", second_parent).stdout.decode("utf-8", "surrogateescape")
+    parts = raw.split("\0")
+    entries: list[dict] = []
+    index = 0
+    while index < len(parts) - 1:
+        meta, path = parts[index], parts[index + 1]
+        index += 2
+        _, new_mode, _, _, status = meta.lstrip(":").split(" ")[:5]
+        status = status[:1]
+        if status == "U" or status == "T":
+            raise Fail(f"unresolved or type-changed path: {path}")
+        if status == "D":
+            entries.append({"path": path, "mode": "100644", "type": "blob", "sha": None})
+            continue
+        if new_mode not in ALLOWED_MODES:
+            raise Fail(f"{path!r} has Git mode {new_mode}; only regular files are supported")
+        data = run("git", "show", f":{path}").stdout
+        entries.append({"path": path, "mode": new_mode, "type": "blob", "data": data})
+    if not entries:
+        raise Fail("staged tree is identical to the second parent; nothing to merge")
+    return entries
+
+
+def main() -> int:
+    args = [a for a in sys.argv[1:] if a != "--dry-run"]
+    dry_run = "--dry-run" in sys.argv[1:]
+    if len(args) < 2 or args[0] in {"-h", "--help"}:
+        print(f"usage: {Path(sys.argv[0]).name} [--dry-run] <second-parent-ref> <headline> [body]", file=sys.stderr)
+        return 2
+    second_ref, headline = args[0], args[1].strip()
+    body = args[2] if len(args) > 2 else ""
+    if not headline or "\n" in headline:
+        raise Fail("commit headline must be one non-empty line")
+
+    os.chdir(git("rev-parse", "--show-toplevel"))
+    repo = repo_from_origin()
+    branch = git("branch", "--show-current")
+    head = git("rev-parse", "HEAD")
+    if not branch:
+        raise Fail("detached HEAD is not supported")
+    if git("ls-files", "--unmerged"):
+        raise Fail("the index has unmerged entries; resolve conflicts first")
+    second = git("rev-parse", "--verify", f"{second_ref}^{{commit}}")
+
+    default_branch = gh_json("GET", f"repos/{repo}").get("default_branch")
+    if not default_branch:
+        raise Fail("could not determine repository default branch")
+    if branch == default_branch:
+        raise Fail(f"refusing to update default branch {default_branch!r}")
+
+    ref = gh_json("GET", f"repos/{repo}/git/ref/heads/{branch.replace('/', '%2F')}")
+    remote_head = (ref.get("object") or {}).get("sha")
+    if remote_head != head:
+        raise Fail(f"remote branch moved or local HEAD is not synchronized (local {head}, remote {remote_head})")
+
+    # The second parent must already be on the default branch. This prevents the
+    # helper from importing arbitrary commits into the work branch.
+    compare = gh_json("GET", f"repos/{repo}/compare/{default_branch}...{second}")
+    if compare.get("status") not in {"behind", "identical"}:
+        raise Fail(f"{second} is not an ancestor of {default_branch}")
+
+    entries = staged_changes(second)
+    tree_entries = []
+    for entry in entries:
+        if entry.get("sha", 1) is None:
+            tree_entries.append(entry)
+            continue
+        blob = gh_json("POST", f"repos/{repo}/git/blobs", {
+            "content": base64.b64encode(entry["data"]).decode("ascii"),
+            "encoding": "base64",
+        })
+        tree_entries.append({"path": entry["path"], "mode": entry["mode"], "type": "blob", "sha": blob["sha"]})
+    base_tree = git("rev-parse", f"{second}^{{tree}}")
+    tree = gh_json("POST", f"repos/{repo}/git/trees", {"base_tree": base_tree, "tree": tree_entries}).get("sha")
+    expected_tree = git("write-tree")
+    if tree != expected_tree:
+        raise Fail(f"remote tree {tree} differs from staged tree {expected_tree}")
+
+    message = headline + (f"\n\n{body}" if body else "")
+    commit = gh_json("POST", f"repos/{repo}/git/commits", {"message": message, "tree": tree, "parents": [head, second]})
+    oid = commit.get("sha")
+    verification = commit.get("verification") or {}
+    if not oid:
+        raise Fail("GitHub did not return the created commit OID")
+    if verification.get("verified") is not True:
+        raise Fail(f"commit {oid} is not Verified ({verification.get('reason')}); branch was not updated")
+
+    result = {"repository": repo, "branch": branch, "oid": oid, "parents": [head, second], "tree": tree,
+              "verified": True, "verification_reason": verification.get("reason"), "updated": False}
+    if not dry_run:
+        gh_json("PATCH", f"repos/{repo}/git/refs/heads/{branch.replace('/', '%2F')}", {"sha": oid, "force": False})
+        run("git", "fetch", "--no-tags", "origin", f"refs/heads/{branch}:refs/remotes/origin/{branch}")
+        run("git", "reset", "--mixed", oid)
+        result["updated"] = True
+    print(json.dumps(result, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except Fail as exc:
+        print(f"github-update-branch-staged: {exc}", file=sys.stderr)
+        raise SystemExit(1)
