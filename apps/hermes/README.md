@@ -212,6 +212,19 @@ pull-request creation and edits through `gh`, and read-only cluster or SQLite
 access. These are examples, not blanket permission for an interpreter or
 import.
 
+For visible inline Python, standard-library modules, `yaml.safe_load`, and
+installed `hermes_tools` calls with explicitly permitted effects are known
+interfaces, not unknown imports. The detector's warning that `execute_code`
+can spawn subprocesses describes a capability, not an effect of every script.
+Quoted command examples used only as data are not executed; passing them to
+subprocess or shell execution still requires checking the resulting operation.
+Non-secret reads may be outside write roots. Selecting `approvals.mode` from
+the Git-managed `/etc/hermes-managed/config.yaml` is allowed; credential files,
+secret stores, and environment dumps are not. The signed-commit helper enforces
+its own default-branch refusal, so a caller need not repeat that preflight.
+Unknown plugins, import-path replacement, unseen workspace scripts, unsafe YAML
+loaders, and forbidden operations through otherwise known helpers remain denied.
+
 Denied: local `git commit`, `push`, `rebase`, `merge`, and any force or
 default-branch push (commits are created only by the signed-commit helper);
 shell use of `hermes kanban` (Kanban is operated through MCP tools); merging a
@@ -243,25 +256,31 @@ verdict that is not a single recognised word still escalates, because the
 runtime fails closed; the fallback chain and the one-word reply rule keep that
 rare.
 
-Run from the repository root using a Python environment with PyYAML and the
-installed Hermes runtime available:
+Run from the repository root after activating a Python environment containing
+PyYAML and the installed Hermes runtime's dependencies. The image's own virtual
+environment may lack PyYAML; use a prepared test environment rather than adding
+packages to a running gateway. `--runtime` selects source separately from the
+Python environment: test against `/opt/hermes`, not a stale source checkout.
 
 ```bash
 git diff --check
-/opt/hermes/.venv/bin/python apps/hermes/validate-smart-approval.py \
+python3 apps/hermes/validate-smart-approval.py --runtime /opt/hermes \
   --output .smart-approval-evidence/offline.json
 /opt/kubernetes-bin/kubectl kustomize apps/hermes
-# Optional authenticated judgment test; commands in the fixture are NEVER executed:
-/opt/hermes/.venv/bin/python apps/hermes/validate-smart-approval.py --live \
-  --output .smart-approval-evidence/live.json
+# Commands in the fixtures are NEVER executed. Select each route explicitly:
+python3 apps/hermes/validate-smart-approval.py --runtime /opt/hermes --live \
+  --route-index 0 --output .smart-approval-evidence/luna.json
+# Use --route-index 1 for Haiku and --route-index 2 for Sonnet.
 ```
 
 `approval-fixtures.json` records examples that must be approved (`safe`), escalated for timing (`timing`), and denied (`denied`).
 The offline validator checks byte-exact rendered configuration, source and
 rendered checksums, trusted/untrusted prompt separation, strict verdict mapping,
 and fail-closed provider failures. Mock responses test wiring only; they do not
-prove policy classification. The opt-in live check uses the installed guardian
-and real Codex/Luna responses against an in-process staged Managed Scope. It
+prove policy classification. Fixtures can supply the exact detector `description`, including the
+`execute_code` warning, instead of testing every payload with a generic label.
+The opt-in live check uses the installed guardian and real responses on the
+selected route against an in-process staged Managed Scope. It
 disables fallback only in that test process, records the actual route, and
 never writes the running gateway configuration or executes fixture payloads.
 It requires runtime modules under `/opt/hermes` (override with `--runtime`) and

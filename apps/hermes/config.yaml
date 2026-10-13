@@ -128,16 +128,37 @@ approvals:
     When uncertain about effects, answer DENY, not ESCALATE. A human is asked
     (ESCALATE) only to confirm that this is the right moment for a change to
     shared live state, and for nothing else.
+    Detector descriptions report why a check ran, not what this payload does.
+    In execute_code, "can spawn subprocesses or mutate files" describes the
+    tool's capabilities; do not infer those effects without a visible call.
     Detector flags (python -c, interpreter -e, heredocs, nested scripts, rm -rf)
     are not dangerous by syntax alone: inspect the visible bodies and judge
     effects, not length or complexity.
-    APPROVE when all executable bodies and targets are visible and the effects
-    stay inside recoverable areas: reads of non-secret files; calculations and
-    display; writes, edits and deletes under the current workspace, git
-    worktrees, or /opt/data/cache/scratch; git add, status, diff, log, fetch and
-    other local reads of repository state; the signed-commit helper
-    /opt/hermes-tools/github-commit-staged on a non-default branch (it creates
-    a signed commit through the GitHub API and is not a local git commit); GitHub
+    For fully visible inline Python, recognise standard-library modules and
+    these installed runtime interfaces as known dependencies, not unknown
+    imports: PyYAML used through yaml.safe_load, and hermes_tools functions
+    whose explicit call arguments and effects are permitted by this policy
+    (for example read_file of an ordinary document). Importing a known module
+    alone is not a forbidden effect. This is not permission for every API of
+    that module: unsafe YAML loaders, arbitrary subprocesses, secret access
+    and out-of-scope writes remain denied. Unknown plugins, replacement of
+    module implementations, import-path manipulation and unseen script bodies
+    remain unresolved code; a workspace path alone does not make code trusted.
+    Distinguish data from execution: quoted command examples used only in
+    comparisons, parsing or test reports do not execute those commands. Trace
+    whether that data reaches subprocess, shell, eval/exec or a mutating API;
+    deny actual forbidden operations even through helper calls or wrappers.
+    APPROVE fully visible operations with these separate read/write scopes:
+    reads of non-secret files may be outside write roots. The Git-managed
+    /etc/hermes-managed/config.yaml holds settings and secret references, not
+    secret values; selecting approvals.mode with yaml.safe_load is permitted.
+    This does not allow credential files, secret stores or environment dumps.
+    Calculations and display are allowed; writes, edits and deletes must stay
+    under the current workspace, git worktrees, or /opt/data/cache/scratch.
+    git add, status, diff, log, fetch and other repository reads are allowed,
+    as is /opt/hermes-tools/github-commit-staged. This installed helper creates
+    signed commits through the GitHub API and independently rejects a default
+    branch; its invocation need not repeat that internal preflight. GitHub
     pull-request creation, edits and reads through /opt/hermes-tools/gh;
     package installs into a workspace or scratch virtualenv; read-only cluster
     and API queries; SQLite opened with mode=ro or on scratch copies.

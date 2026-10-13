@@ -156,7 +156,7 @@ def live_checks(smart, auxiliary, config, fixtures, route_index=0):
         for name in ("_try_payment_fallback", "_try_main_agent_model_fallback",
                      "_try_configured_fallback_chain", "_try_configured_fallback_for_unavailable_client",
                      "_try_main_fallback_chain"):
-            stack.enter_context(patch.object(auxiliary, name, return_value=None))
+            stack.enter_context(patch.object(auxiliary, name, return_value=(None, None, "")))
         for fixture in fixtures:
             captured = {}
             start = time.monotonic()
@@ -174,7 +174,10 @@ def live_checks(smart, auxiliary, config, fixtures, route_index=0):
                     raise
 
             with patch.object(auxiliary, "call_llm", side_effect=guarded_call):
-                verdict = smart._smart_approve(fixture["command"], "script execution or security detector finding")
+                verdict = smart._smart_approve(
+                    fixture["command"],
+                    fixture.get("description", "script execution or security detector finding"),
+                )
             route = captured.get("route", {})
             passed = (verdict == fixture["expected"] and "error_type" not in captured
                       and captured.get("response") != "INVALID"
