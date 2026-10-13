@@ -84,6 +84,19 @@ cohort:friend
 team:media-user
 ```
 
+### External Kubernetes viewer
+
+```text
+cohort:friend              # optional person classification
+team:k8s-external-viewer   # WARP enrollment, edge admission, and Kubernetes read-only authorization
+```
+
+`team:k8s-external` does not grant Kubernetes RBAC. It only inherits
+Cloudflare-specific `app:cloudflare:*` permissions. The external viewer and
+operator teams inherit that baseline plus one Kubernetes role. The operator is
+intentionally not cluster-bound: namespace owners must add a Git-managed
+`RoleBinding` before it can perform any action.
+
 ## Migration Notes
 
 ### Deprecated Groups (Do Not Remove)

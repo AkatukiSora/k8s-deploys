@@ -1,0 +1,5 @@
+{
+  "yaml.disableSchemaDetection": [
+    "file:///home/akatuki-sora/git/k8s-deploys/apps/immich-postgres/cluster.yaml"
+  ]
+}

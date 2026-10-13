@@ -20,9 +20,10 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/hermes-vikunja-adapter: 22baaf368b74dc2887069fe3a0c6c77419adf092df3b07d243b89fb7168560d4
+        checksum/hermes-config: 1847d461f26a53b5c277c5addf271a6c311c9a643a385ac9944011543e60243e
+        checksum/hermes-vikunja-adapter: 469191e4c94893751908d260180c84744a56dc86d02dbeb48f81a0d80f6026bd
         checksum/hermes-vikunja-read-proxy: df88414001005fcf57beb05c7700fa76579dfc1f96eb8aa634ce6ba2d1e7e41c
-        checksum/hermes-vikunja-tools: 9429dbe0dde7224261b8650c7b69d0cd0bf68f4a9d761e1d718a8cb3882e115a
+        checksum/hermes-vikunja-tools: a9ac268f7c94bbec319019833ba71b7b90feb682af7c648db00c958ef992f318
         checksum/hermes-google-oauth-broker: 00dc452ff55da77b59ce56b2dc8f779590dcf1625f75de2568f45c89dc68cf1b
         checksum/hermes-google-oauth-tools: 0cc5c6d671b6556c0246d03436346840638aa41abe494ec1742e429631c83997
       labels:
@@ -394,8 +395,7 @@ spec:
           args:
             - gateway
             - run
-          image: "nousresearch/hermes-agent@sha256:\
-            63bfb6d732f49a55d453e801057273785cc61e0f6ee43db3fa2f2a79846301b7"
+          image: "nousresearch/hermes-agent@sha256:444b42594e7f467425872fc35e077a227d377f0fe0726bc818706d62175fad8b"
           imagePullPolicy: IfNotPresent
           env:
             - name: DISCORD_BOT_TOKEN
@@ -586,7 +586,7 @@ spec:
               readOnly: true
         - name: vikunja-read-proxy
           command: ["python3", "/opt/vikunja-read-proxy/server.py"]
-          image: "nousresearch/hermes-agent@sha256:63bfb6d732f49a55d453e801057273785cc61e0f6ee43db3fa2f2a79846301b7"
+          image: "nousresearch/hermes-agent@sha256:444b42594e7f467425872fc35e077a227d377f0fe0726bc818706d62175fad8b"
           ports:
             - name: vikunja-read
               containerPort: 8793

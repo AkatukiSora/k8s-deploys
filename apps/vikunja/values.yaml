@@ -11,7 +11,8 @@ vikunja:
     runAsNonRoot: true
 
   image:
-    tag: 2.3.0
+    # Vikunja 2.6.0; chart v2.3.0 declares the matching appVersion.
+    tag: 2.6.0
 
   persistence:
     data:

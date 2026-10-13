@@ -7,8 +7,12 @@ must review and synchronize its resources before the workload starts.
 
 ## Security boundary
 
-- The image is pinned to the official `v2026.9.7` multi-architecture image
-  digest. Do not replace it with a floating tag.
+- The main `hermes` container uses the official Hermes Agent `0.21.7` image,
+  pinned to `sha256:444b42594e7f467425872fc35e077a227d377f0fe0726bc818706d62175fad8b`.
+  The init containers and other existing sidecars remain pinned to the prior
+  `v2026.9.7` image digest `sha256:63bfb6d732f49a55d453e801057273785cc61e0f6ee43db3fa2f2a79846301b7`;
+  `vikunja-read-proxy` remains pinned to the `0.21.7` digest above. Do not
+  replace any of these pins with a floating tag.
 - There is no Service, Ingress, dashboard, API exposure, host mount, or
   privileged mode. The Discord gateway accepts only the users stored in the
   1Password-managed `hermes-discord` Secret.
@@ -16,9 +20,13 @@ must review and synchronize its resources before the workload starts.
   ServiceAccount remains `automountServiceAccountToken: false`; only the Hermes
   container receives an explicit short-lived projected token. Pod `fsGroup: 10000`
   makes that token readable by the non-root Hermes process without exposing it to
-  other containers. Its custom ClusterRole is read-only and excludes Secrets,
-  ConfigMaps, RBAC resources, exec/attach/port-forward/proxy subresources,
-  arbitrary CRDs, and all mutation verbs. `kubectl` is installed into an
+  other containers. Its custom ClusterRole is read-only and permits cluster-wide
+  observation of workload metadata and ConfigMaps. Pod logs are granted through
+  an explicit `pods/log` rule with only `get`; logs and ConfigMaps can contain
+  sensitive operational data and must not be copied into issues or chat without
+  redaction. The role excludes Secrets, RBAC resources,
+  exec/attach/port-forward/proxy subresources, arbitrary CRDs, and all mutation
+  verbs. `kubectl` is installed into an
   ephemeral volume by a checksum-verified init container and is available through
   `PATH`.
 - NetworkPolicy denies all ingress and egress by default. Hermes may resolve
@@ -38,9 +46,15 @@ must review and synchronize its resources before the workload starts.
   east-west traffic in issue #62; NetworkPolicy constrains reachability but
   does not provide transport encryption.
 - `/opt/data` is the only persistent path. It holds Hermes configuration,
-  memory, skills, sessions, and ChatGPT/Codex OAuth credentials. It is a
-  `ReadWriteOnce` Ceph RBD volume and the Deployment uses `Recreate`; never
-  run a second Hermes gateway against this volume.
+  memory, skills, sessions, ChatGPT/Codex OAuth credentials, and the default
+  Kanban board (`kanban.db`) with its logs, attachments, and workspaces. It is
+  a `ReadWriteOnce` Ceph RBD volume and the Deployment uses `Recreate`; never
+  run a second Hermes gateway or a second Kanban dispatcher against this volume.
+  A Pod restart terminates an in-flight worker process and loses its transient
+  model context, but not its task record: the restarted embedded dispatcher
+  detects the dead local PID/claim and requeues the durable card for a bounded
+  retry. Workers must commit/push durable code changes and persist handoff
+  details to the Kanban card rather than rely on process-local state.
 - The `hermes-config` ConfigMap has two roles. An init container copies
   `config.yaml` and `SOUL.md` to the PVC only when each file is absent, while
   the running Hermes container mounts the same ConfigMap read-only as its
@@ -68,16 +82,99 @@ or everyone, and isolates all group and thread sessions per user.
 `DISCORD_BOT_TOKEN` and `DISCORD_ALLOWED_USERS` are projected from the
 `hermes-discord` 1Password item and must never be copied into Git.
 
-The normal parent model is Terra at Medium effort. Delegated children default
-to Luna at High effort for long, well-specified, read-only investigation such
-as web search, status collection, log review, and repetitive validation. They
-are limited to one flat child with no automatic approval. `delegate_task` has
-one global child model and no per-task model parameter: keep the Luna default
-for inexpensive workers. For a difficult, high-value design decision, switch
-the parent for that turn with `/model gpt-5.6-sol --once`; this leaves the Luna
-delegation default intact, and the per-model reasoning override applies High
-effort to Sol. Use Kanban rather than `delegate_task` when a
-durable queued task requires a per-task model override.
+### Discord Kanban visibility
+
+`platform_toolsets.discord` retains the `hermes-cli` tool bundle and adds
+`kanban` for normal Discord conversations. Upstream availability and ownership
+guards exclude `delegate_task` children; no other platform is opted in. Native
+Discord/admin API tools are not enabled by this setting.
+
+The `hermes-config` Managed Scope applies this setting after manual sync; start
+a new Discord session to pick it up. Because the Deployment uses `Recreate`,
+rollout interrupts an in-flight worker; confirm the Kanban worker queue is idle
+before synchronizing. Roll back by reverting this change (including the config
+checksum and main image) and manually synchronizing. Runtime tool visibility
+and image behavior have not yet been verified.
+
+Run the offline manifest checks with
+`python3 apps/hermes/test_kanban_visibility.py -v` (requires PyYAML).
+To also test the isolated upstream availability and delegated-child ownership
+functions, set `HERMES_SOURCE_DIR` to a local copy of the pinned image's
+source. The test harness hashes each required file against the digest this
+PR pins before compiling or executing any of it, and rejects a mismatch
+instead of running unverified code; it does not fetch or trust the directory
+contents itself. Those source checks skip without that variable; they do not
+start a gateway, assemble complete model schemas, mutate a board, or test
+dispatch.
+
+## Coding and infrastructure orchestration
+
+The default interactive parent is Claude Sonnet 5.5 / Anthropic at Medium effort.
+It owns the user conversation and can define the task scope, acceptance criteria,
+and validation. Use a Kanban card routed to GPT-6.1 Sol / OpenAI-Codex when a
+requirement is ambiguous, an architecture or risk decision is unresolved, or
+failure diagnosis requires judgment. Do not spend Sol on routine implementation
+after that contract is clear; use Luna for specified execution. Escalate to Sol
+when acceptance criteria conflict, requirements are missing, a security boundary
+or migration is involved, a Terraform plan is unexpectedly broad, multiple
+Kubernetes networking/storage/auth layers are affected, or retries have become
+unexplained trial and error.
+
+Delegated children default to GPT-6 Luna at XHigh effort with OpenAI/Codex
+Priority Processing and have an explicit Claude Sonnet 5.5 fallback. The
+`cron.model` and `cron.model_provider` defaults remain GPT-6 Luna / OpenAI-Codex
+at XHigh and Standard processing; `delegation.request_overrides` does not apply
+to that scheduler. Cron still inherits the top-level fallback chain, so a Codex
+failure can route it to Sonnet while Luna remains its primary model. Kanban cards
+select their model individually: use GPT-6 Luna / OpenAI-Codex for decided
+execution and GPT-6.1 Sol / OpenAI-Codex for unresolved decisions. Kanban workers
+run at Standard processing. A card without an explicit model override uses the
+Sonnet / Anthropic profile default, not Luna. The top-level fallback chain
+applies to Kanban CLI workers; an OpenAI-routed card can fall back to Sonnet,
+and a candidate on the currently failing backend is skipped. Luna implements
+already-decided features and bug fixes, makes targeted Terraform/Ansible/manifest
+changes, writes tests and documentation, investigates bounded questions, and
+runs mechanical validation. It must not choose a specification, architecture,
+priority, or acceptable risk. Each handoff must state the objective, context,
+constraints, non-goals, likely files, dependencies, acceptance criteria, exact
+validation commands, risk level, and the condition that requires escalation
+rather than a guess.
+
+The durable Kanban dispatcher admits at most six concurrent workers, including
+six assigned to the same profile. The planner classifies each card before
+creation: a decision-free, testable execution card uses `gpt-6-luna`; an
+ambiguous requirement, cross-layer architecture decision, unexplained failure,
+or high-risk judgment card uses `gpt-6.1-sol`. Complexity alone does not require
+Sol if the contract is already decided. A short card may still require Sol if
+it makes a security or migration decision. Sol separates the dependencies and
+ownership, then creates decision-free Luna implementation cards. Sol also
+reviews high-risk results. `gpt-6-astra` is a human-approved escalation, never
+an automatic Kanban route.
+
+Set the selected exact `model` and `provider: openai-codex` on *every* card
+when using `kanban_create` (or `--model` / `--provider` via the CLI). Include a
+short selection rationale in its body. For existing blocked/todo/ready cards,
+inspect and correct a stale model override before unblocking or dispatching.
+The dispatcher does not infer difficulty from the title or body: it uses the
+persisted override and otherwise falls back to the profile default (Sonnet).
+This is classification by the planning agent at card creation, not a universal
+automatic classifier for externally created cards. The committed `SOUL.md` is
+the policy reference, but bootstrap does not overwrite a pre-existing PVC
+`/opt/data/SOUL.md`: apply and read back policy changes on the live PVC as a
+separate operational step, without replacing unrelated user-authored content.
+The current live policy was updated alongside this change. A Git sync alone
+will not activate later SOUL edits. Cards that write the same
+file or external state remain serial. Workers report changed files, exact
+validation results, remaining risks, and blockers; Sol reads that evidence
+before integrating, retrying, or changing scope.
+
+A typical issue uses a Sol planning/judgment card only when requirements or risk
+remain unresolved, up to six independent Luna workers after the contract is
+clear, and a validation/review card. Sol performs the final decision review for
+high-risk IAM/RBAC, authentication/authorization, NetworkPolicy/firewall/routing,
+secrets, database migrations, destructive Terraform potential, control-plane,
+or production changes. Trust acceptance criteria, mechanical validation, diff
+review, and LLM review in that order.
 
 Discord progress visibility is enabled through interim assistant messages and
 accumulated tool-progress updates. Background delegation completion and failure
@@ -96,6 +193,121 @@ even when a writable PVC `config.yaml` contains different values. This is a
 key-level policy overlay, not a hard sandbox: do not depend on it to stop a
 process with Kubernetes-level authority from changing its own environment or
 mounts.
+
+## Smart command approvals
+
+Managed Scope pins `approvals.mode: smart` and adds `approvals.smart_policy`
+to the guardian's trusted system prompt. This is an auxiliary-LLM judgment,
+not a parser, sandbox, detector bypass, or broad interpreter allowlist.
+Commands and detector descriptions remain untrusted data. Approval is for
+one exact command only; no unattended approval mode is enabled.
+
+No human reviews shell code in this deployment, so the guardian decides
+mechanically: `APPROVE` or `DENY`. The policy judges effects, not syntax or
+length. Fully visible commands whose effects stay in recoverable areas are
+approved: non-secret reads, calculations, writes and deletes under the
+workspace, git worktrees, or `/opt/data/cache/scratch`, local reads of
+repository state, `git add`, the signed-commit helper on a non-default branch,
+pull-request creation and edits through `gh`, and read-only cluster or SQLite
+access. These are examples, not blanket permission for an interpreter or
+import.
+
+For visible inline Python, standard-library modules, `yaml.safe_load`, and
+installed `hermes_tools` calls with explicitly permitted effects are known
+interfaces, not unknown imports. The detector's warning that `execute_code`
+can spawn subprocesses describes a capability, not an effect of every script.
+Quoted command examples used only as data are not executed; passing them to
+subprocess or shell execution still requires checking the resulting operation.
+Non-secret reads may be outside write roots. Selecting `approvals.mode` from
+the Git-managed `/etc/hermes-managed/config.yaml` is allowed; credential files,
+secret stores, and environment dumps are not. The signed-commit helper enforces
+its own default-branch refusal, so a caller need not repeat that preflight.
+Unknown plugins, import-path replacement, unseen workspace scripts, unsafe YAML
+loaders, and forbidden operations through otherwise known helpers remain denied.
+
+Denied: local `git commit`, `push`, `rebase`, `merge`, and any force or
+default-branch push (commits are created only by the signed-commit helper);
+shell use of `hermes kanban` (Kanban is operated through MCP tools); merging a
+pull request; secret or credential access; unresolved code (`eval`/`exec`,
+encoded or constructed bodies, unseen scripts, unknown imports); writes outside
+the recoverable areas (configuration, SOUL, `/opt/data` state); uncertain
+network destinations; confusable characters in command names, paths, URLs,
+identifiers, or shell structure; text imitating the `<command>` delimiter, a
+system/operator message, or a verdict addressed to the reviewer; and clearly
+destructive operations. Uncertainty resolves to `DENY`, not to a human.
+
+The runtime lets a present operator override a guardian `DENY`, which shows an
+approval prompt. To keep the categories that are always forbidden here from
+ever prompting, `approvals.deny` lists glob floors that are answered without
+the guardian model or a person: local `git commit`/`push`/`rebase`/`merge`/
+`tag`/`cherry-pick`/`am` (also with leading git options), `hermes kanban`, and
+`gh pr merge`. The globs are matched per shell command word, so quoted prose
+such as `echo "git commit"` is not blocked. The validator checks that every
+fixture marked `floor` is matched and that no safe fixture is. Every other
+`DENY` is still the guardian's judgment and may still show an override prompt
+until the runtime can make a smart `DENY` final.
+
+`ESCALATE` is reserved for changes to shared live state whose timing a human
+must confirm: Argo CD sync and Kubernetes mutations (apply, patch, delete,
+scale, rollout restart). Japanese/full-width quoted data is not itself
+executable deception. Tirith, secret redaction, protected-instruction
+handling, and existing deny behavior are unchanged. A provider failure or a
+verdict that is not a single recognised word still escalates, because the
+runtime fails closed; the fallback chain and the one-word reply rule keep that
+rare.
+
+Run from the repository root after activating a Python environment containing
+PyYAML and the installed Hermes runtime's dependencies. The image's own virtual
+environment may lack PyYAML; use a prepared test environment rather than adding
+packages to a running gateway. `--runtime` selects source separately from the
+Python environment: test against `/opt/hermes`, not a stale source checkout.
+
+```bash
+git diff --check
+python3 apps/hermes/validate-smart-approval.py --runtime /opt/hermes \
+  --output .smart-approval-evidence/offline.json
+/opt/kubernetes-bin/kubectl kustomize apps/hermes
+# Commands in the fixtures are NEVER executed. Select each route explicitly:
+python3 apps/hermes/validate-smart-approval.py --runtime /opt/hermes --live \
+  --route-index 0 --output .smart-approval-evidence/luna.json
+# Use --route-index 1 for Haiku and --route-index 2 for Sonnet.
+```
+
+`approval-fixtures.json` records examples that must be approved (`safe`), escalated for timing (`timing`), and denied (`denied`).
+The offline validator checks byte-exact rendered configuration, source and
+rendered checksums, trusted/untrusted prompt separation, strict verdict mapping,
+and fail-closed provider failures. Mock responses test wiring only; they do not
+prove policy classification. Fixtures can supply the exact detector `description`, including the
+`execute_code` warning, instead of testing every payload with a generic label.
+The opt-in live check uses the installed guardian and real responses on the
+selected route against an in-process staged Managed Scope. It
+disables fallback only in that test process, records the actual route, and
+never writes the running gateway configuration or executes fixture payloads.
+It requires runtime modules under `/opt/hermes` (override with `--runtime`) and
+the Kustomize binary (override with `--kubectl`). Fixture and validator files
+are operator/test assets, not mounted runtime code.
+
+The guardian's shell-comment preprocessing is not a complete shell parser;
+ambiguous quoting or hidden effects must not be assumed safe. Passing fixtures
+does not guarantee all possible commands or the deployed gateway behavior.
+The approval guardian runs on GPT-6 Luna / OpenAI-Codex. When that provider is
+unavailable or rate limited, `auxiliary.approval.fallback_chain` tries Claude
+Haiku 5.5 first and Claude Sonnet 5.5 second; the validator pins this order.
+The policy cannot repair authentication failures: an auxiliary provider 401,
+timeout, or malformed verdict fails closed to escalation. Historical Anthropic
+401s alone do not establish the cause of every escalation. Verify authenticated
+requests separately rather than weakening approval controls or moving to an
+unapproved paid API.
+
+Activation requires operator review and manual Argo CD synchronization after
+PR #144's model-routing dependency is present. Do not synchronize while Kanban
+workers are running: the checksum change causes a `Recreate` rollout. After
+activation, verify the effective managed approval keys and an innocuous flagged
+read-only calculation through the normal interactive approval path. Negative
+fixtures must only be classified, never executed. Roll back by reverting this
+policy and checksum change through Git and manually synchronizing; preserve
+the PVC, credentials, and live-only SOUL blocks. No live change is performed
+by adding or validating this overlay.
 
 ## Google OAuth broker
 
@@ -174,6 +386,14 @@ skills. Existing scheduled workflows remain read-only. Source changes, fixture
 success, and ConfigMap checksums do not activate writes or prove live token
 permissions; activation requires a separately approved and verified runtime
 procedure.
+
+This adapter is deliberately retained on API v1 for the Vikunja 2.6.0 upgrade:
+v1 remains supported throughout the 2.x series. API v2 has different paths,
+verbs, query names, pagination envelopes, and error semantics, so it requires
+a separately reviewed adapter migration rather than an unsafe path-prefix
+replacement. Plan that migration before Vikunja 3.0, when upstream intends to
+deprecate v1. Do not add a v1/v2 fallback because it could conceal a partial
+upgrade.
 
 The sidecar's readiness probe calls `/ready`, which makes a value-free
 authenticated `GET /api/v1/projects` probe. This uses the same least-privilege
@@ -284,8 +504,11 @@ planned encrypted east-west service-traffic layer is available.
 3. Complete the Codex device OAuth flow from an authorized operator session.
    The resulting credentials must stay on `/opt/data`, never in Git or a
    Kubernetes Secret.
-4. Restart the Pod and verify that OAuth state persists and that only approved
-   DNS and public HTTPS egress works.
+4. Restart the Pod and verify that OAuth state persists, only approved DNS and
+   public HTTPS egress works, and a deliberately harmless Kanban card survives
+   the restart. Confirm that the previous worker is reclaimed/requeued by the
+   embedded dispatcher, then completes exactly once after its retry; do not
+   create a second dispatcher or a second Pod to test this.
 5. Prove a VolSync snapshot backup and an isolated restore before adding a
    `ReplicationSource` or enabling automated sync/prune/self-heal.
 6. Before the migration sync, record or back up the unmasked PVC copies of
@@ -299,9 +522,35 @@ planned encrypted east-west service-traffic layer is available.
    `github-commit-staged`, and confirm the resulting commit is Verified before
    opening a test pull request.
 
-Use `gpt-5.6-terra` with Medium effort as the normal Hermes model. Switch to
-`gpt-5.6-sol` with High effort only for difficult, high-value design tasks.
-Reserve `gpt-5.6-luna` with High effort for clear, repeatable auxiliary work.
+The Managed Scope defaults the interactive parent to Claude Sonnet 5.5 /
+Anthropic at Medium effort. The top-level fallback chain lets the conversation
+fall back to GPT-6.1 Sol and lets an OpenAI-routed Kanban card fall back to
+Sonnet; a candidate on the currently failing backend is skipped. Select
+`gpt-6-luna` / `openai-codex` for bounded execution cards and
+`gpt-6.1-sol` / `openai-codex` for unresolved decisions. A card without an
+explicit model override uses the Sonnet profile default; it is not implicitly a
+Luna worker. Delegated children default to GPT-6 Luna / XHigh / Priority
+Processing and have an explicit Sonnet fallback. The `compression`,
+`title_generation`, `approval`, and `goal_judge` auxiliary tasks use GPT-6 Luna
+with Claude Haiku 5.5 as their fallback. Cron remains pinned to GPT-6 Luna /
+OpenAI-Codex as its primary model, but inherits the top-level fallback chain and
+can fail over to Sonnet on a Codex-side failure. Do not automatically select or fall back to GPT-6
+Astra or Fable.
+
+The `checksum/hermes-config` Pod-template annotation is the SHA-256 of
+`apps/hermes/config.yaml`; update it with every configuration edit so an Argo
+CD synchronization recreates the Pod and rereads Managed Scope. Because the
+Deployment uses `Recreate`, synchronization interrupts any in-flight Kanban
+worker; synchronize only when no card is running. After sync, exercise one
+non-destructive delegated task and confirm that the provider accepts Priority
+Processing without exposing credentials.
+
+Unpinned cron jobs retain a provider/model snapshot and fail closed after a
+global model change. After rollout, re-save each affected job's inference axes
+or explicitly pin it to `gpt-6-luna` / `openai-codex`, then verify its next
+execution. Inspect every nonterminal Kanban card before dispatch and replace
+stale `model_override` values; a missing override inherits the Sonnet profile
+default and must not be treated as a Luna worker.
 
 ## Rollback
 
