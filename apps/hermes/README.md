@@ -154,18 +154,22 @@ not a parser, sandbox, detector bypass, or broad interpreter allowlist.
 Commands and detector descriptions remain untrusted data. Approval is for
 one exact command only; no unattended approval mode is enabled.
 
-The policy makes completely visible, low-risk, read-only Python `-c`, heredoc,
-and nested-script bodies eligible for approval. Ordinary non-secret file reads,
-calculations, and SQLite connections explicitly opened with `mode=ro` are
-examples, not blanket permission for an interpreter or import. Unknown imports,
-startup hooks, dynamic `eval`/`exec`, encoded code, unread external scripts,
-credential reads, mutations, and uncertain targets require `ESCALATE`.
-Destructive operations remain `DENY` under the base policy and hardline guard.
-Japanese/full-width quoted data is not itself executable deception; confusable
-command names, paths, URLs, identifiers, and shell structure still escalate.
-Kanban writes and `/tmp` deletion are not automatically approved. Tirith,
-secret redaction, protected-instruction handling, and existing deny behavior
-are unchanged.
+The policy judges effects, not syntax or length, because long shell commands
+cannot be reviewed by the operator. Fully visible commands whose effects stay
+in recoverable areas are eligible for approval: non-secret reads, calculations,
+writes and deletes under the workspace, git worktrees, or
+`/opt/data/cache/scratch`, local git commits, non-force pushes of non-default
+branches, Hermes Kanban writes, and read-only cluster or SQLite access. These
+are examples, not blanket permission for an interpreter or import.
+`ESCALATE` is reserved for secret or credential access, unresolved code
+(`eval`/`exec`, encoded bodies, unseen scripts, unknown imports), writes outside
+the recoverable areas (configuration, SOUL, `/opt/data` state), cluster
+mutations, Argo CD sync, force push, default-branch push, uncertain network
+destinations, and real uncertainty. Destructive operations remain `DENY` under
+the base policy and hardline guard. Japanese/full-width quoted data is not
+itself executable deception; confusable command names, paths, URLs,
+identifiers, and shell structure still escalate. Tirith, secret redaction,
+protected-instruction handling, and existing deny behavior are unchanged.
 
 Run from the repository root using a Python environment with PyYAML and the
 installed Hermes runtime available:
