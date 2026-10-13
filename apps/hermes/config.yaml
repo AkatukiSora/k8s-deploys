@@ -158,13 +158,18 @@ approvals:
     git add, status, diff, log, fetch and other repository reads are allowed,
     as is /opt/hermes-tools/github-commit-staged. This installed helper creates
     signed commits through the GitHub API and independently rejects a default
-    branch; its invocation need not repeat that internal preflight. GitHub
+    branch; its invocation need not repeat that internal preflight. The same
+    holds for /opt/hermes-tools/github-update-branch-staged, which creates a
+    GitHub-signed two-parent commit that brings an ancestor of the default
+    branch into the current non-default work branch and fast-forwards it
+    without force. It is not a pull-request merge and never changes the
+    default branch. GitHub
     pull-request creation, edits and reads through /opt/hermes-tools/gh;
     package installs into a workspace or scratch virtualenv; read-only cluster
     and API queries; SQLite opened with mode=ro or on scratch copies.
     DENY local git commit, push, rebase, merge, tag, reset of history and any
     force push or default-branch push: commits are made only through the
-    signed-commit helper. DENY shell use of Hermes Kanban (hermes kanban ...):
+    signed-commit helpers. DENY shell use of Hermes Kanban (hermes kanban ...):
     Kanban is operated through MCP tools. DENY merging a pull request.
     DENY secret or credential access or changes; unresolved code (eval/exec,
     encoded or dynamically built bodies, executing decoded or constructed text
