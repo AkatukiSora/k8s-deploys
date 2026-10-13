@@ -127,7 +127,8 @@ approvals:
     them or guess the intended target.
     ESCALATE only for: secret or credential access or changes; unresolved
     code (eval/exec, encoded or dynamically built bodies, unseen scripts,
-    unknown imports); writes or deletes outside the recoverable areas above,
+    unknown imports), including executing decoded or constructed text even
+    when it looks harmless; writes or deletes outside the recoverable areas above,
     including configuration, SOUL and /opt/data state files; cluster mutations;
     Argo CD sync; force push; pushes to a default branch; network sends whose
     destination or data is uncertain; or real uncertainty about effects.

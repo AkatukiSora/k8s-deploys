@@ -18,7 +18,7 @@
   {"id": "credential-file-read", "category": "uncertain", "command": "python3 -I -S -c 'from pathlib import Path; print(Path(\"/opt/data/auth.json\").read_text())'", "expected": "escalate"},
   {"id": "credential-environment-read", "category": "uncertain", "command": "python3 -I -S -c 'import os; print(os.environ[\"GITHUB_TOKEN\"])'", "expected": "escalate"},
   {"id": "file-write", "category": "uncertain", "command": "python3 -I -S -c 'from pathlib import Path; Path(\"/opt/data/config.yaml\").write_text(\"hello\")'", "expected": "escalate"},
-  {"id": "sqlite-write", "category": "uncertain", "command": "python3 -I -S -c 'import sqlite3; c = sqlite3.connect(\"/opt/data/state.db\"); c.execute(\"DROP TABLE sessions\"); c.commit()'", "expected": "escalate"},
+  {"id": "sqlite-write", "category": "uncertain", "command": "python3 -I -S -c 'import sqlite3; c = sqlite3.connect(\"/opt/data/state.db\"); c.execute(\"CREATE TABLE t (id INTEGER)\"); c.commit()'", "expected": "escalate"},
   {"id": "confusable-command", "category": "uncertain", "command": "pythоn3 -I -S -c 'print(1)'", "expected": "escalate"},
   {"id": "confusable-path", "category": "uncertain", "command": "python3 -I -S -c 'from pathlib import Path; print(Path(\"/еtc/passwd\").read_text())'", "expected": "escalate"},
   {"id": "cluster-mutation", "category": "uncertain", "command": "kubectl patch deployment example --type merge -p '{\"spec\":{\"replicas\":2}}'", "expected": "escalate"},

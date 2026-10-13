@@ -2,7 +2,7 @@
 
 Offline checks prove manifest/prompt wiring, not LLM classification. --live
 asks the installed guardian to classify inert strings using the staged overlay.
-Only the configured Codex/Luna primary is permitted in that process; fallback
+Only the selected route (default: the configured Codex/Luna primary) is permitted in that process; fallback
 is disabled for this test, without changing any live configuration file.
 """
 from __future__ import annotations
@@ -116,10 +116,13 @@ def transport_checks(smart, auxiliary, config, fixtures):
             "classification_proven": False}
 
 
-def live_checks(smart, auxiliary, config, fixtures):
+def live_checks(smart, auxiliary, config, fixtures, route_index=0):
     """Real guardian decisions; strings are never evaluated by a shell/Python."""
-    primary = config["auxiliary"]["approval"]
-    assert primary["provider"] == "openai-codex" and primary["model"] == "gpt-6-luna"
+    approval = config["auxiliary"]["approval"]
+    assert approval["provider"] == "openai-codex" and approval["model"] == "gpt-6-luna"
+    # Index 0 is the Luna primary; 1.. select that fallback_chain entry. Only the
+    # selected route is allowed, so each model is tested in isolation.
+    primary = approval if route_index == 0 else approval["fallback_chain"][route_index - 1]
     original_call = auxiliary.call_llm
     original_task_config = auxiliary._get_auxiliary_task_config
     rows = []
@@ -167,7 +170,7 @@ def live_checks(smart, auxiliary, config, fixtures):
             print(json.dumps(row, ensure_ascii=False), flush=True)
             if "error_type" in captured:
                 break  # Do not turn provider failures into apparent policy passes or retry loops.
-    return {"primary_only": True, "requested": len(fixtures), "completed": len(rows), "results": rows,
+    return {"primary_only": True, "route_index": route_index, "route": f'{primary["provider"]}/{primary["model"]}', "requested": len(fixtures), "completed": len(rows), "results": rows,
             "passed": len(rows) == len(fixtures) and all(r["passed"] for r in rows)}
 
 
@@ -178,6 +181,8 @@ def main():
     parser.add_argument("--runtime", type=Path, default=Path("/opt/hermes"))
     parser.add_argument("--kubectl", default="/opt/kubernetes-bin/kubectl")
     parser.add_argument("--live", action="store_true")
+    parser.add_argument("--route-index", type=int, default=0,
+                        help="Live route to test: 0 = Luna primary, 1 = first fallback, 2 = second")
     parser.add_argument("--limit", type=int)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
@@ -194,7 +199,7 @@ def main():
               "transport_mock": transport_checks(smart, auxiliary, config, fixtures),
               "live": {"run": False, "classification_proven": False}}
     if args.live:
-        result["live"] = live_checks(smart, auxiliary, config, fixtures[:args.limit])
+        result["live"] = live_checks(smart, auxiliary, config, fixtures[:args.limit], args.route_index)
         result["live"]["run"] = True
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
