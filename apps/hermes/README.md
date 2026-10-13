@@ -7,8 +7,12 @@ must review and synchronize its resources before the workload starts.
 
 ## Security boundary
 
-- The image is pinned to the official `v2026.9.7` multi-architecture image
-  digest. Do not replace it with a floating tag.
+- The main `hermes` container uses the official Hermes Agent `0.21.7` image,
+  pinned to `sha256:444b42594e7f467425872fc35e077a227d377f0fe0726bc818706d62175fad8b`.
+  The init containers and other existing sidecars remain pinned to the prior
+  `v2026.9.7` image digest `sha256:63bfb6d732f49a55d453e801057273785cc61e0f6ee43db3fa2f2a79846301b7`;
+  `vikunja-read-proxy` remains pinned to the `0.21.7` digest above. Do not
+  replace any of these pins with a floating tag.
 - There is no Service, Ingress, dashboard, API exposure, host mount, or
   privileged mode. The Discord gateway accepts only the users stored in the
   1Password-managed `hermes-discord` Secret.
@@ -78,6 +82,31 @@ or everyone, and isolates all group and thread sessions per user.
 `DISCORD_BOT_TOKEN` and `DISCORD_ALLOWED_USERS` are projected from the
 `hermes-discord` 1Password item and must never be copied into Git.
 
+### Discord Kanban visibility
+
+`platform_toolsets.discord` retains the `hermes-cli` tool bundle and adds
+`kanban` for normal Discord conversations. Upstream availability and ownership
+guards exclude `delegate_task` children; no other platform is opted in. Native
+Discord/admin API tools are not enabled by this setting.
+
+The `hermes-config` Managed Scope applies this setting after manual sync; start
+a new Discord session to pick it up. Because the Deployment uses `Recreate`,
+rollout interrupts an in-flight worker; confirm the Kanban worker queue is idle
+before synchronizing. Roll back by reverting this change (including the config
+checksum and main image) and manually synchronizing. Runtime tool visibility
+and image behavior have not yet been verified.
+
+Run the offline manifest checks with
+`python3 apps/hermes/test_kanban_visibility.py -v` (requires PyYAML).
+To also test the isolated upstream availability and delegated-child ownership
+functions, set `HERMES_SOURCE_DIR` to a local copy of the pinned image's
+source. The test harness hashes each required file against the digest this
+PR pins before compiling or executing any of it, and rejects a mismatch
+instead of running unverified code; it does not fetch or trust the directory
+contents itself. Those source checks skip without that variable; they do not
+start a gateway, assemble complete model schemas, mutate a board, or test
+dispatch.
+
 ## Coding and infrastructure orchestration
 
 The default interactive parent is Claude Sonnet 5.5 / Anthropic at Medium effort.
@@ -112,13 +141,32 @@ validation commands, risk level, and the condition that requires escalation
 rather than a guess.
 
 The durable Kanban dispatcher admits at most six concurrent workers, including
-six assigned to the same profile. The planner selects and records the exact
-model and provider on every card; complexity alone does not require Sol when the
-contract is already decided, and a short card may still require Sol for a
-security or migration decision. Sol separates dependencies and ownership when
-needed; cards that write the same file or external state remain serial. Workers
-report changed files, exact validation results, remaining risks, and blockers;
-Sol reads that evidence before integrating, retrying, or changing scope.
+six assigned to the same profile. The planner classifies each card before
+creation: a decision-free, testable execution card uses `gpt-6-luna`; an
+ambiguous requirement, cross-layer architecture decision, unexplained failure,
+or high-risk judgment card uses `gpt-6.1-sol`. Complexity alone does not require
+Sol if the contract is already decided. A short card may still require Sol if
+it makes a security or migration decision. Sol separates the dependencies and
+ownership, then creates decision-free Luna implementation cards. Sol also
+reviews high-risk results. `gpt-6-astra` is a human-approved escalation, never
+an automatic Kanban route.
+
+Set the selected exact `model` and `provider: openai-codex` on *every* card
+when using `kanban_create` (or `--model` / `--provider` via the CLI). Include a
+short selection rationale in its body. For existing blocked/todo/ready cards,
+inspect and correct a stale model override before unblocking or dispatching.
+The dispatcher does not infer difficulty from the title or body: it uses the
+persisted override and otherwise falls back to the profile default (Sonnet).
+This is classification by the planning agent at card creation, not a universal
+automatic classifier for externally created cards. The committed `SOUL.md` is
+the policy reference, but bootstrap does not overwrite a pre-existing PVC
+`/opt/data/SOUL.md`: apply and read back policy changes on the live PVC as a
+separate operational step, without replacing unrelated user-authored content.
+The current live policy was updated alongside this change. A Git sync alone
+will not activate later SOUL edits. Cards that write the same
+file or external state remain serial. Workers report changed files, exact
+validation results, remaining risks, and blockers; Sol reads that evidence
+before integrating, retrying, or changing scope.
 
 A typical issue uses a Sol planning/judgment card only when requirements or risk
 remain unresolved, up to six independent Luna workers after the contract is

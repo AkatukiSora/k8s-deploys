@@ -29,6 +29,10 @@ display:
     discord:
       tool_progress: new
       tool_progress_grouping: accumulate
+platform_toolsets:
+  discord:
+    - hermes-cli
+    - kanban
 cron:
   # Keep unattended secretary routines independent from the interactive model.
   model: gpt-6-luna
@@ -41,8 +45,9 @@ kanban:
   review_dispatch: true
   dispatch_interval_seconds: 30
   failure_limit: 2
-  # Cards select Luna for execution and Sol for judgment. Without an explicit
-  # override, workers use the Sonnet profile default, not Luna.
+  # The planning agent selects an explicit per-card model: Luna for bounded
+  # execution, Sol 6.1 for unresolved decisions. The dispatcher does not
+  # classify cards and otherwise falls back to the Sonnet profile default.
   max_in_progress: 6
   max_in_progress_per_profile: 6
   dispatch_stale_timeout_seconds: 14400
