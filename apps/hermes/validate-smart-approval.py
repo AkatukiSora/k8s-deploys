@@ -63,7 +63,7 @@ def static_checks(kubectl):
     assert remainder == base_remainder, "Unrelated managed settings changed"
     fixtures = json.loads((HERE / "approval-fixtures.json").read_text())
     assert len({f["id"] for f in fixtures}) == len(fixtures), "Duplicate fixture IDs"
-    contract = {"safe": "approve", "uncertain": "escalate", "destructive": "deny"}
+    contract = {"safe": "approve", "timing": "escalate", "denied": "deny"}
     assert all(f["expected"] == contract[f["category"]] for f in fixtures)
     assert set(f["category"] for f in fixtures) == set(contract)
     rendered = subprocess.run(
