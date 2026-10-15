@@ -355,21 +355,37 @@ the 1Password-managed `hermes-vikunja` Secret as a read-only file at
 `/var/run/vikunja-api/token`; the Hermes container never mounts that Secret.
 
 The 1Password item must contain the `token` field before this application is
-synchronized. Create a dedicated Vikunja API token with only the task/project
-read and task create/update permissions required by the secretary workflow.
-Do not grant delete, user, team, permission, or webhook-management permissions.
-Before activation, use the target instance's `/api/v1/routes` and a value-free
-adapter probe to prove the token permits the intended routes and rejects those
-unneeded permissions.
+synchronized. The minimum route grants for this adapter are projects
+`read_all`; tasks `read_all`, `read_one`, `create`, and `update`; labels
+`read_all`; `tasks_labels` `create` and `delete`; and `tasks_relations`
+`create` and `delete`. Existing permission evidence is user-reported, not a
+live write test; it reports extra grants and an unknown expiry. Do not read or
+print the token, infer that extra grants authorize broader assistant actions,
+or rotate/change grants as part of this static implementation. Confirm effective
+grants and expiry as separate operator prerequisites before runtime activation.
 
 The bounded `vikunja-tasks` client is mounted read-only at
 `/opt/hermes-tools/vikunja-tasks`. It talks only to the local adapter, which
 binds `127.0.0.1:8791`, hard-codes
-`https://vikunja.akatuki-host.com/api/v1` as its upstream, and supports only:
-project/task reads, task creation, restricted-field task updates, and task
-completion. It rejects arbitrary upstream paths, methods, and request fields;
-it does not expose deletion. Every task write is read back from Vikunja before
-the result is returned.
+`https://vikunja.akatuki-host.com/api/v1` as its upstream, and rejects upstream
+redirects. Read commands cover projects, tasks, and the label catalog. The only
+write operations are task creation; title, description, priority, date, and
+reminder updates; label association add/remove; and task relation add/remove.
+Task/project deletion, completion/reopen, movement, duplicate, assignees,
+comments, attachments, bulk operations, and label catalog CRUD are not exposed,
+even if the token has those grants. Omitted update fields are preserved; each
+mutation is serialized and must pass a fresh readback before success is returned.
+Relation changes verify both tasks and the inverse relation. Timeout or mismatch
+is reported as unknown/applied-unverified without retry or compensation; create
+is not idempotent. The adapter cannot prevent concurrent edits from the Vikunja
+UI, so read-modify-write can still lose an external update.
+
+`write-enable-policy.md` is a dormant operator conversation draft. It is not in
+the Kustomization, deployed configuration, Hermes Managed Scope, Cron, or runtime
+skills. Existing scheduled workflows remain read-only. Source changes, fixture
+success, and ConfigMap checksums do not activate writes or prove live token
+permissions; activation requires a separately approved and verified runtime
+procedure.
 
 This adapter is deliberately retained on API v1 for the Vikunja 2.6.0 upgrade:
 v1 remains supported throughout the 2.x series. API v2 has different paths,
@@ -382,11 +398,11 @@ upgrade.
 The sidecar's readiness probe calls `/ready`, which makes a value-free
 authenticated `GET /api/v1/projects` probe. This uses the same least-privilege
 project-read permission required by the adapter's normal task workflow; it does
-not require access to the user-management route. After the operator
-synchronizes the Hermes Application, verify the adapter readiness and run
-`vikunja-tasks projects list`; do not print the token. The existing public
-TCP/443 egress policy covers the public Vikunja URL; no private-network rule is
-added.
+not require access to the user-management route. The adapter is bound to
+loopback and is not exposed through a Service or NetworkPolicy. Fixture tests
+use synthetic data and ephemeral fake servers only; they do not make live write
+requests or establish production write capability. The existing public TCP/443
+egress policy covers the public Vikunja URL; no private-network rule is added.
 
 Rollback: revert the adapter change, synchronize Hermes, and confirm the
 Deployment has recreated its Pod. The Pod template includes the SHA-256 values
