@@ -352,6 +352,10 @@ def validate_task(task: object, task_id: int) -> dict:
         "repeat_after": int, "repeat_mode": int, "hex_color": str,
         "cover_image_attachment_id": int, "is_favorite": bool,
     }
+    # Vikunja serialises an empty labels/assignees collection as JSON null.
+    for collection in ("labels", "assignees"):
+        if task.get(collection) is None and collection in task:
+            task[collection] = []
     for field, kind in expected.items():
         if field not in task or type(task[field]) is not kind:
             raise AdapterError(502, "Vikunja returned an incomplete task")

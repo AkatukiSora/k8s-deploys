@@ -894,6 +894,25 @@ class WriteContractTests(unittest.TestCase):
         self.assertNotIn("Bearer", serialized)
         self.assertNotIn("token", serialized.lower())
 
+    def test_validate_task_accepts_null_labels_and_assignees(self):
+        task = task_fixture(5)
+        task["labels"] = None
+        task["assignees"] = None
+        validated = adapter.validate_task(task, 5)
+        self.assertEqual(validated["labels"], [])
+        self.assertEqual(validated["assignees"], [])
+
+    def test_validate_task_still_rejects_missing_or_wrong_collections(self):
+        for field, value in (("labels", "x"), ("assignees", {})):
+            task = task_fixture(5)
+            task[field] = value
+            with self.assertRaises(adapter.AdapterError):
+                adapter.validate_task(task, 5)
+        task = task_fixture(5)
+        del task["labels"]
+        with self.assertRaises(adapter.AdapterError):
+            adapter.validate_task(task, 5)
+
 
 if __name__ == "__main__":
     unittest.main()
