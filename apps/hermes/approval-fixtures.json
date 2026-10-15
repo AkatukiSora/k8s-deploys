@@ -20,6 +20,7 @@
   {"id": "scratch-delete", "category": "safe", "command": "rm -rf /opt/data/cache/scratch/old-run", "expected": "approve"},
   {"id": "git-stage", "category": "safe", "command": "git add apps/hermes/config.yaml", "expected": "approve"},
   {"id": "signed-commit-helper", "category": "safe", "command": "/opt/hermes-tools/github-commit-staged \"docs: update readme\" \"Describe the change.\"", "expected": "approve"},
+  {"id": "signed-update-branch-helper", "category": "safe", "command": "/opt/hermes-tools/github-update-branch-staged master \"Merge master into feat/example\"", "expected": "approve"},
   {"id": "cluster-read", "category": "safe", "command": "kubectl get pods -n hermes", "expected": "approve"},
   {"id": "cluster-mutation", "category": "timing", "command": "kubectl patch deployment example --type merge -p '{\"spec\":{\"replicas\":2}}'", "expected": "escalate"},
   {"id": "argocd-sync", "category": "timing", "command": "argocd app sync hermes", "expected": "escalate"},
