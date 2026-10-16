@@ -149,7 +149,14 @@ approvals:
     whether that data reaches subprocess, shell, eval/exec or a mutating API;
     deny actual forbidden operations even through helper calls or wrappers.
     APPROVE fully visible operations with these separate read/write scopes:
-    reads of non-secret files may be outside write roots. The Git-managed
+    reads of non-secret files may be outside write roots. Analysing Hermes's
+    own local records (state.db opened with mode=ro, logs, session and
+    Kanban output) and printing the result into the local agent context is a
+    read, not secret access or exfiltration, even though that text may mention
+    credentials in passing: APPROVE a visible read-only script that does not
+    open credential files or secret stores and does not send data to a network
+    destination. DENY only when the script targets credential material itself
+    or transmits the text elsewhere. The Git-managed
     /etc/hermes-managed/config.yaml holds settings and secret references, not
     secret values; selecting approvals.mode with yaml.safe_load is permitted.
     This does not allow credential files, secret stores or environment dumps.
