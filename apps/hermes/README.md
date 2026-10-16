@@ -225,6 +225,15 @@ their own default-branch refusal, so a caller need not repeat that preflight.
 Unknown plugins, import-path replacement, unseen workspace scripts, unsafe YAML
 loaders, and forbidden operations through otherwise known helpers remain denied.
 
+The Vikunja secretary's notification-state database
+(`/opt/data/task-secretary/notification-state.sqlite3`) is the one `/opt/data`
+state file with a write exception, so unattended Cron reviews can record
+notification state without a human prompt. Only a fully visible Python `sqlite3`
+script on that file's three tables qualifies; the audit table accepts plain
+inserts only. Schema changes, `ATTACH`,
+extensions, replacing or deleting audit rows, other databases and stored task titles or
+bodies remain denied.
+
 Denied: local `git commit`, `push`, `rebase`, `merge`, and any force or
 default-branch push (commits are created only by the signed-commit helpers);
 shell use of `hermes kanban` (Kanban is operated through MCP tools); merging a
