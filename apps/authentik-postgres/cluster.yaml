@@ -22,7 +22,7 @@ spec:
     recovery:
       source: backup
   storage:
-    size: 20Gi
+    size: 40Gi
     storageClass: ceph-rbd
   plugins:
     - name: barman-cloud.cloudnative-pg.io
