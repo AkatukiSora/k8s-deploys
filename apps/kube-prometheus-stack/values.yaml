@@ -18,7 +18,6 @@ kubeControllerManager:
     - 10.0.40.13
   serviceMonitor:
     https: true
-    insecureSkipVerify: true
 
 kubeScheduler:
   enabled: true
@@ -28,7 +27,6 @@ kubeScheduler:
     - 10.0.40.13
   serviceMonitor:
     https: true
-    insecureSkipVerify: true
 
 kubeEtcd:
   # The chart only provisions its built-in etcd Grafana dashboard when enabled.

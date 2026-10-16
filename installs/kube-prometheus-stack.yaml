@@ -16,7 +16,7 @@ spec:
         exclude: '{values.yaml,**/values.yaml,**/*values*.yaml}'
     - repoURL: https://prometheus-community.github.io/helm-charts
       chart: kube-prometheus-stack
-      targetRevision: 69.8.2
+      targetRevision: 92.9.0
       helm:
         valueFiles:
           - $repo/apps/kube-prometheus-stack/values.yaml
