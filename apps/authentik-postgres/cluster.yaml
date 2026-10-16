@@ -18,6 +18,10 @@ spec:
       method: any
       number: 1
       dataDurability: required
+    parameters:
+      # Cap the WAL a lagging or diverged replica's slot may retain. Without
+      # a cap, an inactive slot fills pg_wal until the instance cannot start.
+      max_slot_wal_keep_size: "10GB"
   bootstrap:
     recovery:
       source: backup
