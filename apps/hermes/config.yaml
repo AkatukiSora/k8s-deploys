@@ -173,7 +173,19 @@ approvals:
     default branch. GitHub
     pull-request creation, edits and reads through /opt/hermes-tools/gh;
     package installs into a workspace or scratch virtualenv; read-only cluster
-    and API queries; SQLite opened with mode=ro or on scratch copies.
+    and API queries; SQLite opened with mode=ro or on scratch copies. The
+    Vikunja secretary's notification-state database is the one /opt/data state
+    file with a write exception: a fully visible Python sqlite3 script that
+    opens only /opt/data/task-secretary/notification-state.sqlite3 may run
+    INSERT, UPDATE, or an INSERT OR REPLACE on task_notification_state and
+    review_run_state, plain INSERT only on the audit table notification_events
+    (never REPLACE, UPDATE or DELETE there, because REPLACE deletes the
+    conflicting row), DELETE only from task_notification_state (30-day
+    retention), and SELECT for reads.
+    This also applies to unattended Cron runs. It does not
+    allow DROP, ALTER, schema changes, ATTACH, load_extension,
+    any other database or /opt/data file, secrets, or Vikunja task titles and
+    bodies as stored values.
     DENY local git commit, push, rebase, merge, tag, reset of history and any
     force push or default-branch push: commits are made only through the
     signed-commit helpers. DENY shell use of Hermes Kanban (hermes kanban ...):
