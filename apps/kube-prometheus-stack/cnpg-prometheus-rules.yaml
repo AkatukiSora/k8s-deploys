@@ -1,0 +1,64 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: cnpg-rules
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: cnpg.storage
+      rules:
+        - alert: CNPGInstanceVolumeUsageHigh
+          expr: |
+            max by (namespace, persistentvolumeclaim) (
+              kubelet_volume_stats_used_bytes{persistentvolumeclaim=~".+-postgres-[0-9]+"}
+              / kubelet_volume_stats_capacity_bytes{persistentvolumeclaim=~".+-postgres-[0-9]+"}
+            ) > 0.80
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: CloudNativePG instance volume usage is high.
+            description: PVC {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} is {{ $value | humanizePercentage }} full. When free space runs out the instance manager refuses to start PostgreSQL.
+        - alert: CNPGInstanceVolumeUsageCritical
+          expr: |
+            max by (namespace, persistentvolumeclaim) (
+              kubelet_volume_stats_used_bytes{persistentvolumeclaim=~".+-postgres-[0-9]+"}
+              / kubelet_volume_stats_capacity_bytes{persistentvolumeclaim=~".+-postgres-[0-9]+"}
+            ) > 0.90
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: CloudNativePG instance volume is nearly full.
+            description: PVC {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} is {{ $value | humanizePercentage }} full. Expand the volume or release retained WAL before PostgreSQL stops starting.
+    - name: cnpg.wal
+      rules:
+        - alert: CNPGWalSizeHigh
+          expr: cnpg_collector_pg_wal{value="size"} > 5e9
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: CloudNativePG pg_wal directory is large.
+            description: pg_wal on {{ $labels.namespace }}/{{ $labels.pod }} holds {{ $value | humanize1024 }}B. Check for inactive replication slots or failing WAL archiving.
+        - alert: CNPGInactiveReplicationSlotRetainingWal
+          expr: |
+            cnpg_pg_replication_slots_active == 0
+            and on (namespace, pod, slot_name)
+            cnpg_pg_replication_slots_pg_wal_lsn_diff > 1e9
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: An inactive replication slot is retaining WAL.
+            description: Slot {{ $labels.slot_name }} on {{ $labels.namespace }}/{{ $labels.pod }} is inactive and the primary keeps more than 1 GB of WAL for it. The replica that owns the slot is not streaming (for example diverged after a failover).
+        - alert: CNPGWalArchiveBacklog
+          expr: cnpg_collector_pg_wal_archive_status{value="ready"} > 50
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: CloudNativePG WAL archive backlog.
+            description: "{{ $labels.namespace }}/{{ $labels.pod }} has {{ $value }} WAL files waiting to be archived. Check the object store and the barman-cloud plugin."
