@@ -6,6 +6,10 @@ crds:
 defaultRules:
   disabled:
     TargetDown: true
+    # Fires on any container that briefly hits its CFS quota, regardless of
+    # user impact. Upstream kubernetes-mixin documents it as low-signal;
+    # latency-relevant saturation is covered by dedicated alerts.
+    CPUThrottlingHigh: true
 
 kubeProxy:
   enabled: false
