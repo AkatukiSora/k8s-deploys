@@ -76,7 +76,10 @@ spec:
             description: Both Ceph MGR endpoints are unavailable to Prometheus, or the ceph-mgr job has disappeared.
             dashboard_url: https://grafana.akatuki-host.com/d/ceph-pool-quota/ceph-pool-quota
         - alert: CephMgrMultipleActiveEndpoints
-          expr: sum(up{job="ceph-mgr"}) > 1
+          # A standby MGR still answers HTTP 200 on /metrics, so `up` is 1 for
+          # both endpoints in normal operation. Only the active MGR exports
+          # ceph_health_status, so count the instances that export it.
+          expr: count(count by (instance) (ceph_health_status{job="ceph-mgr"})) > 1
           for: 10m
           labels:
             severity: warning
