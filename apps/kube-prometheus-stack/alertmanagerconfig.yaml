@@ -1,0 +1,93 @@
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: discord
+  namespace: monitoring
+spec:
+  route:
+    receiver: discord-warning
+    groupBy:
+      - alertname
+      - namespace
+      - severity
+    groupWait: 30s
+    groupInterval: 5m
+    repeatInterval: 4h
+    routes:
+      # Heartbeat and inhibitor alerts are never delivered.
+      - receiver: "null"
+        matchers:
+          - name: alertname
+            value: Watchdog|InfoInhibitor
+            matchType: =~
+      - receiver: discord-critical
+        matchers:
+          - name: severity
+            value: critical
+        groupWait: 10s
+        repeatInterval: 30m
+      - receiver: discord-warning
+        matchers:
+          - name: severity
+            value: warning
+        groupWait: 30s
+        repeatInterval: 2h
+      - receiver: discord-info
+        matchers:
+          - name: severity
+            value: info
+        groupWait: 2m
+        repeatInterval: 12h
+  inhibitRules:
+    - sourceMatch:
+        - name: alertname
+          value: CephPoolQuotaUsageCritical
+      targetMatch:
+        - name: alertname
+          value: CephPoolQuotaUsageHigh
+      equal:
+        - name
+    - sourceMatch:
+        - name: severity
+          value: critical
+      targetMatch:
+        - name: severity
+          value: warning
+      equal:
+        - alertname
+        - namespace
+    - sourceMatch:
+        - name: severity
+          value: critical
+      targetMatch:
+        - name: severity
+          value: info
+      equal:
+        - alertname
+        - namespace
+  receivers:
+    - name: "null"
+    - name: discord-critical
+      discordConfigs:
+        - apiURL:
+            name: alertmanager-discord-webhooks
+            key: discord_webhook_critical
+          sendResolved: true
+          title: '[{{ .Status | toUpper }}][critical] {{ .CommonLabels.alertname }}'
+          message: &message '{{ if .CommonAnnotations.summary }}{{ .CommonAnnotations.summary }}{{ else }}Alert fired{{ end }} | ns={{ if .CommonLabels.namespace }}{{ .CommonLabels.namespace }}{{ else }}n/a{{ end }}{{ if .CommonAnnotations.grafana_explore_url }} | explore={{ .CommonAnnotations.grafana_explore_url }}{{ else }} | explore=https://grafana.akatuki-host.com/explore?left=%7B%22datasource%22:%22Prometheus%22,%22queries%22:%5B%7B%22expr%22:%22ALERTS%7Balertname%3D%5C%22{{ .CommonLabels.alertname }}%5C%22,alertstate%3D%5C%22firing%5C%22%7D%22,%22refId%22:%22A%22%7D%5D,%22range%22:%7B%22from%22:%22now-6h%22,%22to%22:%22now%22%7D%7D{{ end }}{{ if .CommonAnnotations.dashboard_url }} | dashboard={{ .CommonAnnotations.dashboard_url }}{{ end }} | grafana=https://grafana.akatuki-host.com/alerting/list{{ if .CommonAnnotations.runbook_url }} | runbook={{ .CommonAnnotations.runbook_url }}{{ end }}'
+    - name: discord-warning
+      discordConfigs:
+        - apiURL:
+            name: alertmanager-discord-webhooks
+            key: discord_webhook_warning
+          sendResolved: true
+          title: '[{{ .Status | toUpper }}][warning] {{ .CommonLabels.alertname }}'
+          message: *message
+    - name: discord-info
+      discordConfigs:
+        - apiURL:
+            name: alertmanager-discord-webhooks
+            key: discord_webhook_info
+          sendResolved: true
+          title: '[{{ .Status | toUpper }}][info] {{ .CommonLabels.alertname }}'
+          message: *message
