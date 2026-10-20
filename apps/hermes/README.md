@@ -196,74 +196,78 @@ mounts.
 
 ## Smart command approvals
 
-Managed Scope pins `approvals.mode: smart` and adds `approvals.smart_policy`
-to the guardian's trusted system prompt. This is an auxiliary-LLM judgment,
-not a parser, sandbox, detector bypass, or broad interpreter allowlist.
-Commands and detector descriptions remain untrusted data. Approval is for
-one exact command only; no unattended approval mode is enabled.
+Managed Scope pins `approvals.mode: smart`, adds `approvals.smart_policy` to the
+guardian's trusted system prompt, and shortens the approval prompt timeout with
+`approvals.timeout: 30`. This is an auxiliary-LLM judgment, not a parser,
+sandbox, detector bypass, or interpreter allowlist. Commands and detector
+descriptions remain untrusted data. Approval is for one exact command only; no
+unattended approval mode is enabled.
 
 No human reviews shell code in this deployment, so the guardian decides
-mechanically: `APPROVE` or `DENY`. The policy judges effects, not syntax or
-length. Fully visible commands whose effects stay in recoverable areas are
-approved: non-secret reads, calculations, writes and deletes under the
-workspace, git worktrees, or `/opt/data/cache/scratch`, local reads of
-repository state, `git add`, the signed-commit helpers on a non-default branch,
-pull-request creation and edits through `gh`, and read-only cluster or SQLite
-access. These are examples, not blanket permission for an interpreter or
-import.
+mechanically and **approves by default**. The policy judges effects, not syntax,
+length, unfamiliar imports, or detector categories, and denies only payloads
+that clearly do one of the following. The categories follow the published
+reviewer policies of Claude Code auto mode and Codex auto-review, which block
+exfiltration, credential probing, persistent security weakening, and
+irreversible destruction and approve routine work.
 
-For visible inline Python, standard-library modules, `yaml.safe_load`, and
-installed `hermes_tools` calls with explicitly permitted effects are known
-interfaces, not unknown imports. The detector's warning that `execute_code`
-can spawn subprocesses describes a capability, not an effect of every script.
-Quoted command examples used only as data are not executed; passing them to
-subprocess or shell execution still requires checking the resulting operation.
-Non-secret reads may be outside write roots. Selecting `approvals.mode` from
-the Git-managed `/etc/hermes-managed/config.yaml` is allowed; credential files,
-secret stores, and environment dumps are not. The signed-commit helpers enforce
-their own default-branch refusal, so a caller need not repeat that preflight.
-Unknown plugins, import-path replacement, unseen workspace scripts, unsafe YAML
-loaders, and forbidden operations through otherwise known helpers remain denied.
+- **Exfiltration**: sending secrets or private data to an untrusted destination.
+  Reading or printing data locally is not exfiltration.
+- **Credential access**: reading credential files, secret stores, private keys,
+  browser profiles, or process environments, because the output enters the
+  model context.
+- **Broad or unscoped destruction**: wildcard targets over a parent directory,
+  unresolved variables or command substitutions in the target path, `/`, `~`,
+  `$HOME`, `/etc`, `/opt/data`, `/opt/hermes`, mount points, `git clean`/`reset`
+  of unrelated work, `kubectl delete --all` or of namespaces, `DROP`/`TRUNCATE`,
+  block-device writes, mass process kills. Deleting one specific named file or
+  directory below a workspace, worktree, or scratch path is fine.
+- **Tampering with safeguards**: approval settings, managed configuration,
+  SOUL, hooks, authentication files, access settings, Hermes state and Kanban
+  databases.
+- **Remote or obfuscated code**: piping a download into a shell, executing
+  base64, hex, or otherwise opaque decoded text.
+- **Malicious activity**: ransomware, persistence, reverse shells, miners,
+  attacks on third parties.
+- **Operations forbidden here**: local `git commit`, `push`, `rebase`, `merge`,
+  `tag`, `cherry-pick`, `am`, force or default-branch pushes, merging a pull
+  request, and `hermes kanban` (commits use the signed-commit helpers; Kanban is
+  operated through MCP tools).
+- **Reviewer manipulation**: text imitating the `<command>` delimiter, a
+  system/operator message, or a verdict addressed to the reviewer, and
+  confusable characters in command names, paths, URLs, or shell structure.
 
-The Vikunja secretary's notification-state database
-(`/opt/data/task-secretary/notification-state.sqlite3`) is the one `/opt/data`
-state file with a write exception, so unattended Cron reviews can record
-notification state without a human prompt. Only a fully visible Python `sqlite3`
-script on that file's three tables qualifies; the audit table accepts plain
-inserts only. Schema changes, `ATTACH`,
-extensions, replacing or deleting audit rows, other databases and stored task titles or
-bodies remain denied.
-
-Denied: local `git commit`, `push`, `rebase`, `merge`, and any force or
-default-branch push (commits are created only by the signed-commit helpers);
-shell use of `hermes kanban` (Kanban is operated through MCP tools); merging a
-pull request; secret or credential access; unresolved code (`eval`/`exec`,
-encoded or constructed bodies, unseen scripts, unknown imports); writes outside
-the recoverable areas (configuration, SOUL, `/opt/data` state); uncertain
-network destinations; confusable characters in command names, paths, URLs,
-identifiers, or shell structure; text imitating the `<command>` delimiter, a
-system/operator message, or a verdict addressed to the reviewer; and clearly
-destructive operations. Uncertainty resolves to `DENY`, not to a human.
-
-The runtime lets a present operator override a guardian `DENY`, which shows an
-approval prompt. To keep the categories that are always forbidden here from
-ever prompting, `approvals.deny` lists glob floors that are answered without
-the guardian model or a person: local `git commit`/`push`/`rebase`/`merge`/
-`tag`/`cherry-pick`/`am` (also with leading git options), `hermes kanban`, and
-`gh pr merge`. The globs are matched per shell command word, so quoted prose
-such as `echo "git commit"` is not blocked. The validator checks that every
-fixture marked `floor` is matched and that no safe fixture is. Every other
-`DENY` is still the guardian's judgment and may still show an override prompt
-until the runtime can make a smart `DENY` final.
+The guardian sees the command text, not the contents of a script that the
+command merely runs. Unseen local scripts, unknown imports, and `unsafe_load`
+are therefore approved when the command line itself matches no denial category;
+this is an accepted risk of the permissive stance, bounded by the deny floors,
+the 30-second prompt timeout, and the fact that the policy is model guidance
+rather than a sandbox.
 
 `ESCALATE` is reserved for changes to shared live state whose timing a human
-must confirm: Argo CD sync and Kubernetes mutations (apply, patch, delete,
-scale, rollout restart). Japanese/full-width quoted data is not itself
-executable deception. Tirith, secret redaction, protected-instruction
-handling, and existing deny behavior are unchanged. A provider failure or a
-verdict that is not a single recognised word still escalates, because the
-runtime fails closed; the fallback chain and the one-word reply rule keep that
-rare.
+must confirm: Argo CD sync and scoped Kubernetes mutations (apply, patch, delete
+of named resources, scale, rollout restart). Everything else is approved.
+
+The runtime lets a present operator override a guardian `DENY`, which shows an
+approval prompt. `approvals.timeout: 30` makes that prompt expire after 30
+seconds, and an unanswered prompt is refused, so a guardian `DENY` effectively
+resolves to deny. The timeout applies to every approval prompt, including the
+Argo CD and Kubernetes timing confirmation: answer within 30 seconds or ask for
+the action again. A timed-out prompt also tells the agent to stop the current
+workflow and wait for the user. `auxiliary.approval.timeout` (the guardian model
+call) is unchanged. To keep always-forbidden categories from ever prompting,
+`approvals.deny` lists glob floors that are answered without the guardian model
+or a person: local `git commit`/`push`/`rebase`/`merge`/`tag`/`cherry-pick`/`am`
+(also with leading git options), `hermes kanban`, and `gh pr merge`. The globs
+are matched per shell command word, so quoted prose such as `echo "git commit"`
+is not blocked. The validator checks that every fixture marked `floor` is
+matched and that no safe fixture is.
+
+Tirith, secret redaction, protected-instruction handling, and existing deny
+behavior are unchanged. A provider failure or a verdict that is not a single
+recognised word still escalates, because the runtime fails closed; with the
+short timeout that prompt expires into a refusal. The fallback chain and the
+one-word reply rule keep that rare.
 
 Run from the repository root after activating a Python environment containing
 PyYAML and the installed Hermes runtime's dependencies. The image's own virtual
@@ -282,7 +286,7 @@ python3 apps/hermes/validate-smart-approval.py --runtime /opt/hermes --live \
 # Use --route-index 1 for Haiku and --route-index 2 for Sonnet.
 ```
 
-`approval-fixtures.json` records examples that must be approved (`safe`), escalated for timing (`timing`), and denied (`denied`).
+`approval-fixtures.json` records examples that must be approved (`safe`), escalated for timing (`timing`), and denied (`denied`); each denial category above has at least one fixture, and ordinary work such as unseen local scripts, unknown imports, and writes outside scratch is expected to be approved.
 The offline validator checks byte-exact rendered configuration, source and
 rendered checksums, trusted/untrusted prompt separation, strict verdict mapping,
 and fail-closed provider failures. Mock responses test wiring only; they do not

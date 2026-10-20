@@ -44,7 +44,9 @@ def static_checks(kubectl):
     ).stdout)
     approvals = config["approvals"]
     assert approvals["mode"] == "smart"
-    assert set(approvals) == {"mode", "smart_policy", "deny"}, "No approval bypass keys"
+    assert set(approvals) == {"mode", "smart_policy", "deny", "timeout"}, "No approval bypass keys"
+    timeout = approvals["timeout"]
+    assert type(timeout) is int and 5 <= timeout <= 120, "Prompt timeout must be short (5-120 s)"
     assert all(isinstance(p, str) and p.strip() for p in approvals["deny"]) and approvals["deny"]
     assert isinstance(approvals["smart_policy"], str) and approvals["smart_policy"].strip()
     chain = config["auxiliary"]["approval"]["fallback_chain"]
