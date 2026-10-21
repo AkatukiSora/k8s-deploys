@@ -1,9 +1,10 @@
 redis:
   enabled: true
-# Temporarily scaled to zero while the October 2026 critical PHP RCE fix is
-# unavailable in the official nextcloud image. Restore to 2 once the image
-# ships PHP >= 8.2.35 / 8.3.36 / 8.4.27 / 8.5.12.
-replicaCount: 0
+image:
+  # 35.0.2-apache rebuilt on 2026-10-21 with PHP 8.5.12, which contains the
+  # fix for the October 2026 critical PHP vulnerabilities.
+  tag: 35.0.2-apache
+replicaCount: 2
 topologySpreadConstraints:
   - maxSkew: 1
     topologyKey: kubernetes.io/hostname
