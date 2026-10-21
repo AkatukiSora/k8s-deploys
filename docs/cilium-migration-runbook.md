@@ -49,9 +49,9 @@ NetworkPolicy の強制と Pod 間通信の暗号化（WireGuard）を有効に�
    移行中のノード再起動に影響するため、先に揃えておくことが望ましい。
 3. KubePrism（`localhost:7445`）が有効であることを確認する（Talos 1.6 以降は既定で有効）。
 4. 移行する Pod の CIDR が `10.245.0.0/16` と衝突しないことを確認する（社内ネットワークの他のレンジとも）。
-5. Nextcloud の `trusted_proxies`（`apps/nextcloud/values.yaml`）は `10.244.0.0/16` のみを許可している。
-   cloudflared が Cilium の Pod CIDR 上に移ると、プロキシとして信頼されなくなる。
-   **ノードを移行する前に** `10.245.0.0/16` を追加する変更を先に反映すること。
+5. Nextcloud の `trusted_proxies`（`apps/nextcloud/values.yaml`）に `10.245.0.0/16` が含まれていることを
+   確認する（Flannel の `10.244.0.0/16` と併記している）。cloudflared が Cilium の Pod CIDR 上に移ると、
+   含まれていない場合はプロキシとして信頼されなくなる。Flannel の撤去後に `10.244.0.0/16` を削除できる。
 6. ステートフルなワークロード（CNPG、MongoDB、Ceph RBD を使う Pod）のレプリカ数と
    PodDisruptionBudget を確認する。`w4` は MongoDB 専用（AVX 必須）で、他ノードへ再配置できない。
 7. 管理経路を確保する。`talosctl` と `kubectl` を別の端末から使える状態にしておく。
