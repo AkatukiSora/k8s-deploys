@@ -155,9 +155,10 @@ routing mode を tunnel から native に切り替える際は、datapath の変
 
 ## 段階 5: Flannel を撤去する
 
-1. Talos の machine config で CNI を `none` にする。
-   - Talos v1.13 以前: `cluster.network.cni.name: none`
-   - Talos v1.14 以降: `KubeFlannelCNIConfig` に `$patch: delete`
+1. Talos の machine config で CNI を `none` にする（`talos/patches/roles/controlplane.yaml`）。
+   - Talos v1.13 以前: `cluster.network.cni.name: none`（リポジトリの記述形式）
+   - Talos v1.14 以降: `KubeFlannelCNIConfig` に `$patch: delete`（形式の見直しが必要。`talos/README.md` 参照）
+   - 生成と適用: `mise run talos-generate -- <node>` の出力を、control plane ノードへ 1 台ずつ適用する。
    - 先に `none` にしないと、control plane の再起動時に Talos が Flannel を再作成する可能性がある。
 2. Flannel のリソース（`kube-system` の DaemonSet `kube-flannel`、ConfigMap `kube-flannel-cfg`、
    ServiceAccount、ClusterRole/ClusterRoleBinding）を削除する。

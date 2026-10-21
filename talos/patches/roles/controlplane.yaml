@@ -1,4 +1,10 @@
 cluster:
+  network:
+    # Cilium is the CNI. Apply this only after every node has been migrated
+    # (docs/cilium-migration-runbook.md, stage 5): it stops Talos from managing
+    # Flannel but does not remove an existing Flannel installation.
+    cni:
+      name: none
   apiServer:
     extraArgs:
       oidc-client-id: kubernetes-cluster

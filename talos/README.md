@@ -20,6 +20,20 @@ Control Planeにはルールを追加しない。
 `try`相当の確認を行い、疎通とループ停止を確認してから一台ずつ順序立てて展開する。
 問題時はRoutingRuleConfigをGitから戻して再生成・同期し、元のルーティングへ戻す。
 
+## CNI
+
+`patches/roles/controlplane.yaml`は`cluster.network.cni.name: none`を設定し、Talosによる
+Flannelの管理を止める。CNIはCiliumが担う（`apps/cilium`）。kube-proxyはTalosが引き続き管理する。
+
+この設定は、Ciliumへの移行が全ノードで完了した後（`docs/cilium-migration-runbook.md`の段階5）に
+適用する。先に適用してもTalosは既存のFlannelを削除しないが、移行中の構成を変える操作は
+ランブックの順序に従うこと。
+
+この記述形式はTalos v1.13以前のものである。Talos v1.14以降は`KubeFlannelCNIConfig`ドキュメントに
+`$patch: delete`を指定する形式が案内されており、このリポジトリで固定している`talosctl`
+（`mise.toml`）はこのドキュメント種別を扱えない。ノードのTalosバージョンを揃えた後に、
+形式を見直すこと。
+
 ## MongoDB worker
 
 `w4` は Proxmox の `x86-64-v3` CPU type を前提とする MongoDB 専用 worker
