@@ -1,22 +1,27 @@
-machine:
-  network:
-    interfaces:
-      - interface: ens18
-        mtu: 1450
-        addresses:
-          - 10.0.40.11/24
-        routes:
-          - network: 0.0.0.0/0
-            gateway: 10.0.40.1
-      - interface: ens19
-        mtu: 1500
-        dhcp: true
-      - interface: ens20
-        mtu: 9000
-        addresses:
-          - 192.168.8.11/24
-  install:
-    disk: /dev/sda
+apiVersion: v1alpha1
+kind: LinkConfig
+name: ens18
+mtu: 1450
+addresses:
+  - address: 10.0.40.11/24
+routes:
+  - gateway: 10.0.40.1
+---
+apiVersion: v1alpha1
+kind: LinkConfig
+name: ens19
+mtu: 1500
+---
+apiVersion: v1alpha1
+kind: DHCPv4Config
+name: ens19
+---
+apiVersion: v1alpha1
+kind: LinkConfig
+name: ens20
+mtu: 9000
+addresses:
+  - address: 192.168.8.11/24
 ---
 apiVersion: v1alpha1
 kind: HostnameConfig

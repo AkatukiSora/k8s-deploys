@@ -1,24 +1,60 @@
+apiVersion: v1alpha1
+kind: UnattendedInstallConfig
+installer:
+  image: factory.talos.dev/nocloud-installer-secureboot/ad9edf2df38e7defa0b46ffe06d86398796e9d0340f049b69a34d4a3e1208eac:v1.13.8
+provisioning:
+  diskSelector:
+    match: disk.dev_path == "/dev/sda"
+---
+# OIDC login through Authentik. Replaces the former kube-apiserver --oidc-* flags:
+# the username prefix is the issuer URL followed by '#', which is the flag's default.
+apiVersion: v1alpha1
+kind: KubeAuthenticationConfig
+configuration:
+  anonymous:
+    enabled: true
+    conditions:
+      - path: /livez
+      - path: /readyz
+      - path: /healthz
+  jwt:
+    - issuer:
+        url: https://auth.akatuki-host.com/application/o/kubernetes/
+        audiences:
+          - kubernetes-cluster
+      claimMappings:
+        username:
+          claim: username
+          prefix: "https://auth.akatuki-host.com/application/o/kubernetes/#"
+        groups:
+          claim: groups
+          prefix: "oidc:"
+---
+apiVersion: v1alpha1
+kind: KubeControllerManagerConfig
+extraArgs:
+  bind-address: 0.0.0.0
+---
+apiVersion: v1alpha1
+kind: KubeSchedulerConfig
+extraArgs:
+  bind-address: 0.0.0.0
+---
+apiVersion: v1alpha1
+kind: Layer2VIPConfig
+name: 10.0.40.99
+link: ens18
+---
+# etcd has no dedicated document in Talos 1.14, so its arguments stay in the v1alpha1 document.
 cluster:
-  apiServer:
-    extraArgs:
-      oidc-client-id: kubernetes-cluster
-      oidc-issuer-url: https://auth.akatuki-host.com/application/o/kubernetes/
-      oidc-username-claim: username
-      oidc-groups-claim: groups
-      oidc-groups-prefix: "oidc:"
-  controllerManager:
-    extraArgs:
-      bind-address: 0.0.0.0
-  scheduler:
-    extraArgs:
-      bind-address: 0.0.0.0
   etcd:
     extraArgs:
       listen-metrics-urls: http://0.0.0.0:2381
       backend-batch-interval: "100ms"
       backend-batch-limit: "10000"
 ---
+# Stop Talos from deploying Flannel. Applied only after every node has moved to Cilium
+# (docs/cilium-migration-runbook.md, stage 5). This does not remove an existing Flannel.
 apiVersion: v1alpha1
-kind: Layer2VIPConfig
-name: 10.0.40.99
-link: ens18
+kind: KubeFlannelCNIConfig
+$patch: delete
