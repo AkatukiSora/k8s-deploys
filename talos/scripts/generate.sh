@@ -36,10 +36,20 @@ command -v talosctl >/dev/null 2>&1 || fail "required command is not available: 
 
 mkdir -p "$output_dir"
 
+# The version contract selects the configuration format that talosctl generates.
+# Control-plane nodes run Talos 1.14 and use its multi-document format. Workers
+# still include nodes on Talos 1.13, which cannot parse 1.14-only documents, so
+# they keep the 1.13 contract until every worker is upgraded.
+if [[ "$node" == c* ]]; then
+  talos_version=v1.14
+else
+  talos_version=v1.13.6
+fi
+
 args=(
   gen config "k8s-soralab" "https://c.k8s.internal:6443"
   --with-secrets "$secrets_file"
-  --talos-version v1.13.6
+  --talos-version "$talos_version"
   --kubernetes-version v1.36.2
   --with-docs=false
   --with-examples=false

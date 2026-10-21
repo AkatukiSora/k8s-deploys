@@ -1,7 +1,3 @@
-machine:
-  install:
-    disk: /dev/sda
----
 apiVersion: v1alpha1
 kind: LinkConfig
 name: ens18
