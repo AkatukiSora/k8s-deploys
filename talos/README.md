@@ -2,10 +2,10 @@
 
 このディレクトリはTalos MachineConfigのSource of Truthであり、生成済みMachineConfigは保持しない。
 
-- `patches/common.yaml`: 全ノード共通の installer image と DNS Patch
-- `patches/roles/controlplane.yaml`: Control Plane共通設定、OIDC、Layer 2 VIP Patch
-- `patches/roles/worker.yaml`: Worker共通の RoutingRuleConfig Patch
-- `patches/nodes`: ノード固有の hostname、ネットワーク、インストールディスク Patch
+- `patches/common.yaml`: 全ノード共通の DNS Patch（`ResolverConfig`）
+- `patches/roles/controlplane.yaml`: Control Plane共通設定（installer image、OIDC、controller-manager・scheduler、etcd、Layer 2 VIP）
+- `patches/roles/worker.yaml`: Worker共通の installer image と RoutingRuleConfig Patch
+- `patches/nodes`: ノード固有の hostname、ネットワーク（`LinkConfig`）、インストールディスク Patch
 - `secrets`: 1Passwordに保管する平文Secretの扱いを説明する。平文は保存しない
 
 Workerの`RoutingRuleConfig`はMetalLB VIP範囲を`ens20`（VLAN 10直結）と
@@ -19,6 +19,28 @@ Control Planeにはルールを追加しない。
 同時に更新すること。適用はまず一台で
 `try`相当の確認を行い、疎通とループ停止を確認してから一台ずつ順序立てて展開する。
 問題時はRoutingRuleConfigをGitから戻して再生成・同期し、元のルーティングへ戻す。
+
+## 設定の記述形式とバージョン契約
+
+`scripts/generate.sh`は、ノードの役割ごとに`talosctl gen config`の`--talos-version`（バージョン契約）を切り替える。
+契約により、生成される MachineConfig の形式が決まる。
+
+- **Control Plane（c1〜c3）: `v1.14`。** Talos 1.14 のマルチドキュメント形式で生成される。
+  Patch は`UnattendedInstallConfig`、`KubeAuthenticationConfig`、`KubeControllerManagerConfig`、
+  `KubeSchedulerConfig`、`Layer2VIPConfig`、`LinkConfig`、`DHCPv4Config`、`ResolverConfig`で記述する。
+  1.14 の契約では、従来の`cluster.apiServer`・`cluster.controllerManager`・`cluster.scheduler`・
+  `machine.install`・`machine.network`を同じ Patch に書くと検証エラーになる。
+- **Worker（w1〜w4）: `v1.13.6`。** 一部の Worker が Talos 1.13 のため、1.14 専用のドキュメントは使えない。
+  Worker の Patch（`patches/roles/worker.yaml`と`patches/nodes/w*.yaml`）は従来の形式（`machine.install`、
+  `machine.network`など）のまま維持する。全 Worker を Talos 1.14 に上げて適用する際に、契約を`v1.14`に揃え、
+  新形式のドキュメントへ移す。
+- **従来の形式のまま残るもの:** `cluster.etcd.extraArgs`（Talos 1.14 に etcd 用のドキュメントがない）。
+
+kube-apiserver の OIDC は、従来の`--oidc-*`フラグではなく`KubeAuthenticationConfig`の JWT 認証で設定する。
+ユーザー名の接頭辞は、従来のフラグの既定値と同じ「発行者 URL + `#`」にしている。グループの接頭辞は`oidc:`である。
+
+`UnattendedInstallConfig`の installer image は、従来の`machine.install.image`と同じ値を引き継いでいる。
+この値（`v1.13.8`）は稼働中のノードのバージョンより古い。image の更新は別の変更として行うこと。
 
 ## MongoDB worker
 
