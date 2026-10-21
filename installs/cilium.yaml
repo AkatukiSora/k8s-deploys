@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cilium
+  namespace: argocd
+spec:
+  destination:
+    namespace: kube-system
+    server: https://kubernetes.default.svc
+  sources:
+    - repoURL: https://helm.cilium.io/
+      targetRevision: 1.20.3
+      chart: cilium
+      helm:
+        # Migration stage: keep values-migration.yaml listed until every node
+        # has been moved from Flannel. Remove it for the final stage.
+        # See docs/cilium-migration-runbook.md.
+        valueFiles:
+          - $repo/apps/cilium/values.yaml
+          - $repo/apps/cilium/values-migration.yaml
+    - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
+      targetRevision: master
+      ref: repo
+
+  project: default
+  # Intentionally no `automated` policy: replacing the CNI is a staged, manual
+  # operation. Synchronize each stage by hand after its pre-checks pass.
+  syncPolicy:
+    syncOptions:
+      - ServerSideApply=true
