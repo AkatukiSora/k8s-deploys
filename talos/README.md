@@ -43,7 +43,7 @@ Proxmox VM設定でもQEMU Guest Agentを有効にする。VirtIO NIC・ディ�
 
 1Passwordからダウンロードした同一クラスタの`secrets.yaml`をGit除外済みの`talos/secrets/secret.yaml`またはリポジトリ外へ置く。従来の`talos/secrets/secrets.yaml`もGit除外されるが、新規の配置には使用しない。
 
-`mise run talos-validate`は、Secretがある場合に各Patchを`talosctl gen config`で一時ディレクトリへレンダリングする。生成済みMachineConfigはGitへ保存しない。
+生成済みMachineConfigはGitへ保存しない。
 
 特定ノードの適用用 MachineConfig は以下で生成する。出力先は Git ignore 済みの
 `talos/generated/<node>.yaml` であり、既存クラスタの `secret.yaml` を使用する。
@@ -59,11 +59,3 @@ TALOS_SECRETS_FILE=/secure/path/secrets.yaml \
 TALOS_OUTPUT_DIR=/secure/output \
 mise run talos-generate -- w4
 ```
-
-## Validate
-
-```bash
-TALOS_SECRETS_FILE=/secure/path/secrets.yaml mise run talos-validate
-```
-
-検証は共通・ロール・ノードPatch、VIP、ネットワーク設定、Git追跡・ignoreを静的に確認する。Secretが利用可能な場合は、Talosによる全ノードおよび`talosconfig`のレンダリングも確認する。実クラスタへ接続・適用・bootstrap・reset・wipeは行わない。

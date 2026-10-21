@@ -104,7 +104,7 @@ Proxmox VM に `ens20` を追加し、worker では上表の MAC、VLAN tag `10`
 
 1. Proxmox/UniFi で VLAN 10、worker NIC、`.101/.102` を設定し、既存共有 peer が維持されることを確認します。
 2. Proxmox node1/node2 の Controller を設定し、SDN で Apply します。
-3. `TALOS_SECRETS_FILE=/secure/path/secrets.yaml mise run talos-validate` を実行します。
+3. `TALOS_SECRETS_FILE=/secure/path/secrets.yaml mise run talos-generate -- w1` を実行し、Talos Patchがレンダリングできることを確認します。
 4. Argo CD の差分で6つのProxmox peer、3つのUniFi peerとadvertisementの peer listを確認して同期します。
 5. MetalLB と各 Proxmox worker peerの6セッション、およびUniFi直結3セッションがEstablishedになることを確認します。
 6. Proxmox が `10.127.0.0/24` 配下の経路を受信し、UniFi へ再広告することを確認します。
