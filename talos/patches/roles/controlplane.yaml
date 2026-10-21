@@ -52,3 +52,9 @@ cluster:
       listen-metrics-urls: http://0.0.0.0:2381
       backend-batch-interval: "100ms"
       backend-batch-limit: "10000"
+---
+# Stop Talos from deploying Flannel. Applied only after every node has moved to Cilium
+# (docs/cilium-migration-runbook.md, stage 5). This does not remove an existing Flannel.
+apiVersion: v1alpha1
+kind: KubeFlannelCNIConfig
+$patch: delete
