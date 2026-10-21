@@ -1,6 +1,8 @@
 machine:
   install:
     image: factory.talos.dev/nocloud-installer-secureboot/ad9edf2df38e7defa0b46ffe06d86398796e9d0340f049b69a34d4a3e1208eac:v1.13.8
-  network:
-    nameservers:
-      - 10.0.40.2
+---
+apiVersion: v1alpha1
+kind: ResolverConfig
+nameservers:
+  - address: 10.0.40.2
