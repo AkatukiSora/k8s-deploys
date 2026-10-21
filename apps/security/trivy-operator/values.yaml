@@ -3,8 +3,16 @@ trivy:
   useBuiltinRegoPolicies: "false"
   useEmbeddedRegoPolicies: "true"
   externalRegoPoliciesEnabled: false
+  # The built-in Trivy server keeps the vulnerability database in an emptyDir.
+  # The database is re-downloaded when the server Pod restarts, so no PVC is needed.
+  storageClassEnabled: false
 
 operator:
+  # Scan jobs query a single in-cluster Trivy server for vulnerability data instead
+  # of each downloading and unpacking the database into node-local storage.
+  # Standalone mode also makes the containers of one scan Pod contend for the same
+  # cache lock, which fails scans of multi-container Pods.
+  builtInTrivyServer: true
   # Temporary storage-pressure mitigation. Restore concurrency after storage replacement.
   scanJobsConcurrentLimit: 1
   metricsFindingsEnabled: true
