@@ -1,6 +1,9 @@
 redis:
   enabled: true
-replicaCount: 2
+# Temporarily scaled to zero while the October 2026 critical PHP RCE fix is
+# unavailable in the official nextcloud image. Restore to 2 once the image
+# ships PHP >= 8.2.35 / 8.3.36 / 8.4.27 / 8.5.12.
+replicaCount: 0
 topologySpreadConstraints:
   - maxSkew: 1
     topologyKey: kubernetes.io/hostname
