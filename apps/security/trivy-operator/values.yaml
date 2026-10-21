@@ -15,6 +15,9 @@ operator:
   builtInTrivyServer: true
   # Temporary storage-pressure mitigation. Restore concurrency after storage replacement.
   scanJobsConcurrentLimit: 1
+  # Wait before retrying a failed scan job, so a persistently failing scan cannot
+  # run back-to-back on a node (the chart default is 30s).
+  scanJobsRetryDelay: 30m
   metricsFindingsEnabled: true
   metricsVulnIdEnabled: false
   metricsConfigAuditInfo: true
