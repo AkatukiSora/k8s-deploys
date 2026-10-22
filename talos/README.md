@@ -22,25 +22,24 @@ Control Planeにはルールを追加しない。
 
 ## 設定の記述形式とバージョン契約
 
-`scripts/generate.sh`は、ノードの役割ごとに`talosctl gen config`の`--talos-version`（バージョン契約）を切り替える。
-契約により、生成される MachineConfig の形式が決まる。
+`scripts/generate.sh`は、全ノードを`talosctl gen config --talos-version v1.14`（バージョン契約）で生成する。
+契約により、生成される MachineConfig の形式が Talos 1.14 のマルチドキュメント形式になる。
+全ノードが Talos 1.14 で動いていることが前提である。
 
-- **Control Plane（c1〜c3）: `v1.14`。** Talos 1.14 のマルチドキュメント形式で生成される。
-  Patch は`UnattendedInstallConfig`、`KubeAuthenticationConfig`、`KubeControllerManagerConfig`、
-  `KubeSchedulerConfig`、`Layer2VIPConfig`、`LinkConfig`、`DHCPv4Config`、`ResolverConfig`で記述する。
-  1.14 の契約では、従来の`cluster.apiServer`・`cluster.controllerManager`・`cluster.scheduler`・
-  `machine.install`・`machine.network`を同じ Patch に書くと検証エラーになる。
-- **Worker（w1〜w4）: `v1.13.6`。** 一部の Worker が Talos 1.13 のため、1.14 専用のドキュメントは使えない。
-  Worker の Patch（`patches/roles/worker.yaml`と`patches/nodes/w*.yaml`）は従来の形式（`machine.install`、
-  `machine.network`など）のまま維持する。全 Worker を Talos 1.14 に上げて適用する際に、契約を`v1.14`に揃え、
-  新形式のドキュメントへ移す。
+- Patch は専用のドキュメントで記述する。
+  - 共通: `UnattendedInstallConfig`（installer image とインストール先）、`ResolverConfig`
+  - Control Plane: `KubeAuthenticationConfig`、`KubeControllerManagerConfig`、`KubeSchedulerConfig`、`Layer2VIPConfig`
+  - Worker: `RoutingRuleConfig`
+  - ノード固有: `LinkConfig`、`DHCPv4Config`、`HostnameConfig`、`KubeNodeConfig`（w4 のノードラベル）
+- 1.14 の契約では、従来の`machine.install`・`machine.network`・`cluster.apiServer`・`cluster.controllerManager`・
+  `cluster.scheduler`を同じ Patch に書くと検証エラーになる。
 - **従来の形式のまま残るもの:** `cluster.etcd.extraArgs`（Talos 1.14 に etcd 用のドキュメントがない）。
 
 kube-apiserver の OIDC は、従来の`--oidc-*`フラグではなく`KubeAuthenticationConfig`の JWT 認証で設定する。
 ユーザー名の接頭辞は、従来のフラグの既定値と同じ「発行者 URL + `#`」にしている。グループの接頭辞は`oidc:`である。
 
-`UnattendedInstallConfig`の installer image は、従来の`machine.install.image`と同じ値を引き継いでいる。
-この値（`v1.13.8`）は稼働中のノードのバージョンより古い。image の更新は別の変更として行うこと。
+installer image は`patches/common.yaml`の`UnattendedInstallConfig`に1か所だけ書く。
+ノードの Talos をアップグレードする際は、この image のタグを実際のバージョンに合わせて更新する。
 
 ## CNI
 
