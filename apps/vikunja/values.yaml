@@ -14,6 +14,30 @@ vikunja:
     # Vikunja 2.6.0; chart v2.3.0 declares the matching appVersion.
     tag: 2.6.0
 
+  # The chart's default probes use timeoutSeconds: 1 and no startup probe.
+  # Vikunja runs database migrations at start-up, and on a busy node a 1 s
+  # timeout turns a slow response into a restart loop (each restart re-runs
+  # the migrations). The startup probe gives start-up up to 5 minutes before
+  # liveness takes over; liveness/readiness tolerate slow responses.
+  probes:
+    startup:
+      enabled: true
+      custom: true
+      spec:
+        httpGet:
+          path: /api/v1/info
+          port: http
+        periodSeconds: 5
+        timeoutSeconds: 5
+        failureThreshold: 60
+    liveness:
+      spec:
+        timeoutSeconds: 5
+        failureThreshold: 6
+    readiness:
+      spec:
+        timeoutSeconds: 5
+
   persistence:
     data:
       enabled: true
