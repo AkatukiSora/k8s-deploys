@@ -1,26 +1,30 @@
-machine:
-  kubelet:
-    extraArgs:
-      node-labels: "workload.sora-lab.dev/mongodb-avx2=true"
-  network:
-    interfaces:
-      - interface: ens18
-        mtu: 1450
-        addresses:
-          - 10.0.40.54/24
-        routes:
-          - network: 0.0.0.0/0
-            gateway: 10.0.40.1
-      - interface: ens19
-        mtu: 9000
-        addresses:
-          - 192.168.8.54/24
-      - interface: ens20
-        mtu: 9000
-        addresses:
-          - 192.168.10.54/24
-  install:
-    disk: /dev/sda
+apiVersion: v1alpha1
+kind: KubeNodeConfig
+labels:
+  workload.sora-lab.dev/mongodb-avx2: "true"
+---
+apiVersion: v1alpha1
+kind: LinkConfig
+name: ens18
+mtu: 1450
+addresses:
+  - address: 10.0.40.54/24
+routes:
+  - gateway: 10.0.40.1
+---
+apiVersion: v1alpha1
+kind: LinkConfig
+name: ens19
+mtu: 9000
+addresses:
+  - address: 192.168.8.54/24
+---
+apiVersion: v1alpha1
+kind: LinkConfig
+name: ens20
+mtu: 9000
+addresses:
+  - address: 192.168.10.54/24
 ---
 apiVersion: v1alpha1
 kind: HostnameConfig
