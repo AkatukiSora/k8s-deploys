@@ -104,3 +104,27 @@ resource "cloudflare_zero_trust_device_default_profile" "default" {
     mode = "warp"
   }
 }
+
+# Cloudflare One Client の既定 Local Domain Fallback には `internal` が含まれ、
+# `*.internal` の問い合わせは Gateway ではなく端末のローカル resolver に送られる。
+# Kubernetes API の `c.k8s.internal` を Gateway 経由で解決できるよう、この profile
+# では `internal` だけを除外し、それ以外は Cloudflare の既定値を維持する。
+resource "cloudflare_zero_trust_device_custom_profile_local_domain_fallback" "onboarding" {
+  account_id = local.account_id
+  policy_id  = cloudflare_zero_trust_device_custom_profile.onboarding.id
+  domains = [
+    { suffix = "intranet" },
+    { suffix = "private" },
+    { suffix = "localdomain" },
+    { suffix = "domain" },
+    { suffix = "lan" },
+    { suffix = "home" },
+    { suffix = "host" },
+    { suffix = "corp" },
+    { suffix = "local" },
+    { suffix = "localhost" },
+    { suffix = "home.arpa" },
+    { suffix = "invalid" },
+    { suffix = "test" },
+  ]
+}
