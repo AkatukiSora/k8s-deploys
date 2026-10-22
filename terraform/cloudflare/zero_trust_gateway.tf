@@ -88,3 +88,20 @@ resource "cloudflare_zero_trust_organization" "account" {
     ignore_changes = [service_token_inactivity]
   }
 }
+
+# Kubernetes API の VIP (Talos Layer2 VIP) を private DNS 名へ固定する。
+# 応答先 10.0.40.99 は Tunnel route 10.0.0.0/16 に含まれるため、接続は
+# Cloudflare One Client -> Cloudflare -> home-node1 Tunnel の経路を通る。
+resource "cloudflare_zero_trust_gateway_policy" "k8s_api_dns_override" {
+  account_id  = local.account_id
+  action      = "override"
+  description = "Resolve the private Kubernetes API name to its control-plane VIP."
+  enabled     = true
+  filters     = ["dns"]
+  name        = "k8s api private dns override"
+  precedence  = 100
+  traffic     = "any(dns.domains[*] == \"c.k8s.internal\")"
+  rule_settings = {
+    override_ips = ["10.0.40.99"]
+  }
+}
