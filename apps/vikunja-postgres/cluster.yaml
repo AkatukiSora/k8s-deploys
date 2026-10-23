@@ -4,8 +4,17 @@ metadata:
   name: vikunja-postgres
   namespace: vikunja
 spec:
-  instances: 1
+  instances: 3
   primaryUpdateStrategy: unsupervised
+  affinity:
+    enablePodAntiAffinity: true
+    topologyKey: kubernetes.io/hostname
+    podAntiAffinityType: required
+  postgresql:
+    synchronous:
+      method: any
+      number: 1
+      dataDurability: preferred
   enableSuperuserAccess: true
   bootstrap:
     recovery:
