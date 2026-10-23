@@ -395,7 +395,7 @@ spec:
           args:
             - gateway
             - run
-          image: "nousresearch/hermes-agent@sha256:444b42594e7f467425872fc35e077a227d377f0fe0726bc818706d62175fad8b"
+          image: "nousresearch/hermes-agent@sha256:9c5561579f3ffdf333401797094ac3a743738d6c25d40f4331c7bf77b694238d"
           imagePullPolicy: IfNotPresent
           env:
             - name: DISCORD_BOT_TOKEN
@@ -586,7 +586,7 @@ spec:
               readOnly: true
         - name: vikunja-read-proxy
           command: ["python3", "/opt/vikunja-read-proxy/server.py"]
-          image: "nousresearch/hermes-agent@sha256:444b42594e7f467425872fc35e077a227d377f0fe0726bc818706d62175fad8b"
+          image: "nousresearch/hermes-agent@sha256:9c5561579f3ffdf333401797094ac3a743738d6c25d40f4331c7bf77b694238d"
           ports:
             - name: vikunja-read
               containerPort: 8793
