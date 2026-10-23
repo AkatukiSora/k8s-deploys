@@ -24,9 +24,12 @@ must review and synchronize its resources before the workload starts.
   observation of workload metadata and ConfigMaps. Pod logs are granted through
   an explicit `pods/log` rule with only `get`; logs and ConfigMaps can contain
   sensitive operational data and must not be copied into issues or chat without
-  redaction. The role excludes Secrets, RBAC resources,
-  exec/attach/port-forward/proxy subresources, arbitrary CRDs, and all mutation
-  verbs. `kubectl` is installed into an
+  redaction. Read-only rules also cover the CRDs of the platform components
+  deployed from this repository (Argo CD, CloudNativePG and Barman Cloud, Rook
+  Ceph, Kyverno and its policy reports, MetalLB, Prometheus Operator rules and
+  monitors, VolSync) and CRD definitions. The role excludes Secrets, RBAC
+  resources, exec/attach/port-forward/proxy subresources, any other CRD, and all
+  mutation verbs. `kubectl` is installed into an
   ephemeral volume by a checksum-verified init container and is available through
   `PATH`.
 - NetworkPolicy denies all ingress and egress by default. Hermes may resolve
