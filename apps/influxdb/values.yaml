@@ -188,10 +188,9 @@ ingress:
 
 ## Pod disruption budget configuration
 ##
+## InfluxDB runs as a single replica, so a PDB with minAvailable: 1 would block
+## every node drain. Brief downtime during node maintenance is acceptable, so no
+## PDB is created.
 pdb:
-  ## Specifies whether a Pod disruption budget should be created
-  ##
-  create: true
-  minAvailable: 1
-  # maxUnavailable: 1
+  create: false
 
