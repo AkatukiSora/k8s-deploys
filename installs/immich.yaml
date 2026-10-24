@@ -30,7 +30,6 @@ spec:
       kind: Cluster
       namespace: immich-postgres
       jsonPointers:
-        - /spec
         - /metadata/annotations
         - /metadata/labels
   syncPolicy:

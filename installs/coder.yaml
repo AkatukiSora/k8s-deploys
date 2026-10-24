@@ -28,7 +28,6 @@ spec:
       name: coder-postgres
       namespace: coder
       jsonPointers:
-        - /spec
         - /metadata/annotations
         - /metadata/labels
   syncPolicy:

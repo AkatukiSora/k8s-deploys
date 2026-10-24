@@ -33,7 +33,6 @@ spec:
       name: vikunja-postgres
       namespace: vikunja
       jsonPointers:
-        - /spec
         - /metadata/annotations
         - /metadata/labels
   syncPolicy:
