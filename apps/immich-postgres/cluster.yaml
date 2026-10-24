@@ -4,7 +4,11 @@ metadata:
   name: immich-postgres
   namespace: immich-postgres
 spec:
-  instances: 1
+  instances: 3
+  affinity:
+    enablePodAntiAffinity: true
+    topologyKey: kubernetes.io/hostname
+    podAntiAffinityType: required
   postgresUID: 999
   postgresGID: 999
   imageCatalogRef:
@@ -30,6 +34,10 @@ spec:
       cpu: "2"
       memory: 4Gi
   postgresql:
+    synchronous:
+      method: any
+      number: 1
+      dataDurability: preferred
     shared_preload_libraries:
       - vchord.so
   plugins:
