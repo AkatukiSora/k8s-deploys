@@ -8,6 +8,10 @@
 - `patches/nodes`: ノード固有の hostname、ネットワーク（`LinkConfig`）、インストールディスク Patch
 - `secrets`: 1Passwordに保管する平文Secretの扱いを説明する。平文は保存しない
 
+## ネットワーク経路
+
+物理NICの`eth*`名には`ens*`のalternate nameが設定される場合があるため、runtimeで解決できることを確認せずに名前を変更しない。各ノードの`ens18`には明示的なデフォルト経路（metric 100）を設定し、DHCP経路（既定metric 1024）は有効なままにする。適用前に経路を確認し、まず一台へ展開してから順序立てて広げること。リポジトリの編集だけではruntimeの経路は変更されない。
+
 Workerの`RoutingRuleConfig`はMetalLB VIP範囲を`ens20`（VLAN 10直結）と
 `ens18`（旧BGP経路）の両方で`unreachable`にする。kube-proxy nftablesのDNATが
 RPDB判定より先に行われる前提で、Pod宛に変換された有効な通信は遮断せず、未変換の
