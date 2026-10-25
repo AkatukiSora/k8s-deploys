@@ -11,6 +11,7 @@ addresses:
   - address: 10.0.40.54/24
 routes:
   - gateway: 10.0.40.1
+    metric: 100
 ---
 apiVersion: v1alpha1
 kind: LinkConfig
