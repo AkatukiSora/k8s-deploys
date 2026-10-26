@@ -117,6 +117,13 @@ nextcloud:
         'overwriteprotocol' => 'https',
         'overwrite.cli.url' => 'https://nextcloud.akatuki-host.com/',
       );
+    upload.config.php: |
+      <?php
+      $CONFIG = array (
+        // Cap client upload chunks at 50 MiB (default 100 MiB) to stay under
+        // the Cloudflare request body size limit.
+        'files.chunked_upload.max_size' => 52428800,
+      );
     oidc.config.php: |
       <?php
       $CONFIG = array (
