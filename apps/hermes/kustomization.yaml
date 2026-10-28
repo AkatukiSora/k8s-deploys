@@ -17,6 +17,7 @@ resources:
   - onepassworditem-grafana.yaml
   - onepassworditem-vikunja.yaml
   - onepassworditem-google-oauth-client.yaml
+  - onepassworditem-volsync-restic.yaml
   - rbac-k8s-observer.yaml
   - networkpolicy-default-deny.yaml
   - networkpolicy-dns-egress.yaml
@@ -25,6 +26,8 @@ resources:
   - networkpolicy-argocd-egress.yaml
   - networkpolicy-grafana-egress.yaml
   - networkpolicy-alertmanager-webhook-ingress.yaml
+  - networkpolicy-volsync-mover-egress.yaml
+  - volsync.yaml
   - deployment.yaml
 configMapGenerator:
   - name: hermes-config
