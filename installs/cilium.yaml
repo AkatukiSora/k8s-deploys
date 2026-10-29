@@ -3,6 +3,11 @@ kind: Application
 metadata:
   name: cilium
   namespace: argocd
+  annotations:
+    # Protect this cluster-critical child from parent prune/deletion. The
+    # child's own automated policy also leaves CNI resource pruning disabled.
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+    argocd.argoproj.io/sync-wave: "-10"
 spec:
   destination:
     namespace: kube-system
@@ -12,19 +17,20 @@ spec:
       targetRevision: 1.20.3
       chart: cilium
       helm:
-        # Migration stage: keep values-migration.yaml listed until every node
-        # has been moved from Flannel. Remove it for the final stage.
-        # See docs/cilium-migration-runbook.md.
+        # Steady state: Cilium owns the CNI configuration. Do not add the
+        # secondary-mode migration overlay to a cluster without Flannel.
         valueFiles:
           - $repo/apps/cilium/values.yaml
-          - $repo/apps/cilium/values-migration.yaml
     - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
       targetRevision: master
       ref: repo
 
   project: default
-  # Intentionally no `automated` policy: replacing the CNI is a staged, manual
-  # operation. Synchronize each stage by hand after its pre-checks pass.
+  # Steady-state reconciliation. CNI resources are never pruned automatically.
   syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+      allowEmpty: false
     syncOptions:
       - ServerSideApply=true

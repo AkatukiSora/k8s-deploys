@@ -50,9 +50,7 @@ installer image は`patches/common.yaml`の`UnattendedInstallConfig`に1か所�
 `patches/roles/controlplane.yaml`は`KubeFlannelCNIConfig`に`$patch: delete`を指定し、Talosによる
 Flannelの管理を止める。CNIはCiliumが担う（`apps/cilium`）。kube-proxyはTalosが引き続き管理する。
 
-この設定は、Ciliumへの移行が全ノードで完了した後（`docs/cilium-migration-runbook.md`の段階5）に
-適用する。先に適用してもTalosは既存のFlannelを削除しないが、移行中の構成を変える操作は
-ランブックの順序に従うこと。
+この設定を適用してもTalosは既存のFlannelを削除しない。
 
 `KubeFlannelCNIConfig`はTalos 1.14のドキュメントなので、control planeにのみ記述する。
 workerはCNIの設定を持たない（Flannelの管理は`controlplane`が担う）。

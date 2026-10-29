@@ -1,12 +1,8 @@
-# Cilium Helm values (steady state).
-#
-# This file describes the target configuration. The node-by-node migration from
-# Flannel overlays `values-migration.yaml` on top of it; see
-# docs/cilium-migration-runbook.md for the stage that each combination serves.
+# Cilium Helm values.
 
 # --- IPAM and routing ---------------------------------------------------------
 # cluster-pool uses a Pod CIDR that does not overlap with Flannel's
-# 10.244.0.0/16, which is required for the live migration.
+# 10.244.0.0/16.
 ipam:
   mode: cluster-pool
   operator:
@@ -20,9 +16,10 @@ routingMode: native
 ipv4NativeRoutingCIDR: 10.245.0.0/16
 autoDirectNodeRoutes: true
 
-# Attach only to the management interface. ens19/ens20 carry the Ceph and
-# MetalLB VLANs and stay outside of Cilium's datapath.
-devices: ens18
+# Attach only to the management interface. Talos exposes the kernel name eth0
+# (ens18 is an alternative name). eth1/eth2 carry the Ceph and MetalLB VLANs
+# and stay outside of Cilium's datapath.
+devices: eth0
 
 # kube-proxy is kept for now: the MetalLB RoutingRuleConfig in talos/patches
 # relies on kube-proxy's DNAT happening before the routing policy lookup.
@@ -106,6 +103,10 @@ resources:
     memory: 256Mi
 operator:
   replicas: 2
+  # Recover stale sandboxes without having the operator delete unmanaged Pods.
+  # Any remaining unmanaged workloads need an explicit, workload-scoped review.
+  unmanagedPodWatcher:
+    restart: false
   prometheus:
     enabled: true
   resources:
