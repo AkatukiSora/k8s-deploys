@@ -25,7 +25,7 @@ spec:
       containers:
         - name: caddy
           # yamllint disable rule:line-length
-          image: caddy@sha256:f2a1290d0463aad60660d4ec134943f183ee2a5f6c3eb7bf32dd984f2f020772
+          image: caddy@sha256:5e5286cb37d44086d651a5363f05f43a692ce4d649d88fb1bd844579f45fa9e8
           # yamllint enable rule:line-length
           imagePullPolicy: IfNotPresent
           command:
