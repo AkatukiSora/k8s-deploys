@@ -80,6 +80,39 @@ a disruptive restart or reset; a deployed service with persistent data requires
 an explicit impact assessment, backup/recovery consideration, and a rollback
 plan. Record the observed basis for that decision.
 
+## Code and script principles
+
+These apply to scripts, Helm values templating, Kustomize generators, CI
+workflows, and any other code in this repository.
+
+- Keep logic in one function unless it is composable or reusable.
+- Validate unknown values once, at the boundary that owns them, and pass
+  validated values inward. Do not repeat type or existence checks on values
+  already guaranteed by a schema, constructor, or internal type.
+- Do not extract single-use helpers preemptively. Inline the logic at the call
+  site unless the helper is reused, hides a genuinely complex boundary, or has a
+  clear independent name that improves the caller.
+- Before adding complexity for a speculative or vanishingly unlikely race or
+  security edge case, explain the concrete failure mode, its likelihood, and the
+  complexity cost to the user and get their agreement. Do not silently expand
+  scope for theoretical robustness.
+- Avoid `try`/`catch` (and shell `|| true` or `set +e` equivalents) where
+  possible. Let unexpected failures surface instead of swallowing them.
+- Inline a value that is used only once instead of naming it.
+- Prefer `const`-style single assignment, early returns, and ternaries over
+  reassignment and `else` chains.
+- Comment non-obvious constraints and surprising behavior, not obvious
+  assignments or control flow.
+- In tests, avoid mocks where possible and exercise the real implementation. Do
+  not duplicate the implementation's logic inside a test.
+
+## Commits and PR titles
+
+Use conventional commit-style messages and PR titles: `type(scope): summary`.
+Valid types are `feat`, `fix`, `docs`, `chore`, `refactor`, and `test`. Use the
+affected component under `apps/` (for example `argocd`, `hermes`, `nextcloud`)
+as the optional scope.
+
 ## Context files
 
 Load these only when relevant:
