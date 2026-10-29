@@ -1,12 +1,24 @@
 # Cilium 移行ランブック（Flannel から Cilium + WireGuard へ）
 
+現在の自動 GitOps 運用と root Application 登録は
+[Cilium GitOps 運用ガイド](../apps/cilium/README.md)を先に確認する。
+以下は Flannel が稼働しているクラスタで行う**歴史的なライブ移行手順**であり、
+現在の CNI 不在からの復旧手順ではない。自動同期を一時停止してから段階移行を
+行い、完了後に別途 GitOps policy を復元すること。
+
+2026-10-29 に、Flannel と CNI 設定が存在しない障害状態から Cilium の最終構成へ復旧した。
+現在の構成・実施コマンド・GitOps の残作業は
+[復旧記録](cilium-recovery-2026-10-29.md)を参照すること。
+以下の secondary / dual-overlay 手順は **Flannel が正常稼働している移行元**を前提とする。
+CNI 不在のクラスタに `values-migration.yaml` を適用しても CNI 設定は作成されない。
+
 Flannel は NetworkPolicy を実装しないため、既存の NetworkPolicy は現在強制されていない。
 このランブックは、稼働中のクラスタを Flannel から Cilium へノード単位で移行し、
 NetworkPolicy の強制と Pod 間通信の暗号化（WireGuard）を有効にする手順を定義する。
 
 関連ファイル:
 
-- `installs/cilium.yaml`: Argo CD Application（手動同期。`automated` は設定しない）
+- `installs/cilium.yaml`: Argo CD Application（現在は steady state 自動同期）
 - `apps/cilium/values.yaml`: 最終状態の Helm values
 - `apps/cilium/values-migration.yaml`: 移行中だけ重ねる values
 
@@ -20,15 +32,16 @@ NetworkPolicy の強制と Pod 間通信の暗号化（WireGuard）を有効に�
   `10.244.0.0/16` と重ならないため、移行中は両者が共存できる。
   Talos の公式ガイドは Cilium の IPAM を `kubernetes` にするよう求めているが、ライブ移行は
   Cilium の仕様上 `cluster-pool` が必要で、両者は両立しない。Talos 上で `cluster-pool` が
-  問題なく動くことは**未検証**であり、最初のノードで確認するまで他のノードへ進まない
-  （既知のリスクとして受け入れた上での設計である）。
+  動作は 2026-10-29 に Talos v1.14.4 / Cilium v1.20.3 で確認した。ただし、稼働中の
+  Flannel との併存は未検証であり、ライブ移行では最初のノードで確認してから他へ進む。
 - **ルーティング**: 最終状態は `native`。全ノードが `ens18`（`10.0.40.0/24`）の同一 L2 にあり、
   `autoDirectNodeRoutes` で Pod CIDR への直接経路を張る。移行中だけ `tunnel`（VXLAN 8472）を使う。
   Flannel の VXLAN は 4789 なので衝突しない。
 - **暗号化**: WireGuard（`encryption.type: wireguard`）。別ノード間の Pod 通信のみ暗号化する。
   同一ノード内の通信と hostNetwork の通信は暗号化されない（`nodeEncryption: false`）。
   Ceph 通信は専用 VLAN（`192.168.8.0/24`、`ens19`/`ens20`）を通り、Cilium の対象外である。
-- **対象 interface**: `devices: ens18` のみ。Ceph/MetalLB 用 VLAN には Cilium の datapath を載せない。
+- **対象 interface**: `devices: eth0` のみ。現在の Talos では `ens18` は alternative name で、
+  カーネル上の実名は `eth0`。Ceph/MetalLB 用の `eth1` / `eth2` を対象にしない。
 - **kube-proxy は残す**（`kubeProxyReplacement: false`）。`talos/README.md` のとおり、MetalLB VIP 用の
   `RoutingRuleConfig` は kube-proxy の DNAT が経路判定より先に行われる前提で動いている。kube-proxy の置換は
   この前提を変えるため、別の変更として検証してから行う。
@@ -57,6 +70,9 @@ NetworkPolicy の強制と Pod 間通信の暗号化（WireGuard）を有効に�
 7. 管理経路を確保する。`talosctl` と `kubectl` を別の端末から使える状態にしておく。
 
 ## 段階 1: Cilium を secondary モードで導入する
+
+この段階以降は、上記の現在の自動同期を停止してから行う歴史的な手動作業である。
+自動同期を有効なまま staged migration を開始してはならない。
 
 `installs/cilium.yaml` の `valueFiles` は `values.yaml` と `values-migration.yaml` の両方を並べる。
 
@@ -178,5 +194,8 @@ routing mode を tunnel から native に切り替える際は、datapath の変
 - 検証済み（静的）: `helm template`（chart 1.20.3）による両 values の描画、ConfigMap の主要キー
   （routing、WireGuard、監査モード、devices）の確認、Secret が描画されないこと、
   リポジトリの静的検証スクリプト。
-- 未検証（ランタイム）: Talos 上での起動、Flannel との共存、MetalLB VIP と Ceph 経路への影響、
-  tunnel から native への切り替え、WireGuard の疎通。
+- 検証済み（2026-10-29 ランタイム）: Talos 上での起動、全 7 ノード Ready、native routing、
+  cluster-pool IPAM、WireGuard の各ノード 6 peer、ノード間 Pod HTTP、DNS、外部 HTTPS、
+  Pod から MetalLB VIP、管理端末から NodePort、Ceph CSI と既存 DB Pod の Ready。
+- 未検証（ランタイム）: Flannel との共存、tunnel から native への切り替え、ラボ LAN からの
+  MetalLB VIP、WireGuard のパケットキャプチャ、専用のストレージ読み書き試験。
