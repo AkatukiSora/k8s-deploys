@@ -26,8 +26,7 @@ spec:
       ref: repo
 
   project: default
-  # Automatic steady-state reconciliation starts only after apps-root has
-  # registered this Application from the merged master branch.
+  # Steady-state reconciliation. CNI resources are never pruned automatically.
   syncPolicy:
     automated:
       prune: false

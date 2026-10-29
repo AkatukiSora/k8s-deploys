@@ -1,12 +1,8 @@
-# Cilium Helm values (steady state).
-#
-# This file describes the target configuration. The node-by-node migration from
-# Flannel overlays `values-migration.yaml` on top of it; see
-# docs/cilium-migration-runbook.md for the stage that each combination serves.
+# Cilium Helm values.
 
 # --- IPAM and routing ---------------------------------------------------------
 # cluster-pool uses a Pod CIDR that does not overlap with Flannel's
-# 10.244.0.0/16, which is required for the live migration.
+# 10.244.0.0/16.
 ipam:
   mode: cluster-pool
   operator:
