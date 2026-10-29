@@ -1,0 +1,19 @@
+# 公開するのは /webhook だけにする。/healthz やメトリクスは公開しない。
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-image-updater-webhook
+  annotations:
+    kubernetes.io/ingress.class: cloudflare-tunnel
+spec:
+  rules:
+    - host: image-updater.akatuki-host.com
+      http:
+        paths:
+          - path: /webhook
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-image-updater-webhook
+                port:
+                  name: http
