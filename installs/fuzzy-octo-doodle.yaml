@@ -1,0 +1,60 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: fuzzy-octo-doodle
+  namespace: argocd
+spec:
+  description: fuzzy-octo-doodle application (manifests live in the application repository)
+  sourceRepos:
+    - https://github.com/AkatukiSora/fuzzy-octo-doodle.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: fuzzy-octo-doodle
+  # The source repository has other contributors, so limit what it can create:
+  # its own namespace and namespaced workload/network kinds only (no RBAC, no Secrets).
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: apps
+      kind: Deployment
+    - group: batch
+      kind: CronJob
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ConfigMap
+    - group: networking.k8s.io
+      kind: Ingress
+    - group: networking.k8s.io
+      kind: NetworkPolicy
+    - group: postgresql.cnpg.io
+      kind: Cluster
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fuzzy-octo-doodle
+  namespace: argocd
+spec:
+  destination:
+    namespace: fuzzy-octo-doodle
+    server: https://kubernetes.default.svc
+  project: fuzzy-octo-doodle
+  source:
+    path: infra
+    repoURL: https://github.com/AkatukiSora/fuzzy-octo-doodle.git
+    targetRevision: main
+  ignoreDifferences:
+    - group: postgresql.cnpg.io
+      kind: Cluster
+      name: fuzzy-octo-doodle-db
+      namespace: fuzzy-octo-doodle
+      jsonPointers:
+        - /metadata/annotations
+        - /metadata/labels
+  # No automated sync yet: the container images are not published, so an
+  # automatic sync would only produce ImagePullBackOff. Enable it once they exist.
+  syncPolicy:
+    syncOptions:
+      - ServerSideApply=true
