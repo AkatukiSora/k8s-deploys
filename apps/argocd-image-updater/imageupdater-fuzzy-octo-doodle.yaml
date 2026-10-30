@@ -1,0 +1,36 @@
+# fuzzy-octo-doodle の 3 つのイメージの新しいタグを、infra/kustomization.yaml へ書き戻す。
+# タグは `YYYYMMDDHHMMSS-<sha7>` で、文字列の順が新しさの順になるため alphabetical を使う。
+# `main` タグは可変なので、許可するタグから外す。
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+metadata:
+  name: fuzzy-octo-doodle
+spec:
+  commonUpdateSettings:
+    updateStrategy: alphabetical
+    allowTags: "regexp:^[0-9]{14}-[0-9a-f]{7}$"
+  writeBackConfig:
+    method: "git:secret:argocd/fuzzy-octo-doodle-git-creds"
+    gitConfig:
+      repository: https://github.com/AkatukiSora/fuzzy-octo-doodle.git
+      branch: main
+      # Application の source.path は infra。そこの kustomization.yaml の images を更新する。
+      writeBackTarget: kustomization
+  applicationRefs:
+    - namePattern: fuzzy-octo-doodle
+      images:
+        - alias: migrate
+          imageName: ghcr.io/akatukisora/fuzzy-octo-doodle-migrate
+          manifestTargets:
+            kustomize:
+              name: ghcr.io/akatukisora/fuzzy-octo-doodle-migrate
+        - alias: backend
+          imageName: ghcr.io/akatukisora/fuzzy-octo-doodle-backend
+          manifestTargets:
+            kustomize:
+              name: ghcr.io/akatukisora/fuzzy-octo-doodle-backend
+        - alias: frontend
+          imageName: ghcr.io/akatukisora/fuzzy-octo-doodle-frontend
+          manifestTargets:
+            kustomize:
+              name: ghcr.io/akatukisora/fuzzy-octo-doodle-frontend
