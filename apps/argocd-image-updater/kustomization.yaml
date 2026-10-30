@@ -7,10 +7,12 @@ resources:
   - webhook-service.yaml
   - webhook-ingress.yaml
   - webhook-networkpolicy.yaml
+  - onepassworditems.yaml
+  - imageupdater-fuzzy-octo-doodle.yaml
 patches:
   # 設定は apps/argocd-image-updater/config.yaml で上書きする。
   - path: config.yaml
-  # Secret は 1Password Operator が同名で作る（OnePasswordItem はシークレット供給の PR で追加する）。
+  # Secret は 1Password Operator が同名で作る（onepassworditems.yaml）。
   # upstream の空の Secret を残すと、同じ名前を 2 か所が所有してしまう。
   - target:
       kind: Secret
