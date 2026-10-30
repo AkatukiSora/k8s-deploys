@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-image-updater-config
+data:
+  # GitHub Container Registry からの通知を受けて、すぐに確認する。
+  webhook.enable: "true"
+  # クラスタ内は平文の HTTP にする。外部からの TLS は Cloudflare Tunnel が終端する。
+  disable-tls: "true"
+  # 通知を取りこぼしたときのための、ポーリングの間隔。
+  interval: "10m"

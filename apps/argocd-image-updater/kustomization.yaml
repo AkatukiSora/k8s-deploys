@@ -1,0 +1,44 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: argocd
+resources:
+  # upstream v1.4.0 を、タグではなくコミットで固定する。
+  - https://github.com/argoproj-labs/argocd-image-updater/config/default?ref=ed3b8b6a19909cace74172645e02e1ebd4959ad5
+  - webhook-service.yaml
+  - webhook-ingress.yaml
+  - webhook-networkpolicy.yaml
+patches:
+  # 設定は apps/argocd-image-updater/config.yaml で上書きする。
+  - path: config.yaml
+  # Secret は 1Password Operator が同名で作る（OnePasswordItem はシークレット供給の PR で追加する）。
+  # upstream の空の Secret を残すと、同じ名前を 2 か所が所有してしまう。
+  - target:
+      kind: Secret
+      name: argocd-image-updater-secret
+    patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: argocd-image-updater-secret
+  # upstream の NetworkPolicy は `webhooks: enabled` の付いた namespace だけを許可する。
+  # 他の namespace のラベルを管理せずに済むよう、webhook-networkpolicy.yaml で置き換える。
+  - target:
+      kind: NetworkPolicy
+      name: allow-webhook-traffic
+    patch: |-
+      $patch: delete
+      apiVersion: networking.k8s.io/v1
+      kind: NetworkPolicy
+      metadata:
+        name: allow-webhook-traffic
+  # Git への書き戻しを GitHub API 経由にする。コミットは GitHub App の名前で作られ、GitHub が署名するため Verified になる。
+  - target:
+      kind: Deployment
+      name: argocd-image-updater-controller
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: GIT_COMMIT_METHOD
+          value: api
