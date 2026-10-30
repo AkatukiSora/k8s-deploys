@@ -1,0 +1,88 @@
+# 同期の結果を、アプリのリポジトリの GitHub Deployments とコミットステータスに出す。
+# 購読は Application の annotation（notifications.argoproj.io/subscribe.<trigger>.github）で指定する。
+# ref は Argo CD が同期した Git のリビジョン、つまり Image Updater の書き戻しコミットになる。
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-notifications-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-notifications-cm
+    app.kubernetes.io/part-of: argocd
+data:
+  context: |
+    argocdUrl: https://argocd.akatuki-host.com
+  service.github: |
+    appID: $githubAppID
+    installationID: $githubAppInstallationID
+    privateKey: $githubAppPrivateKey
+
+  trigger.on-sync-running: |
+    - when: app.status.operationState != nil and app.status.operationState.phase in ['Running']
+      oncePer: app.status.operationState.startedAt
+      send: [github-deploy-in-progress]
+  trigger.on-deployed: |
+    - when: app.status.operationState != nil and app.status.operationState.phase in ['Succeeded'] and app.status.health.status == 'Healthy'
+      oncePer: app.status.operationState.syncResult.revision
+      send: [github-deploy-success]
+  trigger.on-sync-failed: |
+    - when: app.status.operationState != nil and app.status.operationState.phase in ['Error', 'Failed']
+      oncePer: app.status.operationState.startedAt
+      send: [github-deploy-failure]
+  trigger.on-health-degraded: |
+    - when: app.status.health.status == 'Degraded'
+      oncePer: app.status.operationState.syncResult.revision
+      send: [github-deploy-failure]
+
+  # requiredContexts と autoMerge は、既定のままだと「ブランチの先頭と一致しない」「必須のステータスが未達」で 409 になる。
+  template.github-deploy-in-progress: |
+    message: "{{.app.metadata.name}}: 同期中"
+    github:
+      repoURLPath: "{{.app.spec.source.repoURL}}"
+      revisionPath: "{{.app.status.sync.revision}}"
+      status:
+        state: pending
+        label: "continuous-delivery/{{.app.metadata.name}}"
+        targetURL: "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}?operation=true"
+      deployment:
+        state: in_progress
+        environment: production
+        environmentURL: "https://donee.sora-lab.dev"
+        logURL: "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}?operation=true"
+        requiredContexts: []
+        autoMerge: false
+        transientEnvironment: false
+  template.github-deploy-success: |
+    message: "{{.app.metadata.name}}: デプロイ完了"
+    github:
+      repoURLPath: "{{.app.spec.source.repoURL}}"
+      revisionPath: "{{.app.status.operationState.syncResult.revision}}"
+      status:
+        state: success
+        label: "continuous-delivery/{{.app.metadata.name}}"
+        targetURL: "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}?operation=true"
+      deployment:
+        state: success
+        environment: production
+        environmentURL: "https://donee.sora-lab.dev"
+        logURL: "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}?operation=true"
+        requiredContexts: []
+        autoMerge: false
+        transientEnvironment: false
+  template.github-deploy-failure: |
+    message: "{{.app.metadata.name}}: デプロイ失敗"
+    github:
+      repoURLPath: "{{.app.spec.source.repoURL}}"
+      revisionPath: "{{.app.status.sync.revision}}"
+      status:
+        state: failure
+        label: "continuous-delivery/{{.app.metadata.name}}"
+        targetURL: "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}?operation=true"
+      deployment:
+        state: failure
+        environment: production
+        environmentURL: "https://donee.sora-lab.dev"
+        logURL: "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}?operation=true"
+        requiredContexts: []
+        autoMerge: false
+        transientEnvironment: false
