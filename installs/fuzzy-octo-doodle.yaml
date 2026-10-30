@@ -69,8 +69,13 @@ spec:
       jsonPointers:
         - /metadata/annotations
         - /metadata/labels
-  # No automated sync yet: the container images are not published, so an
-  # automatic sync would only produce ImagePullBackOff. Enable it once they exist.
+  # Argo CD Image Updater writes new image tags to infra/kustomization.yaml, and this
+  # policy deploys them. prune is off on purpose: the database Cluster lives in this
+  # path and has no backup, so removing a manifest must not delete data. Delete stale
+  # resources by hand.
   syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
     syncOptions:
       - ServerSideApply=true
