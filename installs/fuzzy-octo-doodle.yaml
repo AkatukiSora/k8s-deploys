@@ -38,6 +38,12 @@ kind: Application
 metadata:
   name: fuzzy-octo-doodle
   namespace: argocd
+  # 同期の結果を、アプリのリポジトリの GitHub Deployments に出す（apps/argocd/notifications-cm.yaml）。
+  annotations:
+    notifications.argoproj.io/subscribe.on-sync-running.github: ""
+    notifications.argoproj.io/subscribe.on-deployed.github: ""
+    notifications.argoproj.io/subscribe.on-sync-failed.github: ""
+    notifications.argoproj.io/subscribe.on-health-degraded.github: ""
 spec:
   destination:
     namespace: fuzzy-octo-doodle
