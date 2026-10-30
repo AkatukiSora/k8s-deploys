@@ -32,6 +32,14 @@ spec:
       kind: NetworkPolicy
     - group: postgresql.cnpg.io
       kind: Cluster
+    # Argo CD は、プロジェクトで許可されていない種類を、リソースツリーに表示しない。
+    # 下の 3 つは、Deployment や CNPG の Cluster が作る子リソースを画面で見るために許可する。
+    - group: apps
+      kind: ReplicaSet
+    - group: ""
+      kind: Pod
+    - group: ""
+      kind: PersistentVolumeClaim
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
