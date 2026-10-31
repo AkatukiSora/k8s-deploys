@@ -1,6 +1,8 @@
 # 同期の結果を、アプリのリポジトリの GitHub Deployments とコミットステータスに出す。
 # 購読は Application の annotation（notifications.argoproj.io/subscribe.<trigger>.github）で指定する。
 # ref は Argo CD が同期した Git のリビジョン、つまり Image Updater の書き戻しコミットになる。
+# GitHub の Deployment は (ref, environment) で探して再利用される。3 つのテンプレートは、同じ操作で同じ ref を
+# 指すよう、同期の操作が使うリビジョン(syncResult.revision)をそろえる。ずれると、同期中の Deployment が完了せずに残る。
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -23,7 +25,7 @@ data:
       send: [github-deploy-in-progress]
   trigger.on-deployed: |
     - when: app.status.operationState != nil and app.status.operationState.phase in ['Succeeded'] and app.status.health.status == 'Healthy'
-      oncePer: app.status.operationState.syncResult.revision
+      oncePer: app.status.operationState.startedAt
       send: [github-deploy-success]
   trigger.on-sync-failed: |
     - when: app.status.operationState != nil and app.status.operationState.phase in ['Error', 'Failed']
@@ -39,7 +41,7 @@ data:
     message: "{{.app.metadata.name}}: 同期中"
     github:
       repoURLPath: "{{.app.spec.source.repoURL}}"
-      revisionPath: "{{.app.status.sync.revision}}"
+      revisionPath: "{{with .app.status.operationState.syncResult}}{{.revision}}{{else}}{{.app.status.sync.revision}}{{end}}"
       status:
         state: pending
         label: "continuous-delivery/{{.app.metadata.name}}"
@@ -56,7 +58,7 @@ data:
     message: "{{.app.metadata.name}}: デプロイ完了"
     github:
       repoURLPath: "{{.app.spec.source.repoURL}}"
-      revisionPath: "{{.app.status.operationState.syncResult.revision}}"
+      revisionPath: "{{with .app.status.operationState.syncResult}}{{.revision}}{{else}}{{.app.status.sync.revision}}{{end}}"
       status:
         state: success
         label: "continuous-delivery/{{.app.metadata.name}}"
@@ -73,7 +75,7 @@ data:
     message: "{{.app.metadata.name}}: デプロイ失敗"
     github:
       repoURLPath: "{{.app.spec.source.repoURL}}"
-      revisionPath: "{{.app.status.sync.revision}}"
+      revisionPath: "{{with .app.status.operationState.syncResult}}{{.revision}}{{else}}{{.app.status.sync.revision}}{{end}}"
       status:
         state: failure
         label: "continuous-delivery/{{.app.metadata.name}}"
