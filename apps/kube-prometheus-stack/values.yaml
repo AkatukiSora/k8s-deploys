@@ -10,6 +10,11 @@ defaultRules:
     # user impact. Upstream kubernetes-mixin documents it as low-signal;
     # latency-relevant saturation is covered by dedicated alerts.
     CPUThrottlingHigh: true
+    # Ratio-based: fires whenever in-use/total < 0.5 even when the file is a
+    # small fraction of the backend quota, so it recurs after every defrag.
+    # EtcdDatabaseSizeHigh (etcd-prometheus-rules.yaml) alerts on file size
+    # versus quota instead.
+    etcdDatabaseHighFragmentationRatio: true
 
 kubeProxy:
   enabled: false

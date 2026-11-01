@@ -1,0 +1,27 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: etcd-rules
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: etcd.database-size
+      rules:
+        - alert: EtcdDatabaseSizeHigh
+          expr: |
+            (
+              last_over_time(etcd_mvcc_db_total_size_in_bytes{job="kube-etcd"}[5m])
+              / last_over_time(etcd_server_quota_backend_bytes{job="kube-etcd"}[5m])
+            ) > 0.7
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: etcd database file is using most of its backend quota.
+            description: >-
+              etcd member {{ $labels.instance }} database file is {{ $value | humanizePercentage }}
+              of the backend quota. etcd rejects writes cluster-wide once the file reaches the quota,
+              and the file only shrinks after a defrag. Run `talosctl etcd defrag` on one member at a
+              time; if the size returns quickly, inspect which resources are being rewritten.
