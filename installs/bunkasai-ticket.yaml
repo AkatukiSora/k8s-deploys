@@ -12,7 +12,11 @@ spec:
     repoURL: https://github.com/AkatukiSora/queue-pilot.git
     targetRevision: main
     path: deploy/app/overlays/prod
+  # prune is off: the database Cluster shares this path, so removing a manifest must not delete data.
   syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
