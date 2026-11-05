@@ -59,6 +59,11 @@ data:
         identifiers:
           name: "app:argocd:global:readonly"
 
+      - id: app-argocd-project-fuzzy-octo-doodle-readonly-group
+        model: authentik_core.group
+        identifiers:
+          name: "app:argocd:project:fuzzy-octo-doodle:readonly"
+
       - id: app-coder-global-admin-group
         model: authentik_core.group
         identifiers:
@@ -1097,6 +1102,13 @@ data:
           order: 2
         attrs:
           group: !Find [authentik_core.group, [name, "app:argocd:global:readonly"]]
+
+      - model: authentik_policies.policybinding
+        identifiers:
+          target: !Find [authentik_core.application, [slug, argocd]]
+          order: 3
+        attrs:
+          group: !Find [authentik_core.group, [name, "app:argocd:project:fuzzy-octo-doodle:readonly"]]
 
       - model: authentik_policies.policybinding
         identifiers:
