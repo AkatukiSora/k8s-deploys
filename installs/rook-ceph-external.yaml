@@ -4,7 +4,7 @@ metadata:
   name: rook-ceph-external
   namespace: argocd
 spec:
-  project: default
+  project: platform
   sources:
     - repoURL: https://charts.rook.io/release
       chart: rook-ceph

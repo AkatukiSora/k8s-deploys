@@ -1,0 +1,46 @@
+# `default` is reserved for the root Application. Platform components run in
+# `platform`; each workload with its own trust boundary gets a dedicated project.
+# `platform` is created before the earliest Application (wave -10). `default` is
+# restricted after the last Application wave (40) so children are never evaluated
+# against the restricted project.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-20"
+spec:
+  description: Platform components maintained in this repository.
+  sourceRepos:
+    - "*"
+  destinations:
+    - namespace: "*"
+      server: "*"
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: default
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "50"
+spec:
+  description: Root Application only. It may create Applications and AppProjects in argocd.
+  sourceRepos:
+    - https://github.com/AkatukiSora/k8s-deploys.git
+  destinations:
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist: []
+  namespaceResourceWhitelist:
+    - group: argoproj.io
+      kind: Application
+    - group: argoproj.io
+      kind: AppProject

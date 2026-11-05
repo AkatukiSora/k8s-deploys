@@ -9,7 +9,7 @@ spec:
   destination:
     namespace: default
     server: https://kubernetes.default.svc
-  project: default
+  project: platform
   source:
     path: apps/security/kubernetes-rbac
     repoURL: https://github.com/AkatukiSora/k8s-deploys.git
