@@ -20,7 +20,7 @@ spec:
       helm:
         valueFiles:
           - $repo/apps/kube-prometheus-stack/values.yaml
-  project: default
+  project: platform
   syncPolicy:
     automated:
       prune: true

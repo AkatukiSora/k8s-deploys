@@ -19,7 +19,7 @@ spec:
       ref: repo
       path: apps/metallb/bgp
 
-  project: default
+  project: platform
   syncPolicy:
     automated:
       prune: true

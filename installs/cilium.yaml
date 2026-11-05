@@ -25,7 +25,7 @@ spec:
       targetRevision: master
       ref: repo
 
-  project: default
+  project: platform
   # Steady-state reconciliation. CNI resources are never pruned automatically.
   syncPolicy:
     automated:

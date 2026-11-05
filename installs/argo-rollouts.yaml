@@ -7,7 +7,7 @@ spec:
   destination:
     namespace: argo-rollouts
     server: https://kubernetes.default.svc
-  project: default
+  project: platform
   sources:
     - repoURL: https://argoproj.github.io/argo-helm
       chart: argo-rollouts
