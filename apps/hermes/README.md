@@ -361,7 +361,9 @@ exchange command; do not place it in command-line arguments. The authorization
 code and token are never returned by the broker or committed. `/oauth/status`
 returns metadata only; the broker's `/ready` endpoint refreshes the token when
 needed and makes an authenticated Calendar probe. Verify `/ready` after
-exchange before scheduling any secretary job.
+exchange before scheduling any secretary job. The sidecar's readiness probe
+calls `/health` (process liveness only), so an expired or revoked Google
+authorization does not mark the Pod NotReady; re-authorize when `/ready` fails.
 
 Rollback: revert this change, synchronize Hermes, and verify the Deployment
 recreated its Pod. The OAuth client credential and token remain in 1Password

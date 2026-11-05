@@ -630,7 +630,7 @@ spec:
               command:
                 - /bin/sh
                 - -ec
-                - curl -fsS --max-time 5 http://127.0.0.1:8792/ready >/dev/null
+                - curl -fsS --max-time 3 http://127.0.0.1:8792/health >/dev/null
             failureThreshold: 3
             periodSeconds: 10
             timeoutSeconds: 6
