@@ -10,7 +10,7 @@ spec:
   sources:
     - repoURL: https://charts.mender.io
       chart: mender
-      targetRevision: 8.4.1
+      targetRevision: 8.5.0
       helm:
         valueFiles:
           - $repo/apps/mender/core/values.yaml
