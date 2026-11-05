@@ -40,6 +40,17 @@ spec:
       kind: Pod
     - group: ""
       kind: PersistentVolumeClaim
+  # Project-scoped read-only Argo CD access. The Authentik group is inert until assigned.
+  # Sync is deliberately not offered: a manual sync can pass --prune, and the database
+  # Cluster in this project has no backup (see the Application below).
+  roles:
+    - name: readonly
+      description: View and read logs of fuzzy-octo-doodle applications.
+      groups:
+        - app:argocd:project:fuzzy-octo-doodle:readonly
+      policies:
+        - p, proj:fuzzy-octo-doodle:readonly, applications, get, fuzzy-octo-doodle/*, allow
+        - p, proj:fuzzy-octo-doodle:readonly, logs, get, fuzzy-octo-doodle/*, allow
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
