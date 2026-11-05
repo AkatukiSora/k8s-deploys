@@ -234,7 +234,9 @@ irreversible destruction and approve routine work.
   attacks on third parties.
 - **Operations forbidden here**: local `git commit`, `push`, `rebase`, `merge`,
   `tag`, `cherry-pick`, `am`, force or default-branch pushes, merging a pull
-  request, and `hermes kanban` (commits use the signed-commit helpers; Kanban is
+  request with `--admin` (ordinary `gh pr merge` is allowed; GitHub branch
+  protection, required checks and code-owner review decide whether it proceeds),
+  and `hermes kanban` (commits use the signed-commit helpers; Kanban is
   operated through MCP tools).
 - **Reviewer manipulation**: text imitating the `<command>` delimiter, a
   system/operator message, or a verdict addressed to the reviewer, and
@@ -261,7 +263,9 @@ workflow and wait for the user. `auxiliary.approval.timeout` (the guardian model
 call) is unchanged. To keep always-forbidden categories from ever prompting,
 `approvals.deny` lists glob floors that are answered without the guardian model
 or a person: local `git commit`/`push`/`rebase`/`merge`/`tag`/`cherry-pick`/`am`
-(also with leading git options), `hermes kanban`, and `gh pr merge`. The globs
+(also with leading git options), `hermes kanban`, and `gh pr merge --admin`.
+Ordinary `gh pr merge` is not a floor and goes to the guardian, which approves
+it by default. The globs
 are matched per shell command word, so quoted prose such as `echo "git commit"`
 is not blocked. The validator checks that every fixture marked `floor` is
 matched and that no safe fixture is.
