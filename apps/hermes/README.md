@@ -15,7 +15,7 @@ must review and synchronize its resources before the workload starts.
   replace any of these pins with a floating tag.
 - There is no Service, Ingress, dashboard, API exposure, host mount, or
   privileged mode. The Discord gateway accepts only the users stored in the
-  1Password-managed `hermes-discord` Secret.
+  1Password-managed `hermes` Secret.
 - Kubernetes API observation is deliberately separate from GitHub access. The
   ServiceAccount remains `automountServiceAccountToken: false`; only the Hermes
   container receives an explicit short-lived projected token. Pod `fsGroup: 10000`
@@ -83,7 +83,7 @@ for the configured private control channel, never reads historical channel
 messages, does not create threads or reactions, never mentions users, roles,
 or everyone, and isolates all group and thread sessions per user.
 `DISCORD_BOT_TOKEN` and `DISCORD_ALLOWED_USERS` are projected from the
-`hermes-discord` 1Password item and must never be copied into Git.
+`hermes` 1Password item and must never be copied into Git.
 
 ### Discord Kanban visibility
 
@@ -125,19 +125,22 @@ other fallback entries before GLM, and a conversation may encounter GLM
 after MiMo. No primary model is proactively replaced.
 
 Before syncing, add a concealed `OPENROUTER_API_KEY` field to the **existing**
-1Password item that provides the `hermes-discord` Kubernetes Secret.
-The existing OnePasswordItem CR creates the Secret field automatically;
+1Password item that provides the `hermes` Kubernetes Secret.
+The renamed `hermes` OnePasswordItem CR points to the same 1Password item;
 there is no new 1Password item or vault reference in Git. Verify the field
 exists without printing its value. The Deployment reads it through
 `secretKeyRef` as an environment variable, so a Pod restart is required for
 an updated key to take effect. Never put the key in Git, ConfigMaps,
 logs, PRs, or chat.
 
-Because Hermes uses `Recreate` on a persistent single-writer PVC, do not
-manually synchronize while a Kanban worker is active. Before rollout:
-confirm the 1Password field is present, then check `kubectl -n hermes get
-secret hermes-discord -o jsonpath='{.data.OPENROUTER_API_KEY}' | wc -c`
-returns a nonzero count (this outputs only a byte count, not the key).
+Because the Secret and OnePasswordItem are renamed from `hermes-discord` to
+`hermes`, perform a staged manual sync. First ensure the 1Password item has all
+three fields (`DISCORD_BOT_TOKEN`, `DISCORD_ALLOWED_USERS`, `OPENROUTER_API_KEY`),
+then sync only the new `hermes` OnePasswordItem and wait for its generated
+`hermes` Secret. Without printing the keys, verify that each field is present
+before syncing the full Application. Do not prune the old `hermes-discord`
+resource before the new Secret is ready. Because Hermes uses `Recreate` on a
+single-writer PVC, confirm Kanban workers are idle before the full sync.
 After the manual Argo CD sync, verify the main container is Ready and test
 the OpenRouter fallback with a harmless request. Do not intentionally
 exhaust an active production provider just to trigger failover.
