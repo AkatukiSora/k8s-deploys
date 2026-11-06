@@ -82,11 +82,16 @@ class ManifestTests(unittest.TestCase):
         ])
         self.assertEqual(self.config["delegation"]["model"], "gpt-6-luna")
         kustomization = yaml.safe_load((APP / "kustomization.yaml").read_text())
-        self.assertIn("onepassworditem-hermes.yaml", kustomization["resources"])
-        self.assertNotIn("onepassworditem-discord.yaml", kustomization["resources"])
-        onepassword_item = yaml.safe_load((APP / "onepassworditem-hermes.yaml").read_text())
-        self.assertEqual(onepassword_item["metadata"]["name"], "hermes")
+        self.assertIn("onepassworditem-discord.yaml", kustomization["resources"])
+        self.assertIn("onepassworditem-openrouter.yaml", kustomization["resources"])
+        self.assertNotIn("onepassworditem-hermes.yaml", kustomization["resources"])
+        onepassword_item = yaml.safe_load((APP / "onepassworditem-openrouter.yaml").read_text())
+        self.assertEqual(onepassword_item["metadata"]["name"], "hermes-openrouter")
+        self.assertEqual(onepassword_item["spec"]["itemPath"], "vaults/ehfcjhym4ifnf5qu634gng55mi/items/2ewpahtrvnvddxf76zqhtzpn7e")
         self.assertEqual(onepassword_item["kind"], "OnePasswordItem")
+        discord_item = yaml.safe_load((APP / "onepassworditem-discord.yaml").read_text())
+        self.assertEqual(discord_item["metadata"]["name"], "hermes-discord")
+        self.assertEqual(discord_item["kind"], "OnePasswordItem")
         hermes_env = next(
             c["env"] for c in self.deployment["spec"]["template"]["spec"]["containers"]
             if c["name"] == "hermes"
@@ -94,8 +99,8 @@ class ManifestTests(unittest.TestCase):
         self.assertIn({
             "name": "OPENROUTER_API_KEY",
             "valueFrom": {"secretKeyRef": {
-                "name": "hermes",
-                "key": "OPENROUTER_API_KEY",
+                "name": "hermes-openrouter",
+                "key": "token",
             }},
         }, hermes_env)
 
