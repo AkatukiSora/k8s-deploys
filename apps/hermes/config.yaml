@@ -2,14 +2,18 @@ _config_version: 37
 model:
   default: claude-sonnet-5-5
   provider: anthropic
-# Chat defaults to Sonnet and falls back to Sol; OpenAI-routed Kanban cards can
-# fall back to Sonnet. Cron keeps its Luna primary but also inherits this chain.
-# Candidates on the failed backend are skipped automatically.
+# Chat defaults to Sonnet and falls back to Terra; OpenAI-routed Kanban cards can
+# use this same global chain. Individually pinned cron jobs do not inherit it.
+# OpenRouter routes are pay-per-use; activated only when subscriptions are exhausted.
 fallback_providers:
   - provider: anthropic
     model: claude-sonnet-5-5
   - provider: openai-codex
-    model: gpt-6.1-sol
+    model: gpt-6.1-terra
+  - provider: openrouter
+    model: xiaomi/mimo-v2.5-pro
+  - provider: openrouter
+    model: z-ai/glm-5.2
 agent:
   # The main interactive Sonnet session uses Medium; Luna keeps model-specific
   # XHigh effort for Kanban cards and delegated workers explicitly routed to Luna.
@@ -58,8 +62,8 @@ delegation:
   model: gpt-6-luna
   reasoning_effort: xhigh
   fallback_providers:
-    - provider: anthropic
-      model: claude-sonnet-5-5
+    - provider: openrouter
+      model: deepseek/deepseek-v4.1-flash
   # Luna Fast is the default for user-blocking and critical-path work.
   request_overrides:
     service_tier: priority
@@ -76,28 +80,26 @@ auxiliary:
     provider: openai-codex
     model: gpt-6-luna
     fallback_chain:
-      - provider: anthropic
-        model: claude-haiku-5-5
+      - provider: openrouter
+        model: deepseek/deepseek-v4.1-flash
   title_generation:
     provider: openai-codex
     model: gpt-6-luna
     fallback_chain:
-      - provider: anthropic
-        model: claude-haiku-5-5
+      - provider: openrouter
+        model: deepseek/deepseek-v4.1-flash
   approval:
     provider: openai-codex
     model: gpt-6-luna
     fallback_chain:
-      - provider: anthropic
-        model: claude-haiku-5-5
-      - provider: anthropic
-        model: claude-sonnet-5-5
+      - provider: openrouter
+        model: deepseek/deepseek-v4.1-flash
   goal_judge:
     provider: openai-codex
     model: gpt-6-luna
     fallback_chain:
-      - provider: anthropic
-        model: claude-haiku-5-5
+      - provider: openrouter
+        model: deepseek/deepseek-v4.1-flash
 # Permissive smart approvals: the guardian approves by default and denies only
 # clearly malicious or destructive payloads (exfiltration, credential access,
 # broad unscoped deletion, safeguard tampering, remote or obfuscated code).
