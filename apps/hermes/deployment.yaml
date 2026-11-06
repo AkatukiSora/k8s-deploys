@@ -401,17 +401,17 @@ spec:
             - name: DISCORD_BOT_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: hermes-discord
+                  name: hermes
                   key: DISCORD_BOT_TOKEN
             - name: DISCORD_ALLOWED_USERS
               valueFrom:
                 secretKeyRef:
-                  name: hermes-discord
+                  name: hermes
                   key: DISCORD_ALLOWED_USERS
             - name: OPENROUTER_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: hermes-discord
+                  name: hermes
                   key: OPENROUTER_API_KEY
             - name: ARGOCD_SERVER
               value: argocd-server.argocd.svc.cluster.local:80
