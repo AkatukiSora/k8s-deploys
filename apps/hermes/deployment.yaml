@@ -408,6 +408,11 @@ spec:
                 secretKeyRef:
                   name: hermes-discord
                   key: DISCORD_ALLOWED_USERS
+            - name: OPENROUTER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-discord
+                  key: OPENROUTER_API_KEY
             - name: ARGOCD_SERVER
               value: argocd-server.argocd.svc.cluster.local:80
             - name: ARGOCD_AUTH_TOKEN
