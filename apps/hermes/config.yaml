@@ -62,6 +62,8 @@ delegation:
   model: gpt-6-luna
   reasoning_effort: xhigh
   fallback_providers:
+    - provider: anthropic
+      model: claude-sonnet-5-5
     - provider: openrouter
       model: deepseek/deepseek-v4.1-flash
   # Luna Fast is the default for user-blocking and critical-path work.
@@ -80,24 +82,34 @@ auxiliary:
     provider: openai-codex
     model: gpt-6-luna
     fallback_chain:
+      - provider: anthropic
+        model: claude-haiku-5-5
       - provider: openrouter
         model: deepseek/deepseek-v4.1-flash
   title_generation:
     provider: openai-codex
     model: gpt-6-luna
     fallback_chain:
+      - provider: anthropic
+        model: claude-haiku-5-5
       - provider: openrouter
         model: deepseek/deepseek-v4.1-flash
   approval:
     provider: openai-codex
     model: gpt-6-luna
     fallback_chain:
+      - provider: anthropic
+        model: claude-haiku-5-5
+      - provider: anthropic
+        model: claude-sonnet-5-5
       - provider: openrouter
         model: deepseek/deepseek-v4.1-flash
   goal_judge:
     provider: openai-codex
     model: gpt-6-luna
     fallback_chain:
+      - provider: anthropic
+        model: claude-haiku-5-5
       - provider: openrouter
         model: deepseek/deepseek-v4.1-flash
 # Permissive smart approvals: the guardian approves by default and denies only
