@@ -71,6 +71,28 @@ class ManifestTests(unittest.TestCase):
         digest = hashlib.sha256((APP / "config.yaml").read_bytes()).hexdigest()
         self.assertEqual(self.deployment["spec"]["template"]["metadata"]["annotations"]["checksum/hermes-config"], digest)
 
+    def test_openrouter_routes_are_last_resort(self):
+        self.assertEqual(self.config["model"], {
+            "default": "claude-sonnet-5-5",
+            "provider": "anthropic",
+        })
+        self.assertEqual(self.config["fallback_providers"][-2:], [
+            {"provider": "openrouter", "model": "xiaomi/mimo-v2.5-pro"},
+            {"provider": "openrouter", "model": "z-ai/glm-5.2"},
+        ])
+        self.assertEqual(self.config["delegation"]["model"], "gpt-6-luna")
+        hermes_env = next(
+            c["env"] for c in self.deployment["spec"]["template"]["spec"]["containers"]
+            if c["name"] == "hermes"
+        )
+        self.assertIn({
+            "name": "OPENROUTER_API_KEY",
+            "valueFrom": {"secretKeyRef": {
+                "name": "hermes-discord",
+                "key": "OPENROUTER_API_KEY",
+            }},
+        }, hermes_env)
+
     def test_existing_worker_routing_is_preserved(self):
         self.assertEqual(self.config["delegation"]["model"], "gpt-6-luna")
         self.assertEqual(self.config["delegation"]["reasoning_effort"], "xhigh")
