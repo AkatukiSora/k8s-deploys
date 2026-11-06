@@ -81,6 +81,12 @@ class ManifestTests(unittest.TestCase):
             {"provider": "openrouter", "model": "z-ai/glm-5.2"},
         ])
         self.assertEqual(self.config["delegation"]["model"], "gpt-6-luna")
+        kustomization = yaml.safe_load((APP / "kustomization.yaml").read_text())
+        self.assertIn("onepassworditem-hermes.yaml", kustomization["resources"])
+        self.assertNotIn("onepassworditem-discord.yaml", kustomization["resources"])
+        onepassword_item = yaml.safe_load((APP / "onepassworditem-hermes.yaml").read_text())
+        self.assertEqual(onepassword_item["metadata"]["name"], "hermes")
+        self.assertEqual(onepassword_item["kind"], "OnePasswordItem")
         hermes_env = next(
             c["env"] for c in self.deployment["spec"]["template"]["spec"]["containers"]
             if c["name"] == "hermes"
