@@ -137,8 +137,14 @@ Because the Secret and OnePasswordItem are renamed from `hermes-discord` to
 `hermes`, perform a staged manual sync. First ensure the 1Password item has all
 three fields (`DISCORD_BOT_TOKEN`, `DISCORD_ALLOWED_USERS`, `OPENROUTER_API_KEY`),
 then sync only the new `hermes` OnePasswordItem and wait for its generated
-`hermes` Secret. Without printing the keys, verify that each field is present
-before syncing the full Application. Do not prune the old `hermes-discord`
+`hermes` Secret. Verify only field presence (without printing any key):
+
+```sh
+kubectl -n hermes get secret hermes -o json | \
+  jq -e '.data | has("DISCORD_BOT_TOKEN") and has("DISCORD_ALLOWED_USERS") and has("OPENROUTER_API_KEY")'
+```
+
+Require a successful `true` result before syncing the full Application. Do not prune the old `hermes-discord`
 resource before the new Secret is ready. Because Hermes uses `Recreate` on a
 single-writer PVC, confirm Kanban workers are idle before the full sync.
 After the manual Argo CD sync, verify the main container is Ready and test
