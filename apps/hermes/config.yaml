@@ -1,10 +1,13 @@
 _config_version: 37
 model:
-  default: claude-sonnet-5-5
-  provider: anthropic
-# Chat defaults to Sonnet and falls back to Terra; OpenAI-routed Kanban cards can
-# use this same global chain. Individually pinned cron jobs do not inherit it.
+  default: xiaomi/mimo-v2.5-pro
+  provider: openrouter
+# Interactive chat uses MiMo; design/judgment Kanban cards explicitly use GLM.
+# Preserve the previous Anthropic/Codex routes as last-resort fallbacks.
+# Individually pinned cron jobs do not inherit the global fallback chain.
 fallback_providers:
+  - provider: openrouter
+    model: z-ai/glm-5.2
   - provider: anthropic
     model: claude-sonnet-5-5
   - provider: openai-codex
@@ -45,8 +48,8 @@ kanban:
   dispatch_interval_seconds: 30
   failure_limit: 2
   # The planning agent selects an explicit per-card model: Luna for bounded
-  # execution, Sol 6.1 for unresolved decisions. The dispatcher does not
-  # classify cards and otherwise falls back to the Sonnet profile default.
+  # execution, GLM 5.2 for unresolved decisions. The dispatcher does not
+  # classify cards and otherwise falls back to the MiMo profile default.
   max_in_progress: 6
   max_in_progress_per_profile: 6
   dispatch_stale_timeout_seconds: 14400
