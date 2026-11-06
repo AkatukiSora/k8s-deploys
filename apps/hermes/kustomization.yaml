@@ -10,7 +10,7 @@ resources:
   - service-vikunja-read.yaml
   - rbac-vikunja-read-proxy.yaml
   - networkpolicy-vikunja-read-ingress.yaml
-  - onepassworditem-discord.yaml
+  - onepassworditem-hermes.yaml
   - onepassworditem-github-app.yaml
   - onepassworditem-alertmanager-webhook.yaml
   - onepassworditem-argocd.yaml
