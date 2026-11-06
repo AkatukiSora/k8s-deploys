@@ -15,7 +15,7 @@ must review and synchronize its resources before the workload starts.
   replace any of these pins with a floating tag.
 - There is no Service, Ingress, dashboard, API exposure, host mount, or
   privileged mode. The Discord gateway accepts only the users stored in the
-  1Password-managed `hermes` Secret.
+  1Password-managed `hermes-discord` Secret.
 - Kubernetes API observation is deliberately separate from GitHub access. The
   ServiceAccount remains `automountServiceAccountToken: false`; only the Hermes
   container receives an explicit short-lived projected token. Pod `fsGroup: 10000`
@@ -83,7 +83,7 @@ for the configured private control channel, never reads historical channel
 messages, does not create threads or reactions, never mentions users, roles,
 or everyone, and isolates all group and thread sessions per user.
 `DISCORD_BOT_TOKEN` and `DISCORD_ALLOWED_USERS` are projected from the
-`hermes` 1Password item and must never be copied into Git.
+`hermes-discord` 1Password item and must never be copied into Git.
 
 ### Discord Kanban visibility
 
@@ -124,35 +124,36 @@ per-card fallback chains here: an explicitly pinned Sol card may encounter
 other fallback entries before GLM, and a conversation may encounter GLM
 after MiMo. No primary model is proactively replaced.
 
-Before syncing, add a concealed `OPENROUTER_API_KEY` field to the **existing**
-1Password item that provides the `hermes` Kubernetes Secret.
-The renamed `hermes` OnePasswordItem CR points to the same 1Password item;
-there is no new 1Password item or vault reference in Git. Verify the field
-exists without printing its value. The Deployment reads it through
-`secretKeyRef` as an environment variable, so a Pod restart is required for
-an updated key to take effect. Never put the key in Git, ConfigMaps,
-logs, PRs, or chat.
+Before syncing, ensure the **separate** 1Password item for OpenRouter
+(`2ewpahtrvnvddxf76zqhtzpn7e`) contains the `token` field.
+`onepassworditem-openrouter.yaml` references that item in the same vault
+as the existing Hermes secrets and creates the Kubernetes Secret
+`hermes-openrouter`. The Hermes container receives its `token` key as the
+`OPENROUTER_API_KEY` environment variable through `secretKeyRef`.
+The original `hermes-discord` OnePasswordItem, item ID, Secret, and both
+Discord key references remain unchanged. No secret values are committed.
 
-Because the Secret and OnePasswordItem are renamed from `hermes-discord` to
-`hermes`, perform a staged manual sync. First ensure the 1Password item has all
-three fields (`DISCORD_BOT_TOKEN`, `DISCORD_ALLOWED_USERS`, `OPENROUTER_API_KEY`),
-then sync only the new `hermes` OnePasswordItem and wait for its generated
-`hermes` Secret. Verify only field presence (without printing any key):
+Because Hermes uses `Recreate` on a persistent single-writer PVC, do not
+manually synchronize while a Kanban worker is active. Before syncing the
+Deployment, synchronize the new `hermes-openrouter` OnePasswordItem and
+verify that its `token` field has been synchronized without displaying it:
 
 ```sh
-kubectl -n hermes get secret hermes -o json | \
-  jq -e '.data | has("DISCORD_BOT_TOKEN") and has("DISCORD_ALLOWED_USERS") and has("OPENROUTER_API_KEY")'
+kubectl -n hermes get secret hermes-openrouter -o json |
+  jq -e '.data.token | type == "string" and length > 0'
 ```
 
-Require a successful `true` result before syncing the full Application. Do not prune the old `hermes-discord`
-resource before the new Secret is ready. Because Hermes uses `Recreate` on a
-single-writer PVC, confirm Kanban workers are idle before the full sync.
-After the manual Argo CD sync, verify the main container is Ready and test
-the OpenRouter fallback with a harmless request. Do not intentionally
-exhaust an active production provider just to trigger failover.
+This returns only `true` when the encoded token is nonempty; it does not
+print the key. After a manual Argo CD sync, verify the main container is
+Ready and test the OpenRouter fallback with a harmless request. Do not
+intentionally exhaust a production provider to trigger failover.
+A Pod restart is required to pick up a rotated key injected as an
+environment variable.
 
-Rollback: revert the commit and manually sync after workers are idle.
-The key remains in 1Password; remove it separately if no longer needed.
+Rollback: revert the change and manually sync after workers are idle.
+The original Discord Secret and the new 1Password item remain intact.
+Remove the new `hermes-openrouter` Secret/OnePasswordItem separately if
+no longer needed.
 
 ## Coding and infrastructure orchestration
 
