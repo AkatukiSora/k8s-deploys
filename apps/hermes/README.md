@@ -112,8 +112,9 @@ dispatch.
 
 ## Coding and infrastructure orchestration
 
-The default interactive parent is Claude Sonnet 5.5 / Anthropic at Medium effort.
-It owns the user conversation and can define the task scope, acceptance criteria,
+The default interactive parent is Claude Sonnet 5.5 / Anthropic at Medium effort,
+with GPT-6.1 Terra / OpenAI-Codex as its conversation fallback. It owns the user
+conversation and can define the task scope, acceptance criteria,
 and validation. Use a Kanban card routed to GPT-6.1 Sol / OpenAI-Codex when a
 requirement is ambiguous, an architecture or risk decision is unresolved, or
 failure diagnosis requires judgment. Do not spend Sol on routine implementation
@@ -127,14 +128,15 @@ Delegated children default to GPT-6 Luna at XHigh effort with OpenAI/Codex
 Priority Processing and have an explicit Claude Sonnet 5.5 fallback. The
 `cron.model` and `cron.model_provider` defaults remain GPT-6 Luna / OpenAI-Codex
 at XHigh and Standard processing; `delegation.request_overrides` does not apply
-to that scheduler. Cron still inherits the top-level fallback chain, so a Codex
-failure can route it to Sonnet while Luna remains its primary model. Kanban cards
+to that scheduler. Cron jobs without individual route pins inherit the top-level
+fallback chain; individually pinned jobs do not. Kanban cards
 select their model individually: use GPT-6 Luna / OpenAI-Codex for decided
 execution and GPT-6.1 Sol / OpenAI-Codex for unresolved decisions. Kanban workers
 run at Standard processing. A card without an explicit model override uses the
 Sonnet / Anthropic profile default, not Luna. The top-level fallback chain
-applies to Kanban CLI workers; an OpenAI-routed card can fall back to Sonnet,
-and a candidate on the currently failing backend is skipped. Luna implements
+applies to Kanban CLI workers; an OpenAI-routed card can fall back to Sonnet
+or Terra when eligible. A Sol card therefore specifies its primary model, not a
+Sol-only execution guarantee. Luna implements
 already-decided features and bug fixes, makes targeted Terraform/Ansible/manifest
 changes, writes tests and documentation, investigates bounded questions, and
 runs mechanical validation. It must not choose a specification, architecture,
@@ -600,8 +602,9 @@ restore over the live `hermes-data` while the Hermes Pod is running.
 
 The Managed Scope defaults the interactive parent to Claude Sonnet 5.5 /
 Anthropic at Medium effort. The top-level fallback chain lets the conversation
-fall back to GPT-6.1 Sol and lets an OpenAI-routed Kanban card fall back to
-Sonnet; a candidate on the currently failing backend is skipped. Select
+fall back to GPT-6.1 Terra. An OpenAI-routed Kanban card can fall back to
+Sonnet or Terra when eligible; card model overrides specify the primary route,
+not a Sol-only execution guarantee. Select
 `gpt-6-luna` / `openai-codex` for bounded execution cards and
 `gpt-6.1-sol` / `openai-codex` for unresolved decisions. A card without an
 explicit model override uses the Sonnet profile default; it is not implicitly a
@@ -609,9 +612,9 @@ Luna worker. Delegated children default to GPT-6 Luna / XHigh / Priority
 Processing and have an explicit Sonnet fallback. The `compression`,
 `title_generation`, `approval`, and `goal_judge` auxiliary tasks use GPT-6 Luna
 with Claude Haiku 5.5 as their fallback. Cron remains pinned to GPT-6 Luna /
-OpenAI-Codex as its primary model, but inherits the top-level fallback chain and
-can fail over to Sonnet on a Codex-side failure. Do not automatically select or fall back to GPT-6
-Astra or Fable.
+OpenAI-Codex as its primary model. Jobs without their own route pin inherit the
+top-level fallback chain; individually pinned jobs do not. Do not automatically
+select or fall back to GPT-6 Astra or Fable.
 
 The `checksum/hermes-config` Pod-template annotation is the SHA-256 of
 `apps/hermes/config.yaml`; update it with every configuration edit so an Argo
