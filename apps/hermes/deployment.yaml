@@ -20,7 +20,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/hermes-config: c4252bf9a8f38000f500a2bd1f9b5fbcebf3941a83fdd20d03dc10c39fceacd9
+        checksum/hermes-config: 45331a6d1fbf29efdbc030d8188f571401d7437a8e1e9b290c9eac9f004c917d
         checksum/hermes-vikunja-adapter: dd679ab6870f9fa90950558bc532efa3da2ff5151516ef2ce2c49944d49e0085
         checksum/hermes-vikunja-read-proxy: df88414001005fcf57beb05c7700fa76579dfc1f96eb8aa634ce6ba2d1e7e41c
         checksum/hermes-vikunja-tools: a9ac268f7c94bbec319019833ba71b7b90feb682af7c648db00c958ef992f318
@@ -408,6 +408,11 @@ spec:
                 secretKeyRef:
                   name: hermes-discord
                   key: DISCORD_ALLOWED_USERS
+            - name: OPENROUTER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-openrouter
+                  key: token
             - name: ARGOCD_SERVER
               value: argocd-server.argocd.svc.cluster.local:80
             - name: ARGOCD_AUTH_TOKEN

@@ -11,6 +11,7 @@ resources:
   - rbac-vikunja-read-proxy.yaml
   - networkpolicy-vikunja-read-ingress.yaml
   - onepassworditem-discord.yaml
+  - onepassworditem-openrouter.yaml
   - onepassworditem-github-app.yaml
   - onepassworditem-alertmanager-webhook.yaml
   - onepassworditem-argocd.yaml

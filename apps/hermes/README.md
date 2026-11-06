@@ -110,6 +110,51 @@ contents itself. Those source checks skip without that variable; they do not
 start a gateway, assemble complete model schemas, mutate a board, or test
 dispatch.
 
+## Emergency model fallback (OpenRouter)
+
+The primary chat model remains `claude-sonnet-5-5` (Anthropic), and design
+Kanban cards remain explicitly pinned to `gpt-6.1-sol` (OpenAI-Codex).
+The existing Sonnet / Terra chain is preserved; `xiaomi/mimo-v2.5-pro`
+then `z-ai/glm-5.2` are appended as last-resort OpenRouter routes.
+Luna delegation, cron, and auxiliary models are unchanged.
+
+**Important:** Hermes uses one global `fallback_providers` list for main
+conversation and eligible Kanban workers. It does not implement distinct
+per-card fallback chains here: an explicitly pinned Sol card may encounter
+other fallback entries before GLM, and a conversation may encounter GLM
+after MiMo. No primary model is proactively replaced.
+
+Before syncing, ensure the **separate** 1Password item for OpenRouter
+(`2ewpahtrvnvddxf76zqhtzpn7e`) contains the `token` field.
+`onepassworditem-openrouter.yaml` references that item in the same vault
+as the existing Hermes secrets and creates the Kubernetes Secret
+`hermes-openrouter`. The Hermes container receives its `token` key as the
+`OPENROUTER_API_KEY` environment variable through `secretKeyRef`.
+The original `hermes-discord` OnePasswordItem, item ID, Secret, and both
+Discord key references remain unchanged. No secret values are committed.
+
+Because Hermes uses `Recreate` on a persistent single-writer PVC, do not
+manually synchronize while a Kanban worker is active. Before syncing the
+Deployment, synchronize the new `hermes-openrouter` OnePasswordItem and
+verify that its `token` field has been synchronized without displaying it:
+
+```sh
+kubectl -n hermes get secret hermes-openrouter -o json |
+  jq -e '.data.token | type == "string" and length > 0'
+```
+
+This returns only `true` when the encoded token is nonempty; it does not
+print the key. After a manual Argo CD sync, verify the main container is
+Ready and test the OpenRouter fallback with a harmless request. Do not
+intentionally exhaust a production provider to trigger failover.
+A Pod restart is required to pick up a rotated key injected as an
+environment variable.
+
+Rollback: revert the change and manually sync after workers are idle.
+The original Discord Secret and the new 1Password item remain intact.
+Remove the new `hermes-openrouter` Secret/OnePasswordItem separately if
+no longer needed.
+
 ## Coding and infrastructure orchestration
 
 The default interactive parent is Claude Sonnet 5.5 / Anthropic at Medium effort,

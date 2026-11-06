@@ -9,6 +9,11 @@ fallback_providers:
     model: claude-sonnet-5-5
   - provider: openai-codex
     model: gpt-6.1-terra
+  # Emergency OpenRouter routes; primary conversation and Kanban model pins stay unchanged.
+  - provider: openrouter
+    model: xiaomi/mimo-v2.5-pro
+  - provider: openrouter
+    model: z-ai/glm-5.2
 agent:
   # The main interactive Sonnet session uses Medium; Luna keeps model-specific
   # XHigh effort for Kanban cards and delegated workers explicitly routed to Luna.

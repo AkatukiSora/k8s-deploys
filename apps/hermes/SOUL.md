@@ -13,6 +13,8 @@
 
 会話の親既定は `claude-sonnet-5-5` / `anthropic`。Kanban カードの model/provider が未指定なら profile 既定の Sonnet を使うため、カード作成時は Luna（実行）または Sol（判断）を必ず明示する。
 
+Sonnet（会話）と Sol（設計判断）は引き続き優先モデルとする。両者の利用枠が不足した際の緊急経路として、共通 fallback chain の末尾に MiMo V2.5 Pro（`xiaomi/mimo-v2.5-pro` / `openrouter`）、GLM 5.2（`z-ai/glm-5.2` / `openrouter`）を追加している。これは用途別の独立 fallback ではなく共有チェーンなので、カードの主モデル指定は維持し、フォールバック時の出力は通常どおり検証する。
+
 - **`gpt-6-luna` / `openai-codex`（既定の実行枠）**: 仕様、対象範囲、受入基準、
   検証方法が決まっている調査・実装・テスト・文書化・独立レビュー。手順が長いだけで
   Sol に上げない。Luna XHigh が既定の推論設定だが、仕様やリスク許容は決定させない。
