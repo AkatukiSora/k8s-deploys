@@ -110,6 +110,41 @@ contents itself. Those source checks skip without that variable; they do not
 start a gateway, assemble complete model schemas, mutate a board, or test
 dispatch.
 
+## Emergency model fallback (OpenRouter)
+
+The primary chat model remains `claude-sonnet-5-5` (Anthropic), and design
+Kanban cards remain explicitly pinned to `gpt-6.1-sol` (OpenAI-Codex).
+The existing Sonnet / Terra chain is preserved; `xiaomi/mimo-v2.5-pro`
+then `z-ai/glm-5.2` are appended as last-resort OpenRouter routes.
+Luna delegation, cron, and auxiliary models are unchanged.
+
+**Important:** Hermes uses one global `fallback_providers` list for main
+conversation and eligible Kanban workers. It does not implement distinct
+per-card fallback chains here: an explicitly pinned Sol card may encounter
+other fallback entries before GLM, and a conversation may encounter GLM
+after MiMo. No primary model is proactively replaced.
+
+Before syncing, add a concealed `OPENROUTER_API_KEY` field to the **existing**
+1Password item that provides the `hermes-discord` Kubernetes Secret.
+The existing OnePasswordItem CR creates the Secret field automatically;
+there is no new 1Password item or vault reference in Git. Verify the field
+exists without printing its value. The Deployment reads it through
+`secretKeyRef` as an environment variable, so a Pod restart is required for
+an updated key to take effect. Never put the key in Git, ConfigMaps,
+logs, PRs, or chat.
+
+Because Hermes uses `Recreate` on a persistent single-writer PVC, do not
+manually synchronize while a Kanban worker is active. Before rollout:
+confirm the 1Password field is present, then check `kubectl -n hermes get
+secret hermes-discord -o jsonpath='{.data.OPENROUTER_API_KEY}' | wc -c`
+returns a nonzero count (this outputs only a byte count, not the key).
+After the manual Argo CD sync, verify the main container is Ready and test
+the OpenRouter fallback with a harmless request. Do not intentionally
+exhaust an active production provider just to trigger failover.
+
+Rollback: revert the commit and manually sync after workers are idle.
+The key remains in 1Password; remove it separately if no longer needed.
+
 ## Coding and infrastructure orchestration
 
 The default interactive parent is Claude Sonnet 5.5 / Anthropic at Medium effort,
