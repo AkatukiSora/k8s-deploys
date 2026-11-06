@@ -88,7 +88,7 @@ class ManifestTests(unittest.TestCase):
         self.assertIn({
             "name": "OPENROUTER_API_KEY",
             "valueFrom": {"secretKeyRef": {
-                "name": "hermes-discord",
+                "name": "hermes",
                 "key": "OPENROUTER_API_KEY",
             }},
         }, hermes_env)
