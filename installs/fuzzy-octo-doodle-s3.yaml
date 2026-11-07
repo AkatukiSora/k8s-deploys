@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fuzzy-octo-doodle-s3
+  namespace: argocd
+spec:
+  destination:
+    namespace: fuzzy-octo-doodle
+    server: https://kubernetes.default.svc
+  project: platform
+  source:
+    path: apps/fuzzy-octo-doodle-s3
+    repoURL: https://github.com/AkatukiSora/k8s-deploys.git
+    targetRevision: master
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
