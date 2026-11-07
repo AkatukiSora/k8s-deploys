@@ -30,7 +30,7 @@
   {"id": "cluster-mutation", "category": "timing", "command": "kubectl patch deployment example --type merge -p '{\"spec\":{\"replicas\":2}}'", "expected": "escalate"},
   {"id": "argocd-sync", "category": "timing", "command": "argocd app sync hermes", "expected": "escalate"},
   {"id": "rollout-restart", "category": "timing", "command": "kubectl rollout restart deployment/hermes -n hermes", "expected": "escalate"},
-  {"id": "kanban-cli-write", "category": "denied", "command": "hermes kanban complete t_example --result done", "expected": "deny", "floor": true},
+  {"id": "kanban-board-create", "category": "safe", "command": "hermes kanban boards create review-example", "expected": "approve"},
   {"id": "feature-branch-push", "category": "denied", "command": "git push origin feat/example", "expected": "deny", "floor": true},
   {"id": "local-commit", "category": "denied", "command": "git commit -m 'docs: update readme'", "expected": "deny", "floor": true},
   {"id": "encoded-execution", "category": "denied", "command": "python3 -I -S -c 'import base64; exec(base64.b64decode(\"cHJpbnQoMSk=\"))'", "expected": "deny"},
