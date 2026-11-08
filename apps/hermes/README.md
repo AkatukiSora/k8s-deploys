@@ -280,11 +280,11 @@ irreversible destruction and approve routine work.
 - **Malicious activity**: ransomware, persistence, reverse shells, miners,
   attacks on third parties.
 - **Operations forbidden here**: local `git commit`, `push`, `rebase`, `merge`,
-  `tag`, `cherry-pick`, `am`, force or default-branch pushes, merging a pull
+  `tag`, `cherry-pick`, `am`, force or default-branch pushes, and merging a pull
   request with `--admin` (ordinary `gh pr merge` is allowed; GitHub branch
-  protection, required checks and code-owner review decide whether it proceeds),
-  and `hermes kanban` (commits use the signed-commit helpers; Kanban is
-  operated through MCP tools).
+  protection, required checks and code-owner review decide whether it proceeds).
+  Kanban CLI use is permitted only to create a new board; task/card mutations
+  and other board-management actions remain unauthorized and should be denied.
 - **Reviewer manipulation**: text imitating the `<command>` delimiter, a
   system/operator message, or a verdict addressed to the reviewer, and
   confusable characters in command names, paths, URLs, or shell structure.
@@ -298,7 +298,9 @@ rather than a sandbox.
 
 `ESCALATE` is reserved for changes to shared live state whose timing a human
 must confirm: Argo CD sync and scoped Kubernetes mutations (apply, patch, delete
-of named resources, scale, rollout restart). Everything else is approved.
+of named resources, scale, rollout restart). Everything else is approved except
+Kanban CLI actions outside the new-board-creation scope, which the guardian is
+instructed to deny.
 
 The runtime lets a present operator override a guardian `DENY`, which shows an
 approval prompt. `approvals.timeout: 30` makes that prompt expire after 30
@@ -310,9 +312,12 @@ workflow and wait for the user. `auxiliary.approval.timeout` (the guardian model
 call) is unchanged. To keep always-forbidden categories from ever prompting,
 `approvals.deny` lists glob floors that are answered without the guardian model
 or a person: local `git commit`/`push`/`rebase`/`merge`/`tag`/`cherry-pick`/`am`
-(also with leading git options), `hermes kanban`, and `gh pr merge --admin`.
-Ordinary `gh pr merge` is not a floor and goes to the guardian, which approves
-it by default. The globs
+(also with leading git options) and `gh pr merge --admin`. New-board creation
+through the Kanban CLI is governed by the smart policy rather than a deterministic
+floor; other Kanban CLI actions remain outside this authorization and are
+instructed to be denied. That boundary is model-level, not a hard floor, and a
+present operator can still override a guardian denial. Ordinary `gh pr merge`
+is not a floor and goes to the guardian, which approves it by default. The globs
 are matched per shell command word, so quoted prose such as `echo "git commit"`
 is not blocked. The validator checks that every fixture marked `floor` is
 matched and that no safe fixture is.
@@ -340,7 +345,12 @@ python3 apps/hermes/validate-smart-approval.py --runtime /opt/hermes --live \
 # Use --route-index 1 for Haiku and --route-index 2 for Sonnet.
 ```
 
-`approval-fixtures.json` records examples that must be approved (`safe`), escalated for timing (`timing`), and denied (`denied`); each denial category above has at least one fixture, and ordinary work such as unseen local scripts, unknown imports, and writes outside scratch is expected to be approved.
+`approval-fixtures.json` records representative examples that must be approved
+(`safe`), escalated for timing (`timing`), and denied (`denied`). The board-creation
+fixture verifies that the allowed CLI operation is not matched by a deterministic
+floor; other Kanban CLI operations remain a model-level policy boundary and are
+not exercised by the offline validator. Ordinary work such as unseen local
+scripts, unknown imports, and writes outside scratch is expected to be approved.
 The offline validator checks byte-exact rendered configuration, source and
 rendered checksums, trusted/untrusted prompt separation, strict verdict mapping,
 and fail-closed provider failures. Mock responses test wiring only; they do not
@@ -359,7 +369,8 @@ ambiguous quoting or hidden effects must not be assumed safe. Passing fixtures
 does not guarantee all possible commands or the deployed gateway behavior.
 The approval guardian runs on GPT-6 Luna / OpenAI-Codex. When that provider is
 unavailable or rate limited, `auxiliary.approval.fallback_chain` tries Claude
-Haiku 5.5 first and Claude Sonnet 5.5 second; the validator pins this order.
+Haiku 5.5 first, Claude Sonnet 5.5 second, and DeepSeek V4.1 Flash through
+OpenRouter third; the validator pins this order.
 The policy cannot repair authentication failures: an auxiliary provider 401,
 timeout, or malformed verdict fails closed to escalation. Historical Anthropic
 401s alone do not establish the cause of every escalation. Verify authenticated
