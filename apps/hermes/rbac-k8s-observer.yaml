@@ -207,6 +207,17 @@ rules:
       - get
       - list
       - watch
+  # Image CVE and exposed-secret reports only; the latter may contain secret
+  # material in report.secrets[].match.
+  - apiGroups:
+      - aquasecurity.github.io
+    resources:
+      - exposedsecretreports
+      - vulnerabilityreports
+    verbs:
+      - get
+      - list
+      - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
