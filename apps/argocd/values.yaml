@@ -1,0 +1,138 @@
+# Keep resource names aligned with the existing non-HA install.
+nameOverride: argocd
+fullnameOverride: argocd
+
+crds:
+  install: true
+  keep: true
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+
+global:
+  domain: argocd.akatuki-host.com
+  # Chart policies are additive to the existing upstream policies during adoption.
+  networkPolicy:
+    create: true
+
+configs:
+  cm:
+    # Preserve the upstream Argo CD default; the chart default uses a different key.
+    application.instanceLabelKey: app.kubernetes.io/instance
+    accounts.hermes: apiKey
+    url: https://argocd.akatuki-host.com
+    oidc.config: |
+      name: Authentik
+      issuer: https://auth.akatuki-host.com/application/o/argocd/
+      clientID: argocd
+      clientSecret: $argocd-oidc-client-secret:client-secret
+      requestedScopes: ["openid", "profile", "email"]
+      requestedIDTokenClaims: {"groups": {"essential": true}}
+    extension.config: |
+      extensions:
+        - name: argo-rollouts
+          backend:
+            services:
+              - url: http://argo-rollouts-dashboard.argo-rollouts.svc.cluster.local:3100
+    resource.customizations.health.postgresql.cnpg.io_Cluster: |
+      hs = {}
+      if obj.status == nil then
+        hs.status = "Progressing"
+        hs.message = "Waiting for Cluster status"
+        return hs
+      end
+
+      if obj.status.phase ~= nil then
+        if obj.status.phase == "Cluster in healthy state" then
+          hs.status = "Healthy"
+        else
+          hs.status = "Progressing"
+        end
+
+        if obj.status.phaseReason ~= nil then
+          hs.message = obj.status.phaseReason
+        else
+          hs.message = obj.status.phase
+        end
+        return hs
+      end
+
+      hs.status = "Progressing"
+      hs.message = "Waiting for Cluster phase"
+      return hs
+  params:
+    server.insecure: "true"
+    server.enable.proxy.extension: "true"
+    # resource.customizations.health belongs in argocd-cm, not this ConfigMap.
+  rbac:
+    policy.default: role:authenticated
+    scopes: "[groups]"
+    policy.csv: |
+      p, role:deployer, applications, get, *, allow
+      p, role:deployer, applications, sync, *, allow
+      p, role:deployer, logs, get, *, allow
+      p, role:hermes-observer, applications, get, */*, allow
+      # The Argo CD CLI resolves an application's AppProject before displaying
+      # or synchronizing it. This permits only that required project metadata.
+      p, role:hermes-observer, projects, get, *, allow
+      p, role:hermes-operator, applications, sync, */*, allow
+      p, role:hermes-operator, logs, get, */*, allow
+      g, app:argocd:global:admin, role:admin
+      g, app:argocd:global:sync, role:deployer
+      g, app:argocd:global:readonly, role:readonly
+      g, hermes, role:hermes-observer
+      g, hermes, role:hermes-operator
+  secret:
+    # Preserve the existing server secret and account-token identifiers.
+    createSecret: false
+
+dex:
+  enabled: true
+  metrics:
+    enabled: false
+
+redis:
+  enabled: true
+  existingSecret: argocd-redis
+  serviceAccount:
+    # Reuse the live Redis ServiceAccount; the chart does not create it.
+    create: false
+    name: argocd-redis
+
+redisSecretInit:
+  # Do not replace or regenerate the operator-provisioned Redis auth Secret.
+  enabled: false
+
+controller:
+  metrics:
+    enabled: false
+
+applicationSet:
+  metrics:
+    enabled: false
+  service:
+    portName: webhook
+
+repoServer:
+  metrics:
+    enabled: false
+  service:
+    portName: server
+
+server:
+  ingress:
+    enabled: false
+  metrics:
+    enabled: true
+    service:
+      portName: metrics
+
+notifications:
+  enabled: true
+  cm:
+    create: false
+  secret:
+    create: false
+  metrics:
+    enabled: true
+    service:
+      portName: metrics

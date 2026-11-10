@@ -1,0 +1,32 @@
+# No resources finalizer: apps-root replaces argocd-ingress and must orphan resources for adoption.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd
+  namespace: argocd
+spec:
+  destination:
+    namespace: argocd
+    server: https://kubernetes.default.svc
+  project: platform
+  sources:
+    - repoURL: https://argoproj.github.io/argo-helm
+      chart: argo-cd
+      targetRevision: 10.17.1
+      helm:
+        releaseName: argocd
+        valueFiles:
+          - $values/apps/argocd/values.yaml
+    - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
+      targetRevision: master
+      ref: values
+    - repoURL: https://github.com/AkatukiSora/k8s-deploys.git
+      targetRevision: master
+      path: apps/argocd/extras
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      # The CRDs exceed the client-side apply annotation limit.
+      - ServerSideApply=true
