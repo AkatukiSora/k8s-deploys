@@ -16,26 +16,64 @@
 
 ## 使い方
 
-前提: `kubeseal` と、対象クラスタへ到達できる `kubectl` コンテキストがあること。
+`kubeseal` を使う。クラスタへ到達できるかどうかで経路が分かれる。
 
-1. 平文の Secret をファイルに書かずに標準入力で作り、`kubeseal` で暗号化する。
+### A. kubectl でクラスタにアクセスできる場合
+
+```bash
+kubectl create secret generic <name> \
+  --namespace <namespace> \
+  --from-literal=<key>=<value> \
+  --dry-run=client -o yaml \
+| kubeseal \
+  --controller-name sealed-secrets-controller \
+  --controller-namespace sealed-secrets \
+  --format yaml \
+> apps/<component>/sealedsecret-<name>.yaml
+```
+
+### B. kubectl でクラスタにアクセスできない場合（公開証明書を使う）
+
+暗号化に必要なのは公開証明書だけで、クラスタへの接続は不要。証明書は秘密情報ではなく、
+Git の `apps/sealed-secrets/pub-cert.pem` に置く（鍵ローテーション無効のため一度置けば変わらない）。
+
+1. `kubeseal` を入れ、リポジトリを clone する。
+2. 平文の Secret を標準入力から `kubeseal --cert` に渡す。`kubectl` も不要で、`stringData` で書ける。
 
    ```bash
-   kubectl create secret generic <name> \
-     --namespace <namespace> \
-     --from-literal=<key>=<value> \
-     --dry-run=client -o yaml \
-   | kubeseal \
-     --controller-name sealed-secrets-controller \
-     --controller-namespace sealed-secrets \
-     --format yaml \
-   > apps/<component>/sealedsecret-<name>.yaml
+   cat <<'EOF' | kubeseal --cert apps/sealed-secrets/pub-cert.pem --format yaml \
+     > apps/<component>/sealedsecret-<name>.yaml
+   apiVersion: v1
+   kind: Secret
+   metadata:
+     name: <name>
+     namespace: <namespace>
+   stringData:
+     <key>: <value>
+   EOF
    ```
 
-   値をシェル履歴に残したくない場合は `--from-literal` の代わりに `--from-file=<key>=/dev/stdin` を使う。
+   平文をシェル履歴やファイルに残さないため、値は端末で直接入力するか、パスワードマネージャから渡す。
 
-2. 生成された `SealedSecret` を、該当 component の `kustomization.yaml` の `resources` に追加する。
-3. PR を出す。Argo CD が `SealedSecret` を適用し、コントローラが同名の `Secret` を作る。
+3. 以降は A と同じ（kustomization に追加して PR）。デプロイされた `Secret` を確認するのはクラスタ管理者でよい。
+
+証明書ファイルの登録（クラスタにアクセスできるメンバーが一度だけ行う）:
+
+```bash
+kubeseal --fetch-cert \
+  --controller-name sealed-secrets-controller \
+  --controller-namespace sealed-secrets \
+  > apps/sealed-secrets/pub-cert.pem
+```
+
+別の証明書で暗号化しないよう、`pub-cert.pem` の変更は必ずレビューする。
+暗号文が誤った証明書で作られた場合、コントローラが復号できず `Secret` が作られない（失敗は
+`SealedSecret` のステータスと Event に出る）。
+
+### 共通の手順
+
+1. 生成された `SealedSecret` を、該当 component の `kustomization.yaml` の `resources` に追加する。
+2. PR を出す。Argo CD が `SealedSecret` を適用し、コントローラが同名の `Secret` を作る。
 
 注意:
 
@@ -43,12 +81,11 @@
   変更する場合は再度 `kubeseal` する。
 - 生成された `Secret` は `SealedSecret` が所有する。`Secret` を直接編集しても上書きされる。
 - 暗号文だけが Git に入る。平文の Secret マニフェストを commit しない。
-- 公開鍵だけ取得してオフラインで暗号化する場合は `kubeseal --fetch-cert ...` で証明書を保存し、
-  `kubeseal --cert <file>` を使う。
+- `SealedSecret` は「書き込み専用」で、作成者も暗号文から値を読み戻せない。値の変更は再度 `kubeseal` して置き換える。
 
 ## 秘密鍵のバックアップと復元（必須）
 
-コントローラは Secret（ラベル `sealedsecrets.bitnami.com/sealing-key`）として暗号化鍵ペアを保持する。
+コントローラは Secret（ラベル `sealedsecrets.bitnami.com/sealed-secrets-key`）として暗号化鍵ペアを保持する。
 この鍵が失われるとクラスタ再構築後に既存の `SealedSecret` を復号できない。
 Git には暗号文しかないため、鍵は別系統に保管する。
 
@@ -59,7 +96,7 @@ Git には暗号文しかないため、鍵は別系統に保管する。
 
 ```bash
 kubectl get secret -n sealed-secrets \
-  -l sealedsecrets.bitnami.com/sealing-key \
+  -l sealedsecrets.bitnami.com/sealed-secrets-key \
   -o yaml > sealed-secrets-key.yaml
 ```
 
@@ -84,8 +121,9 @@ kubectl get secret -n sealed-secrets \
 
 ## 既知の制約
 
-- Cilium の default-deny は現在 audit モード。強制モードに切り替える前に、コントローラの
-  kube-apiserver への egress と kube-apiserver からの 8080/TCP ingress（`kubeseal` 用）を許可する
-  ポリシーを追加する必要がある。
+- ネットワークポリシー（`manifests/networkpolicy.yaml`）は Cilium の audit モード下でも先行して適用される。
+  許可しているのはコントローラから kube-apiserver への egress と、kube-apiserver / ノードからの
+  8080/TCP ingress（`kubeseal` 経由）のみ。強制モードへ切り替える前に Hubble で
+  `sealed-secrets` namespace の DROPPED/AUDIT verdict が無いことを確認する。
 - コントローラは暗号化鍵 Secret を保持するため、`sealed-secrets` namespace の Secret 読み取り権限は
   管理者に限定する。
