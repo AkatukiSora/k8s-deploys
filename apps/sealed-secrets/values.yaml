@@ -1,0 +1,21 @@
+# Values for the Bitnami Sealed Secrets controller chart
+# (pinned in installs/sealed-secrets.yaml).
+#
+# The controller is named `sealed-secrets-controller`, which is the default
+# name `kubeseal` looks for. It runs in the `sealed-secrets` namespace, so
+# `kubeseal` needs `--controller-namespace sealed-secrets`.
+
+fullnameOverride: sealed-secrets-controller
+
+# Disable automatic sealing-key rotation (default: every 30 days).
+# With rotation enabled, every new key must be backed up again, otherwise a
+# cluster rebuild loses the ability to decrypt secrets sealed with it.
+# A single long-lived key is backed up once (see README.md).
+keyrenewperiod: "0"
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    memory: 128Mi

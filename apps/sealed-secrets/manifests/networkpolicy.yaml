@@ -1,0 +1,38 @@
+# Network policy for the Sealed Secrets controller.
+#
+# Cilium default-deny (apps/cilium-policies/default-deny.yaml) is currently in
+# audit mode. These rules allow exactly what the controller needs, so that
+# enforcement can be enabled without breaking it.
+#
+# Egress: the controller talks only to the Kubernetes API server.
+# Ingress: port 8080 (certificate, verify, rotate endpoints), reached by
+# `kubeseal` through the API server service proxy. Kubelet probes are always
+# allowed by Cilium and need no rule.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: sealed-secrets-controller
+  namespace: sealed-secrets
+spec:
+  description: Allow the Sealed Secrets controller to reach the API server and accept kubeseal requests via the API server.
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: sealed-secrets
+  egress:
+    - toEntities:
+        - kube-apiserver
+    - toCIDR:
+        - 10.0.40.99/32
+      toPorts:
+        - ports:
+            - port: "6443"
+              protocol: TCP
+  ingress:
+    - fromEntities:
+        - kube-apiserver
+        - host
+        - remote-node
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
