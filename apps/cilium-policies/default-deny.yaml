@@ -1,0 +1,17 @@
+# Cluster-wide default deny for every Cilium endpoint.
+#
+# An empty rule (`- {}`) selects no peer but switches the endpoint to
+# default-deny for that direction. While `policyAuditMode: true` in
+# apps/cilium/values.yaml, traffic that would be denied is forwarded and
+# reported as an AUDIT verdict in Hubble, so no connection is dropped.
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: default-deny
+spec:
+  description: Default deny ingress and egress for all endpoints.
+  endpointSelector: {}
+  ingress:
+    - {}
+  egress:
+    - {}
