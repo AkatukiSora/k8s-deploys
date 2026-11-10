@@ -126,6 +126,18 @@ server:
     service:
       portName: metrics
 
+# RBAC の確認結果（argo-helm argo-cd 10.17.1）:
+# - notifications.enabled=true / createClusterRoles=true で通知 controller の
+#   ClusterRole/Binding が作成され、全 namespace の ConfigMap/Secret を list/watch する。
+#   upstream v3.4.5 install.yaml では通知 controller に argocd namespace 限定 Role のみを
+#   付与するため、侵害時に他 namespace の Secret も読める点をリスクとして受容する。
+# - notifications.clusterRoleRules.rules は権限の追加のみ。createClusterRoles=false は
+#   server/controller の ClusterRole も抑止するため、通知分だけを無効化できず、
+#   chart の既定 RBAC を維持する。
+# - upstream v3.4.5 と比べ、server ClusterRole に events create と
+#   applications/applicationsets update、ApplicationSet の argocd Role に ConfigMap
+#   write と Deployment read がある（applications/*/finalizers update は v3.6.1 にも存在）。
+# - 通知 controller の ClusterRole を個別に無効化・縮小できる chart 設定が追加されたら再評価する。
 notifications:
   enabled: true
   cm:
