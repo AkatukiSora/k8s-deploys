@@ -247,6 +247,15 @@ data:
             - !KeyOf app-cloudflare-resource-proxmox-access-group
             - !KeyOf app-cloudflare-one-regist-group
 
+      - id: team-fuzzy-octo-doodle-group
+        model: authentik_core.group
+        identifiers:
+          name: "team:fuzzy-octo-doodle"
+        attrs:
+          parents:
+            - !KeyOf app-cloudflare-resource-argocd-access-group
+            - !KeyOf app-argocd-project-fuzzy-octo-doodle-readonly-group
+
       - id: team-pek-member-group
         model: authentik_core.group
         identifiers:
