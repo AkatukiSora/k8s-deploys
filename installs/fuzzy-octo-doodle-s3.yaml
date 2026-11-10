@@ -3,6 +3,10 @@ kind: Application
 metadata:
   name: fuzzy-octo-doodle-s3
   namespace: argocd
+  # Delete the managed OnePasswordItem together with this Application when the
+  # S3 secret moves to a SealedSecret in the application repository.
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   destination:
     namespace: fuzzy-octo-doodle
