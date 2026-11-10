@@ -11,13 +11,19 @@ spec:
     - server: https://kubernetes.default.svc
       namespace: fuzzy-octo-doodle
   # The source repository has other contributors, so limit what it can create:
-  # its own namespace and namespaced workload/network kinds only (no RBAC, no Secrets).
+  # its own namespace and namespaced workload/network kinds only (no RBAC, no plain Secrets).
+  # SealedSecret is allowed so the application repository can carry its own encrypted
+  # secrets. Anyone who can push there can encrypt with the public certificate, so this
+  # lets them create Secrets in this namespace (only this one: SealedSecrets are
+  # namespace-scoped and the AppProject limits destinations to it).
   clusterResourceWhitelist:
     - group: ""
       kind: Namespace
   namespaceResourceWhitelist:
     - group: apps
       kind: Deployment
+    - group: bitnami.com
+      kind: SealedSecret
     - group: batch
       kind: CronJob
     - group: batch
