@@ -1,0 +1,18 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-seed
+  namespace: fuzzy-octo-doodle
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: seed
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: fuzzy-octo-doodle
+        cnpg.io/cluster: fuzzy-octo-doodle-db
+    toPorts:
+    - ports:
+      - port: '5432'
+        protocol: TCP

@@ -1,0 +1,32 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-redis
+  namespace: nextcloud
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/component: master
+      app.kubernetes.io/instance: nextcloud
+      app.kubernetes.io/name: redis
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: nextcloud
+        app.kubernetes.io/component: app
+        app.kubernetes.io/instance: nextcloud
+        app.kubernetes.io/name: nextcloud
+    toPorts:
+    - ports:
+      - port: '6379'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: nextcloud
+        app.kubernetes.io/component: replica
+        app.kubernetes.io/instance: nextcloud
+        app.kubernetes.io/name: redis
+    toPorts:
+    - ports:
+      - port: '6379'
+        protocol: TCP

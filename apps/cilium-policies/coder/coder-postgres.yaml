@@ -1,0 +1,58 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-coder-postgres
+  namespace: coder
+spec:
+  endpointSelector:
+    matchLabels:
+      cnpg.io/cluster: coder-postgres
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: cnpg-system
+        app.kubernetes.io/instance: cloudnative-pg
+        app.kubernetes.io/name: cloudnative-pg
+    toPorts:
+    - ports:
+      - port: '8000'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: coder
+        app.kubernetes.io/instance: coder
+        app.kubernetes.io/name: coder
+    toPorts:
+    - ports:
+      - port: '5432'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: coder
+        cnpg.io/cluster: coder-postgres
+    toPorts:
+    - ports:
+      - port: '5432'
+        protocol: TCP
+      - port: '8000'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: monitoring
+        app.kubernetes.io/instance: kube-prometheus-stack-prometheus
+        app.kubernetes.io/name: prometheus
+    toPorts:
+    - ports:
+      - port: '9187'
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: coder
+        cnpg.io/cluster: coder-postgres
+    toPorts:
+    - ports:
+      - port: '5432'
+        protocol: TCP
+      - port: '8000'
+        protocol: TCP

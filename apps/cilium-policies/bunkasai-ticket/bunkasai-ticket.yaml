@@ -1,0 +1,28 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-bunkasai-ticket
+  namespace: bunkasai-ticket
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/component: api
+      app.kubernetes.io/name: bunkasai-ticket
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: cloudflare-tunnel-ingress-controller
+        app: controlled-cloudflared-connector
+    toPorts:
+    - ports:
+      - port: '8787'
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: bunkasai-ticket
+        cnpg.io/cluster: bunkasai-ticket-postgres
+    toPorts:
+    - ports:
+      - port: '5432'
+        protocol: TCP

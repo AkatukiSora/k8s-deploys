@@ -1,0 +1,106 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-cloudnative-pg
+  namespace: cnpg-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: cloudnative-pg
+      app.kubernetes.io/name: cloudnative-pg
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: monitoring
+        app.kubernetes.io/instance: kube-prometheus-stack-prometheus
+        app.kubernetes.io/name: prometheus
+    toPorts:
+    - ports:
+      - port: '8080'
+        protocol: TCP
+  - fromEntities:
+    - kube-apiserver
+    - remote-node
+    toPorts:
+    - ports:
+      - port: '9443'
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: authentik
+        cnpg.io/cluster: authentik-postgres
+    toPorts:
+    - ports:
+      - port: '8000'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: bunkasai-ticket
+        cnpg.io/cluster: bunkasai-ticket-postgres
+    toPorts:
+    - ports:
+      - port: '8000'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: cnpg-system
+        app: barman-cloud
+    toPorts:
+    - ports:
+      - port: '9090'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: coder
+        cnpg.io/cluster: coder-postgres
+    toPorts:
+    - ports:
+      - port: '8000'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: fuzzy-octo-doodle
+        cnpg.io/cluster: fuzzy-octo-doodle-db
+    toPorts:
+    - ports:
+      - port: '8000'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: immich-postgres
+        cnpg.io/cluster: immich-postgres
+    toPorts:
+    - ports:
+      - port: '8000'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: monitoring
+        cnpg.io/cluster: grafana-postgres
+    toPorts:
+    - ports:
+      - port: '8000'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: nextcloud
+        cnpg.io/cluster: nextcloud-postgres
+    toPorts:
+    - ports:
+      - port: '8000'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: vikunja
+        cnpg.io/cluster: vikunja-postgres
+    toPorts:
+    - ports:
+      - port: '8000'
+        protocol: TCP
+  - toEntities:
+    - kube-apiserver
+    toPorts:
+    - ports:
+      - port: '6443'
+        protocol: TCP

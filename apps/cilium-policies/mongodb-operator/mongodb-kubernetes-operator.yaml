@@ -1,0 +1,16 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-mongodb-kubernetes-operator
+  namespace: mongodb-operator
+spec:
+  endpointSelector:
+    matchLabels:
+      name: mongodb-kubernetes-operator
+  egress:
+  - toEntities:
+    - kube-apiserver
+    toPorts:
+    - ports:
+      - port: '6443'
+        protocol: TCP

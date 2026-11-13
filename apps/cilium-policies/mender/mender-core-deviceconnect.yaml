@@ -1,0 +1,30 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-mender-core-deviceconnect
+  namespace: mender
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/component: deviceconnect
+      app.kubernetes.io/instance: mender-core
+      app.kubernetes.io/name: mender-core-deviceconnect
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: mender
+        app: mender-mongodb-svc
+    toPorts:
+    - ports:
+      - port: '27017'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: mender
+        app.kubernetes.io/component: nats
+        app.kubernetes.io/instance: mender-core
+        app.kubernetes.io/name: nats
+    toPorts:
+    - ports:
+      - port: '4222'
+        protocol: TCP

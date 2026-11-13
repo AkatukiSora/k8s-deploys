@@ -1,0 +1,41 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-mender-core-inventory
+  namespace: mender
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/component: inventory
+      app.kubernetes.io/instance: mender-core
+      app.kubernetes.io/name: mender-core-inventory
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: mender
+        app.kubernetes.io/component: deployments
+        app.kubernetes.io/instance: mender-core
+        app.kubernetes.io/name: mender-core-deployments
+    toPorts:
+    - ports:
+      - port: '8080'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: mender
+        app.kubernetes.io/component: device-auth
+        app.kubernetes.io/instance: mender-core
+        app.kubernetes.io/name: mender-core-device-auth
+    toPorts:
+    - ports:
+      - port: '8080'
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: mender
+        app: mender-mongodb-svc
+    toPorts:
+    - ports:
+      - port: '27017'
+        protocol: TCP

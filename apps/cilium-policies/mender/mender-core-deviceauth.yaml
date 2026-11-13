@@ -1,0 +1,20 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-mender-core-deviceauth
+  namespace: mender
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/component: deviceauth
+      app.kubernetes.io/instance: mender-core
+      app.kubernetes.io/name: mender-core-deviceauth
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: mender
+        app: mender-mongodb-svc
+    toPorts:
+    - ports:
+      - port: '27017'
+        protocol: TCP

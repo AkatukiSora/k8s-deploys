@@ -1,0 +1,29 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-ceph-csi-rbd
+  namespace: ceph-csi
+spec:
+  endpointSelector:
+    matchLabels:
+      app: ceph-csi-rbd
+      component: provisioner
+  egress:
+  - toEntities:
+    - kube-apiserver
+    toPorts:
+    - ports:
+      - port: '6443'
+        protocol: TCP
+  - toCIDR:
+    - 192.168.8.101/32
+    - 192.168.8.102/32
+    toPorts:
+    - ports:
+      - port: '6800'
+        endPort: 7568
+        protocol: TCP
+      - port: '3300'
+        protocol: TCP
+      - port: '6789'
+        protocol: TCP

@@ -1,0 +1,19 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-bunkasai-ticket-migration
+  namespace: bunkasai-ticket
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/component: migration
+      app.kubernetes.io/name: bunkasai-ticket
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: bunkasai-ticket
+        cnpg.io/cluster: bunkasai-ticket-postgres
+    toPorts:
+    - ports:
+      - port: '5432'
+        protocol: TCP

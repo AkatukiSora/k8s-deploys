@@ -1,0 +1,37 @@
+# Helm hook jobs that only run during upgrades or certificate rotation. They
+# rarely appear in observed traffic, so their API server access is declared here.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-hubble-generate-certs
+  namespace: kube-system
+spec:
+  description: Allow the Hubble certificate job to reach the API server.
+  endpointSelector:
+    matchLabels:
+      k8s-app: hubble-generate-certs
+  egress:
+    - toEntities:
+        - kube-apiserver
+      toPorts:
+        - ports:
+            - port: "6443"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-kyverno-migrate-resources
+  namespace: kyverno
+spec:
+  description: Allow the Kyverno resource migration hook job to reach the API server.
+  endpointSelector:
+    matchLabels:
+      job-name: security-kyverno-migrate-resources
+  egress:
+    - toEntities:
+        - kube-apiserver
+      toPorts:
+        - ports:
+            - port: "6443"
+              protocol: TCP

@@ -1,0 +1,137 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-mender-mongodb-svc
+  namespace: mender
+spec:
+  endpointSelector:
+    matchLabels:
+      app: mender-mongodb-svc
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: mender
+        app.kubernetes.io/component: create-artifact-worker
+        app.kubernetes.io/instance: mender-core
+        app.kubernetes.io/name: mender-core-create-artifact-worker
+    toPorts:
+    - ports:
+      - port: '27017'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: mender
+        app.kubernetes.io/component: deployments
+        app.kubernetes.io/instance: mender-core
+        app.kubernetes.io/name: mender-core-deployments
+    toPorts:
+    - ports:
+      - port: '27017'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: mender
+        app.kubernetes.io/component: device-auth
+        app.kubernetes.io/instance: mender-core
+        app.kubernetes.io/name: mender-core-device-auth
+    toPorts:
+    - ports:
+      - port: '27017'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: mender
+        app.kubernetes.io/component: deviceauth
+        app.kubernetes.io/instance: mender-core
+        app.kubernetes.io/name: mender-core-deviceauth
+    toPorts:
+    - ports:
+      - port: '27017'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: mender
+        app.kubernetes.io/component: deviceconfig
+        app.kubernetes.io/instance: mender-core
+        app.kubernetes.io/name: mender-core-deviceconfig
+    toPorts:
+    - ports:
+      - port: '27017'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: mender
+        app.kubernetes.io/component: deviceconnect
+        app.kubernetes.io/instance: mender-core
+        app.kubernetes.io/name: mender-core-deviceconnect
+    toPorts:
+    - ports:
+      - port: '27017'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: mender
+        app.kubernetes.io/component: inventory
+        app.kubernetes.io/instance: mender-core
+        app.kubernetes.io/name: mender-core-inventory
+    toPorts:
+    - ports:
+      - port: '27017'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: mender
+        app.kubernetes.io/component: iot-manager
+        app.kubernetes.io/instance: mender-core
+        app.kubernetes.io/name: mender-core-iot-manager
+    toPorts:
+    - ports:
+      - port: '27017'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: mender
+        app.kubernetes.io/component: useradm
+        app.kubernetes.io/instance: mender-core
+        app.kubernetes.io/name: mender-core-useradm
+    toPorts:
+    - ports:
+      - port: '27017'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: mender
+        app.kubernetes.io/component: workflows
+        app.kubernetes.io/instance: mender-core
+        app.kubernetes.io/name: mender-core-workflows
+    toPorts:
+    - ports:
+      - port: '27017'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: mender
+        app.kubernetes.io/component: workflows-server
+        app.kubernetes.io/instance: mender-core
+        app.kubernetes.io/name: mender-core-workflows-server
+    toPorts:
+    - ports:
+      - port: '27017'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: mender
+        app.kubernetes.io/component: workflows-worker
+        app.kubernetes.io/instance: mender-core
+        app.kubernetes.io/name: mender-core-workflows-worker
+    toPorts:
+    - ports:
+      - port: '27017'
+        protocol: TCP
+  egress:
+  - toEntities:
+    - kube-apiserver
+    toPorts:
+    - ports:
+      - port: '6443'
+        protocol: TCP
