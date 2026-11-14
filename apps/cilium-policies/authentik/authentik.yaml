@@ -1,0 +1,29 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-authentik
+  namespace: authentik
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/component: server
+      app.kubernetes.io/instance: authentik
+      app.kubernetes.io/name: authentik
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: cloudflare-tunnel-ingress-controller
+        app: controlled-cloudflared-connector
+    toPorts:
+    - ports:
+      - port: '9000'
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: authentik
+        cnpg.io/cluster: authentik-postgres
+    toPorts:
+    - ports:
+      - port: '5432'
+        protocol: TCP

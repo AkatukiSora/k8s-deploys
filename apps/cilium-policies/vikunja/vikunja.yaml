@@ -1,0 +1,28 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-vikunja
+  namespace: vikunja
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: vikunja
+      app.kubernetes.io/name: vikunja
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: cloudflare-tunnel-ingress-controller
+        app: controlled-cloudflared-connector
+    toPorts:
+    - ports:
+      - port: '3456'
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: vikunja
+        cnpg.io/cluster: vikunja-postgres
+    toPorts:
+    - ports:
+      - port: '5432'
+        protocol: TCP

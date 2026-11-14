@@ -1,0 +1,27 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-backend
+  namespace: fuzzy-octo-doodle
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: backend
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: cloudflare-tunnel-ingress-controller
+        app: controlled-cloudflared-connector
+    toPorts:
+    - ports:
+      - port: '8080'
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: fuzzy-octo-doodle
+        cnpg.io/cluster: fuzzy-octo-doodle-db
+    toPorts:
+    - ports:
+      - port: '5432'
+        protocol: TCP

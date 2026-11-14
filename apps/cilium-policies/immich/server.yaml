@@ -1,0 +1,45 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-server
+  namespace: immich
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: immich
+      app.kubernetes.io/name: server
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: cloudflare-tunnel-ingress-controller
+        app: controlled-cloudflared-connector
+    toPorts:
+    - ports:
+      - port: '2283'
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: immich
+        app.kubernetes.io/instance: immich
+        app.kubernetes.io/name: machine-learning
+    toPorts:
+    - ports:
+      - port: '3003'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: immich
+        app.kubernetes.io/name: immich-redis
+    toPorts:
+    - ports:
+      - port: '6379'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: immich-postgres
+        cnpg.io/cluster: immich-postgres
+    toPorts:
+    - ports:
+      - port: '5432'
+        protocol: TCP

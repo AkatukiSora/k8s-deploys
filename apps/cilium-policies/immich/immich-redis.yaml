@@ -1,0 +1,19 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-immich-redis
+  namespace: immich
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: immich-redis
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: immich
+        app.kubernetes.io/instance: immich
+        app.kubernetes.io/name: server
+    toPorts:
+    - ports:
+      - port: '6379'
+        protocol: TCP

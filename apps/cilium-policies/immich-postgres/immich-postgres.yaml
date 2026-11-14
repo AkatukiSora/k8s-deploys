@@ -1,0 +1,58 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-immich-postgres
+  namespace: immich-postgres
+spec:
+  endpointSelector:
+    matchLabels:
+      cnpg.io/cluster: immich-postgres
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: cnpg-system
+        app.kubernetes.io/instance: cloudnative-pg
+        app.kubernetes.io/name: cloudnative-pg
+    toPorts:
+    - ports:
+      - port: '8000'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: immich
+        app.kubernetes.io/instance: immich
+        app.kubernetes.io/name: server
+    toPorts:
+    - ports:
+      - port: '5432'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: immich-postgres
+        cnpg.io/cluster: immich-postgres
+    toPorts:
+    - ports:
+      - port: '5432'
+        protocol: TCP
+      - port: '8000'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: monitoring
+        app.kubernetes.io/instance: kube-prometheus-stack-prometheus
+        app.kubernetes.io/name: prometheus
+    toPorts:
+    - ports:
+      - port: '9187'
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: immich-postgres
+        cnpg.io/cluster: immich-postgres
+    toPorts:
+    - ports:
+      - port: '5432'
+        protocol: TCP
+      - port: '8000'
+        protocol: TCP

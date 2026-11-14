@@ -1,0 +1,73 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-nats
+  namespace: mender
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/component: nats
+      app.kubernetes.io/instance: mender-core
+      app.kubernetes.io/name: nats
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: mender
+        app.kubernetes.io/component: create-artifact-worker
+        app.kubernetes.io/instance: mender-core
+        app.kubernetes.io/name: mender-core-create-artifact-worker
+    toPorts:
+    - ports:
+      - port: '4222'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: mender
+        app.kubernetes.io/component: deviceconnect
+        app.kubernetes.io/instance: mender-core
+        app.kubernetes.io/name: mender-core-deviceconnect
+    toPorts:
+    - ports:
+      - port: '4222'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: mender
+        app.kubernetes.io/component: nats
+        app.kubernetes.io/instance: mender-core
+        app.kubernetes.io/name: nats
+    toPorts:
+    - ports:
+      - port: '6222'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: mender
+        app.kubernetes.io/component: workflows-server
+        app.kubernetes.io/instance: mender-core
+        app.kubernetes.io/name: mender-core-workflows-server
+    toPorts:
+    - ports:
+      - port: '4222'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: mender
+        app.kubernetes.io/component: workflows-worker
+        app.kubernetes.io/instance: mender-core
+        app.kubernetes.io/name: mender-core-workflows-worker
+    toPorts:
+    - ports:
+      - port: '4222'
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: mender
+        app.kubernetes.io/component: nats
+        app.kubernetes.io/instance: mender-core
+        app.kubernetes.io/name: nats
+    toPorts:
+    - ports:
+      - port: '6222'
+        protocol: TCP

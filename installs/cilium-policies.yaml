@@ -9,6 +9,8 @@ spec:
   project: platform
   source:
     path: apps/cilium-policies
+    directory:
+      recurse: true
     repoURL: https://github.com/AkatukiSora/k8s-deploys.git
     targetRevision: master
   syncPolicy:

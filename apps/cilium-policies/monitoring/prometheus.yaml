@@ -1,0 +1,255 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-prometheus
+  namespace: monitoring
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: kube-prometheus-stack-prometheus
+      app.kubernetes.io/name: prometheus
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: hermes
+        app.kubernetes.io/instance: hermes
+        app.kubernetes.io/name: hermes
+    toPorts:
+    - ports:
+      - port: '9090'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: monitoring
+        app.kubernetes.io/instance: kube-prometheus-stack
+        app.kubernetes.io/name: grafana
+    toPorts:
+    - ports:
+      - port: '9090'
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: authentik
+        cnpg.io/cluster: authentik-postgres
+    toPorts:
+    - ports:
+      - port: '9187'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: bunkasai-ticket
+        cnpg.io/cluster: bunkasai-ticket-postgres
+    toPorts:
+    - ports:
+      - port: '9187'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: cnpg-system
+        app.kubernetes.io/instance: cloudnative-pg
+        app.kubernetes.io/name: cloudnative-pg
+    toPorts:
+    - ports:
+      - port: '8080'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: coder
+        cnpg.io/cluster: coder-postgres
+    toPorts:
+    - ports:
+      - port: '9187'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: fuzzy-octo-doodle
+        cnpg.io/cluster: fuzzy-octo-doodle-db
+    toPorts:
+    - ports:
+      - port: '9187'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: immich-postgres
+        cnpg.io/cluster: immich-postgres
+    toPorts:
+    - ports:
+      - port: '9187'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: kube-system
+        k8s-app: kube-dns
+    toPorts:
+    - ports:
+      - port: '9153'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: kyverno
+        app.kubernetes.io/component: admission-controller
+        app.kubernetes.io/instance: security-kyverno
+        app.kubernetes.io/name: kyverno-admission-controller
+    toPorts:
+    - ports:
+      - port: '8000'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: kyverno
+        app.kubernetes.io/component: background-controller
+        app.kubernetes.io/instance: security-kyverno
+        app.kubernetes.io/name: kyverno-background-controller
+    toPorts:
+    - ports:
+      - port: '8000'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: kyverno
+        app.kubernetes.io/component: reports-controller
+        app.kubernetes.io/instance: security-kyverno
+        app.kubernetes.io/name: kyverno-reports-controller
+    toPorts:
+    - ports:
+      - port: '8000'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: mediamtx
+        app.kubernetes.io/name: mediamtx
+    toPorts:
+    - ports:
+      - port: '9998'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: monitoring
+        app.kubernetes.io/component: metrics
+        app.kubernetes.io/instance: kube-prometheus-stack
+        app.kubernetes.io/name: kube-state-metrics
+    toPorts:
+    - ports:
+      - port: '8080'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: monitoring
+        app.kubernetes.io/component: prometheus-operator
+        app.kubernetes.io/instance: kube-prometheus-stack
+        app.kubernetes.io/name: kube-prometheus-stack-prometheus-operator
+    toPorts:
+    - ports:
+      - port: '10250'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: monitoring
+        app.kubernetes.io/instance: kube-prometheus-stack
+        app.kubernetes.io/name: grafana
+    toPorts:
+    - ports:
+      - port: '3000'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: monitoring
+        app.kubernetes.io/instance: kube-prometheus-stack-alertmanager
+        app.kubernetes.io/name: alertmanager
+    toPorts:
+    - ports:
+      - port: '8080'
+        protocol: TCP
+      - port: '9093'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: monitoring
+        cnpg.io/cluster: grafana-postgres
+    toPorts:
+    - ports:
+      - port: '9187'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: nextcloud
+        cnpg.io/cluster: nextcloud-postgres
+    toPorts:
+    - ports:
+      - port: '9187'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: policy-reporter
+        app.kubernetes.io/instance: security-policy-reporter
+        app.kubernetes.io/name: policy-reporter
+    toPorts:
+    - ports:
+      - port: '8080'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: trivy-system
+        app.kubernetes.io/instance: security-trivy-operator
+        app.kubernetes.io/name: trivy-operator
+    toPorts:
+    - ports:
+      - port: '8080'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: vikunja
+        cnpg.io/cluster: vikunja-postgres
+    toPorts:
+    - ports:
+      - port: '9187'
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: volsync-system
+        app.kubernetes.io/instance: volsync
+        app.kubernetes.io/name: volsync
+    toPorts:
+    - ports:
+      - port: '8443'
+        protocol: TCP
+  - toEntities:
+    - host
+    toPorts:
+    - ports:
+      - port: '9100'
+        protocol: TCP
+      - port: '10250'
+        protocol: TCP
+  - toEntities:
+    - kube-apiserver
+    toPorts:
+    - ports:
+      - port: '2381'
+        protocol: TCP
+      - port: '6443'
+        protocol: TCP
+      - port: '9100'
+        protocol: TCP
+      - port: '10250'
+        protocol: TCP
+      - port: '10257'
+        protocol: TCP
+      - port: '10259'
+        protocol: TCP
+  - toEntities:
+    - remote-node
+    toPorts:
+    - ports:
+      - port: '9100'
+        protocol: TCP
+      - port: '10250'
+        protocol: TCP
+  - toCIDR:
+    - 192.168.8.101/32
+    - 192.168.8.102/32
+    toPorts:
+    - ports:
+      - port: '9283'
+        protocol: TCP

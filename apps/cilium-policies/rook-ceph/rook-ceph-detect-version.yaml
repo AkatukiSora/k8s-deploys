@@ -1,0 +1,16 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-rook-ceph-detect-version
+  namespace: rook-ceph
+spec:
+  endpointSelector:
+    matchLabels:
+      app: rook-ceph-detect-version
+  egress:
+  - toEntities:
+    - kube-apiserver
+    toPorts:
+    - ports:
+      - port: '6443'
+        protocol: TCP

@@ -1,0 +1,69 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-authentik-postgres
+  namespace: authentik
+spec:
+  endpointSelector:
+    matchLabels:
+      cnpg.io/cluster: authentik-postgres
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: authentik
+        app.kubernetes.io/component: server
+        app.kubernetes.io/instance: authentik
+        app.kubernetes.io/name: authentik
+    toPorts:
+    - ports:
+      - port: '5432'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: authentik
+        app.kubernetes.io/component: worker
+        app.kubernetes.io/instance: authentik
+        app.kubernetes.io/name: authentik
+    toPorts:
+    - ports:
+      - port: '5432'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: authentik
+        cnpg.io/cluster: authentik-postgres
+    toPorts:
+    - ports:
+      - port: '5432'
+        protocol: TCP
+      - port: '8000'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: cnpg-system
+        app.kubernetes.io/instance: cloudnative-pg
+        app.kubernetes.io/name: cloudnative-pg
+    toPorts:
+    - ports:
+      - port: '8000'
+        protocol: TCP
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: monitoring
+        app.kubernetes.io/instance: kube-prometheus-stack-prometheus
+        app.kubernetes.io/name: prometheus
+    toPorts:
+    - ports:
+      - port: '9187'
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: authentik
+        cnpg.io/cluster: authentik-postgres
+    toPorts:
+    - ports:
+      - port: '5432'
+        protocol: TCP
+      - port: '8000'
+        protocol: TCP

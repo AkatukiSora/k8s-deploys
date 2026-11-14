@@ -1,0 +1,19 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-metallb
+  namespace: metallb
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: metal-lb
+      app.kubernetes.io/name: metallb
+  ingress:
+  - fromEntities:
+    - kube-apiserver
+    - remote-node
+    toPorts:
+    - ports:
+      - port: '9443'
+        protocol: TCP
