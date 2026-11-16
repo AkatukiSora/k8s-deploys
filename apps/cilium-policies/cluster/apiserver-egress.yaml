@@ -1,0 +1,93 @@
+# Egress to the Kubernetes API server (TCP/6443) for workloads that keep
+# long-lived watch connections. Such connections never produce AUDIT verdicts
+# while they stay open, so they were missed in the observation period.
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: allow-cnpg-instance-apiserver-egress
+spec:
+  description: CloudNativePG instance managers watch and update their Cluster resources through the API server.
+  endpointSelector:
+    matchExpressions:
+      - key: cnpg.io/cluster
+        operator: Exists
+  egress:
+    - toEntities:
+        - kube-apiserver
+      toPorts:
+        - ports:
+            - port: "6443"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-apiserver-egress-trivy-operator
+  namespace: trivy-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: security-trivy-operator
+      app.kubernetes.io/name: trivy-operator
+  egress:
+    - toEntities:
+        - kube-apiserver
+      toPorts:
+        - ports:
+            - port: "6443"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-apiserver-egress-metallb-controller
+  namespace: metallb
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: metal-lb
+      app.kubernetes.io/name: metallb
+  egress:
+    - toEntities:
+        - kube-apiserver
+      toPorts:
+        - ports:
+            - port: "6443"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-apiserver-egress-onepassword-connect-operator
+  namespace: 1password
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/component: operator
+      name: onepassword-connect
+  egress:
+    - toEntities:
+        - kube-apiserver
+      toPorts:
+        - ports:
+            - port: "6443"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-apiserver-egress-cloudflare-tunnel-ingress-controller
+  namespace: cloudflare-tunnel-ingress-controller
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: cloudflare-tunnel-ingress-controller
+      app.kubernetes.io/name: cloudflare-tunnel-ingress-controller
+  egress:
+    - toEntities:
+        - kube-apiserver
+      toPorts:
+        - ports:
+            - port: "6443"
+              protocol: TCP
