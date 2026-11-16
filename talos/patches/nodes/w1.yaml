@@ -26,3 +26,13 @@ apiVersion: v1alpha1
 kind: HostnameConfig
 hostname: w1
 auto: off
+---
+apiVersion: v1alpha1
+kind: KubeNodeConfig
+labels:
+  workload.sora-lab.dev/gvisor: "true"
+---
+apiVersion: v1alpha1
+kind: SysctlConfig
+params:
+  user.max_user_namespaces: "11255"
