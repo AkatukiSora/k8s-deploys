@@ -26,3 +26,11 @@ spec:
     - ports:
       - port: '5432'
         protocol: TCP
+  # The built-in provisioner runs Terraform against the Kubernetes API to
+  # create and delete workspace Pods and PVCs in coder-worker.
+  - toEntities:
+    - kube-apiserver
+    toPorts:
+    - ports:
+      - port: '6443'
+        protocol: TCP
