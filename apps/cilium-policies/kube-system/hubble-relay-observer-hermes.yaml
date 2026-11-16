@@ -1,0 +1,41 @@
+# Lets the Hermes agent read Hubble flows (hubble observe via hubble-relay), so
+# dropped traffic can be investigated while policies are enforced.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-hubble-relay-from-hermes
+  namespace: kube-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: hubble-relay
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: hermes
+            app.kubernetes.io/instance: hermes
+            app.kubernetes.io/name: hermes
+      toPorts:
+        - ports:
+            - port: "4245"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-hermes-to-hubble-relay
+  namespace: hermes
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: hermes
+      app.kubernetes.io/name: hermes
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            app.kubernetes.io/name: hubble-relay
+      toPorts:
+        - ports:
+            - port: "4245"
+              protocol: TCP
