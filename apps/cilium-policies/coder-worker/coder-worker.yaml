@@ -1,0 +1,30 @@
+# Workspace Pods in coder-worker.
+#
+# Workspace agents dial out to the Coder access URL (https://coder.akatuki-host.com,
+# served through the Cloudflare tunnel), so no ingress and no direct path to the
+# coder namespace is required. DNS is allowed by cluster/baseline.yaml.
+#
+# Egress is limited to TCP 80/443 on public addresses. `toEntities: world`
+# would also match private LAN addresses, so the private ranges are excluded
+# with a CIDR rule instead.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-coder-workspace
+  namespace: coder-worker
+spec:
+  endpointSelector: {}
+  egress:
+  - toCIDRSet:
+    - cidr: 0.0.0.0/0
+      except:
+      - 10.0.0.0/8
+      - 172.16.0.0/12
+      - 192.168.0.0/16
+      - 100.64.0.0/10
+    toPorts:
+    - ports:
+      - port: '443'
+        protocol: TCP
+      - port: '80'
+        protocol: TCP
