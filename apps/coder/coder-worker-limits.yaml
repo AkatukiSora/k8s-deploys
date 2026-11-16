@@ -1,0 +1,46 @@
+# Resource bounds for workspaces in coder-worker. Workspaces may use sudo, so
+# CPU, memory, ephemeral storage, and object counts are limited here instead.
+# The LimitRange supplies defaults so the coder-worker-sandbox Kyverno policy
+# (which requires limits) accepts Pods whose template omits them.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: coder-worker-defaults
+  namespace: coder-worker
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 250m
+        memory: 512Mi
+        ephemeral-storage: 1Gi
+      default:
+        cpu: "2"
+        memory: 4Gi
+        ephemeral-storage: 8Gi
+      max:
+        cpu: "4"
+        memory: 8Gi
+        ephemeral-storage: 20Gi
+    - type: PersistentVolumeClaim
+      max:
+        storage: 50Gi
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: coder-worker-quota
+  namespace: coder-worker
+spec:
+  hard:
+    pods: "10"
+    requests.cpu: "8"
+    requests.memory: 16Gi
+    limits.cpu: "16"
+    limits.memory: 32Gi
+    limits.ephemeral-storage: 80Gi
+    persistentvolumeclaims: "10"
+    requests.storage: 200Gi
+    services: "0"
+    secrets: "10"
+    configmaps: "10"
