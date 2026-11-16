@@ -12,9 +12,6 @@ Updated: 2026-08-14
   public presigned GET returned HTTP `200`.
 - Existing `ceph-csi` remains separate from Rook and owns RBD/CephFS PVC
   provisioning.
-- The Mender Artifact bucket is provisioned through an ObjectBucketClaim and
-  Mender is configured with private and Cloudflare-proxied public RGW
-  endpoints.
 
 ## Remaining
 
@@ -25,10 +22,5 @@ Updated: 2026-08-14
 - [ ] Decide and implement a TCP/7480 firewall policy if required.
 - [ ] Investigate expired presigned URL responses returning HTTP `500`.
 - [ ] Define RGW HA topology and migration plan.
-- [ ] Investigate an OSS-compatible Mender Artifact upload path or Cloudflare
-  mitigation; Mender direct signed upload requires Enterprise.
-- [ ] A 309 MB Mender GUI upload currently fails at the Cloudflare request-size
-  limit. Test production-size download, range requests, and Cloudflare cache
-  behavior after selecting the upload path.
 - [ ] Rotate the Cloudflare Tunnel token if it is exposed through a systemd
   command line.

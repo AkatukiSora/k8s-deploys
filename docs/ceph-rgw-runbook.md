@@ -16,10 +16,8 @@ not manage Ceph daemons, MONs, OSDs, RGW networking, or Cloudflare Tunnel.
 - S3 requests use path-style addressing and SigV4.
 - RGW is private. Cloudflare Tunnel must preserve the request host, path,
   method, query string, and every `X-Amz-*` parameter.
-- `s3.sora-lab.dev` is Cloudflare-proxied. Its request-size limit prevents a
-  309 MB Mender OSS GUI Artifact upload; the Mender API upload path is also
-  Cloudflare-proxied. Mender Enterprise direct signed upload is not available
-  in the current OSS deployment.
+- `s3.sora-lab.dev` is Cloudflare-proxied and subject to Cloudflare's
+  request-size limit.
 
 ## Rook External Cluster
 
