@@ -39,10 +39,10 @@ encryption:
   nodeEncryption: false
 
 # --- Network policy -----------------------------------------------------------
-# Policies are evaluated but not enforced while this is true; verdicts are
-# visible in Hubble. Set it to false only after the existing NetworkPolicies
-# have been reviewed (see the runbook).
-policyAuditMode: true
+# Policies are enforced. Cluster-wide default-deny and the allow policies live
+# in apps/cilium-policies. To observe without blocking (for example while
+# adding a new workload), set this to true; verdicts are then visible in Hubble.
+policyAuditMode: false
 policyEnforcementMode: default
 
 # --- Talos-specific settings --------------------------------------------------
