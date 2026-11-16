@@ -1,0 +1,12 @@
+# gVisor sandbox for Coder workspaces. The runsc handler is registered in
+# containerd by the siderolabs/gvisor Talos extension. Pods are scheduled only
+# on nodes labelled in talos/patches/nodes (w1-w3), which also carry the
+# user.max_user_namespaces sysctl that gVisor needs.
+apiVersion: node.k8s.io/v1
+kind: RuntimeClass
+metadata:
+  name: gvisor
+handler: runsc
+scheduling:
+  nodeSelector:
+    workload.sora-lab.dev/gvisor: "true"
