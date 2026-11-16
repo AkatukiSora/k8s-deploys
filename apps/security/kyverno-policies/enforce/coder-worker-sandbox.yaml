@@ -1,0 +1,96 @@
+# Sandbox rules for Coder workspace Pods in the coder-worker namespace.
+#
+# Workspaces may use sudo and run as root, so isolation relies on gVisor, the
+# default seccomp profile, no ServiceAccount token, and bounded resources.
+# Pod Security Admission (baseline) on the namespace remains the backstop for
+# privileged containers, host namespaces, hostPath, and non-default capabilities.
+#
+# The webhook is scoped to coder-worker with a match condition, so failurePolicy
+# Fail rejects only coder-worker Pods if Kyverno is unavailable and does not
+# affect other namespaces.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: coder-worker-sandbox
+spec:
+  admission: true
+  background: false
+  validationFailureAction: Enforce
+  failurePolicy: Fail
+  webhookConfiguration:
+    failurePolicy: Fail
+    matchConditions:
+      - name: coder-worker-only
+        expression: "request.namespace == 'coder-worker'"
+  rules:
+    - name: set-gvisor-runtime-and-drop-sa-token
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaces: [coder-worker]
+      mutate:
+        patchStrategicMerge:
+          spec:
+            runtimeClassName: gvisor
+            automountServiceAccountToken: false
+    - name: default-seccomp-runtime-default
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaces: [coder-worker]
+      mutate:
+        patchStrategicMerge:
+          spec:
+            securityContext:
+              +(seccompProfile):
+                type: RuntimeDefault
+    - name: require-gvisor-runtime
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaces: [coder-worker]
+      validate:
+        message: "Pods in coder-worker must use runtimeClassName gvisor."
+        pattern:
+          spec:
+            runtimeClassName: gvisor
+    - name: require-seccomp
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaces: [coder-worker]
+      validate:
+        message: "Pods in coder-worker must use the RuntimeDefault or Localhost seccomp profile; Unconfined is not allowed."
+        pattern:
+          spec:
+            securityContext:
+              seccompProfile:
+                type: "RuntimeDefault | Localhost"
+            =(initContainers):
+              - =(securityContext):
+                  =(seccompProfile):
+                    type: "RuntimeDefault | Localhost"
+            containers:
+              - =(securityContext):
+                  =(seccompProfile):
+                    type: "RuntimeDefault | Localhost"
+    - name: require-resource-limits
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaces: [coder-worker]
+      validate:
+        message: "Containers in coder-worker must define CPU, memory, and ephemeral-storage limits."
+        pattern:
+          spec:
+            containers:
+              - resources:
+                  limits:
+                    cpu: "?*"
+                    memory: "?*"
+                    ephemeral-storage: "?*"

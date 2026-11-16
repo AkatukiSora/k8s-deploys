@@ -62,6 +62,15 @@ workerはCNIの設定を持たない（Flannelの管理は`controlplane`が担�
 node label を設定する。MongoDB workloads はこの label を nodeSelector で
 選択し、AVX を公開しない既存 worker へ再配置してはならない。
 
+同じ node に`workload.sora-lab.dev/mongodb-avx2=true:PreferNoSchedule`の taint を付け、MongoDB 以外の
+Pod が優先的にほかの node へ配置されるようにする。soft な指定なので、ほかの node に空きがなければ
+MongoDB 以外の Pod も載る。MongoDB（`apps/mender/mongodb`）はこの taint への toleration と PriorityClass
+`mongodb-dedicated`（既定より高い優先度）を持ち、`w4`が逼迫したときは優先度の低い Pod を押しのけて
+配置される。
+
+`KubeNodeConfig`の taint は kubelet の登録時に適用される。登録済みの node に反映されない場合は
+`kubectl taint node w4 workload.sora-lab.dev/mongodb-avx2=true:PreferNoSchedule`で同じ値を設定する。
+
 ## gVisor
 
 `patches/common.yaml`の installer image（Image Factory schematic）は`siderolabs/gvisor`拡張を含み、全ノードで gVisor が使える。`runsc` runtime は拡張が containerd に登録する（`/etc/cri/conf.d/10-gvisor.part`）ため、containerd の追加 Patch は不要である。

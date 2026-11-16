@@ -4,4 +4,5 @@ resources:
   - password.yaml
   - serviceaccount.yaml
   - agent-rbac.yaml
+  - priorityclass.yaml
   - mongodbcommunity.yaml

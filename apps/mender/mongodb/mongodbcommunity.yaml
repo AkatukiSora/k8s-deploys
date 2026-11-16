@@ -44,8 +44,14 @@ spec:
     spec:
       template:
         spec:
+          priorityClassName: mongodb-dedicated
           nodeSelector:
             workload.sora-lab.dev/mongodb-avx2: "true"
+          tolerations:
+            - key: workload.sora-lab.dev/mongodb-avx2
+              operator: Equal
+              value: "true"
+              effect: PreferNoSchedule
       volumeClaimTemplates:
         - metadata:
             name: data-volume

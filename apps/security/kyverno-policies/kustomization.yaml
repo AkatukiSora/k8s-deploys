@@ -10,3 +10,4 @@ resources:
   - audit/require-run-as-non-root.yaml
   - audit/require-drop-capabilities.yaml
   - audit/restrict-automount-serviceaccount-token.yaml
+  - enforce/coder-worker-sandbox.yaml

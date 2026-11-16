@@ -38,5 +38,11 @@ coder:
   service:
     type: ClusterIP
   serviceAccount:
+    # The chart grants pod/PVC (and Deployment) permissions in the release
+    # namespace by default. Disable that and grant them only in coder-worker.
+    workspacePerms: false
+    enableDeployments: false
     workspaceNamespaces:
       - name: coder-worker
+        workspacePerms: true
+        enableDeployments: true

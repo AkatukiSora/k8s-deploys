@@ -1,0 +1,12 @@
+# Lets the MongoDB workload that is pinned to the dedicated w4 node preempt
+# lower-priority Pods there when the node is full. Other workloads keep the
+# default priority (0) and are only soft-discouraged from w4 by its
+# PreferNoSchedule taint, so they can still use spare capacity.
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: mongodb-dedicated
+value: 100000
+preemptionPolicy: PreemptLowerPriority
+globalDefault: false
+description: MongoDB on the dedicated w4 node may preempt Pods with lower priority.
