@@ -10,3 +10,10 @@ apiVersion: v1alpha1
 kind: ResolverConfig
 nameservers:
   - address: 10.0.40.2
+---
+# The installer image above includes the siderolabs/gvisor extension on every
+# node, and gVisor needs unprivileged user namespaces.
+apiVersion: v1alpha1
+kind: SysctlConfig
+params:
+  user.max_user_namespaces: "11255"
