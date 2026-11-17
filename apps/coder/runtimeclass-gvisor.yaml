@@ -1,0 +1,12 @@
+# gVisor sandbox for Coder workspaces. The runsc handler is registered in
+# containerd by the siderolabs/gvisor Talos extension, which every node has.
+# Workspace Pods are placed only on the nodes labelled in talos/patches/nodes
+# (w1-w3); w4 is dedicated to MongoDB.
+apiVersion: node.k8s.io/v1
+kind: RuntimeClass
+metadata:
+  name: gvisor
+handler: runsc
+scheduling:
+  nodeSelector:
+    workload.sora-lab.dev/coder-workspace: "true"

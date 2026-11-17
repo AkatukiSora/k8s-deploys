@@ -62,6 +62,30 @@ workerはCNIの設定を持たない（Flannelの管理は`controlplane`が担�
 node label を設定する。MongoDB workloads はこの label を nodeSelector で
 選択し、AVX を公開しない既存 worker へ再配置してはならない。
 
+同じ node に`workload.sora-lab.dev/mongodb-avx2=true:PreferNoSchedule`の taint を付け、MongoDB 以外の
+Pod が優先的にほかの node へ配置されるようにする。soft な指定なので、ほかの node に空きがなければ
+MongoDB 以外の Pod も載る。MongoDB（`apps/mender/mongodb`）はこの taint への toleration と PriorityClass
+`mongodb-dedicated`（既定より高い優先度）を持ち、`w4`が逼迫したときは優先度の低い Pod を押しのけて
+配置される。
+
+`KubeNodeConfig`の taint は kubelet の登録時に適用される。登録済みの node に反映されない場合は
+`kubectl taint node w4 workload.sora-lab.dev/mongodb-avx2=true:PreferNoSchedule`で同じ値を設定する。
+
+## gVisor
+
+`patches/common.yaml`の installer image（Image Factory schematic）は`siderolabs/gvisor`拡張を含み、全ノードで gVisor が使える。`runsc` runtime は拡張が containerd に登録する（`/etc/cri/conf.d/10-gvisor.part`）ため、containerd の追加 Patch は不要である。
+
+gVisor は非特権の user namespace を必要とするため、`patches/common.yaml`の`SysctlConfig`で全ノードに`user.max_user_namespaces: "11255"`を設定する。この値は Talos の既定（KSPP 推奨）より緩い。
+
+Coder の workspace Pod は gVisor 上で動かし、配置先は`w1`〜`w3`に限る。この3台に`workload.sora-lab.dev/coder-workspace=true`の node label を付け、RuntimeClass `gvisor`（`apps/coder`）がこの label を持つノードだけに Pod を配置する。`w4`は MongoDB 専用のため対象外である。
+
+適用は`SysctlConfig`と`KubeNodeConfig`の変更のみで、一台ずつ`talosctl apply-config`で展開する。適用後に次を確認する。
+
+```bash
+talosctl -n 10.0.40.51,10.0.40.52,10.0.40.53 read /proc/sys/user/max_user_namespaces
+kubectl get nodes -l workload.sora-lab.dev/coder-workspace=true
+```
+
 ## Proxmox QEMU Guest Agent
 
 `patches/common.yaml`のImage Factory schematicは`siderolabs/qemu-guest-agent`拡張を含み、全ノードのinstaller imageへ設定される。

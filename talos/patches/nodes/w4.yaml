@@ -2,6 +2,8 @@ apiVersion: v1alpha1
 kind: KubeNodeConfig
 labels:
   workload.sora-lab.dev/mongodb-avx2: "true"
+taints:
+  workload.sora-lab.dev/mongodb-avx2: "true:PreferNoSchedule"
 ---
 apiVersion: v1alpha1
 kind: LinkConfig

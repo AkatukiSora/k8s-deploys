@@ -52,7 +52,8 @@ def static_checks(kubectl):
     chain = config["auxiliary"]["approval"]["fallback_chain"]
     assert [(e["provider"], e["model"]) for e in chain] == [
         ("anthropic", "claude-haiku-5-5"), ("anthropic", "claude-sonnet-5-5"),
-    ], "Approval guardian fallback order: Haiku, then Sonnet"
+        ("openrouter", "deepseek/deepseek-v4.1-flash"),
+    ], "Approval guardian fallback order: Haiku, Sonnet, then OpenRouter"
 
     def scoped(cfg):
         out = {k: v for k, v in cfg.items() if k not in ("approvals", "auxiliary")}

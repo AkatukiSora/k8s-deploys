@@ -290,6 +290,24 @@ spec:
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
+  name: allow-world-egress-machine-learning
+  namespace: immich
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: immich
+      app.kubernetes.io/name: machine-learning
+  egress:
+  - toEntities:
+    - world
+    toPorts:
+    - ports:
+      - port: '443'
+        protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
   name: allow-world-egress-server
   namespace: immich
 spec:
@@ -559,6 +577,24 @@ spec:
   endpointSelector:
     matchLabels:
       cnpg.io/cluster: vikunja-postgres
+  egress:
+  - toEntities:
+    - world
+    toPorts:
+    - ports:
+      - port: '443'
+        protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-world-egress-vikunja
+  namespace: vikunja
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: vikunja
+      app.kubernetes.io/name: vikunja
   egress:
   - toEntities:
     - world

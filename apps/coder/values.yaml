@@ -29,8 +29,20 @@ coder:
         secretKeyRef:
           name: coder-postgres-app
           key: uri
+    # Use relayed (DERP) connections only. Direct connections cannot be
+    # established because workspace pods are not reachable over UDP, and this
+    # stops the server from sending STUN and port-mapping probes that the
+    # network policy denies.
+    - name: CODER_DERP_SERVER_STUN_ADDRESSES
+      value: "disable"
   service:
     type: ClusterIP
   serviceAccount:
+    # The chart grants pod/PVC (and Deployment) permissions in the release
+    # namespace by default. Disable that and grant them only in coder-worker.
+    workspacePerms: false
+    enableDeployments: false
     workspaceNamespaces:
       - name: coder-worker
+        workspacePerms: true
+        enableDeployments: true

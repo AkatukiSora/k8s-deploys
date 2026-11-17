@@ -26,3 +26,8 @@ apiVersion: v1alpha1
 kind: HostnameConfig
 hostname: w3
 auto: off
+---
+apiVersion: v1alpha1
+kind: KubeNodeConfig
+labels:
+  workload.sora-lab.dev/coder-workspace: "true"
