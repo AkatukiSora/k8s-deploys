@@ -14,3 +14,18 @@ spec:
     - ports:
       - port: '6443'
         protocol: TCP
+  # External Ceph cluster: monitors (health checks) on both hosts, and the
+  # RGW Admin Ops API (bucket create/delete for ObjectBucketClaims) on one.
+  - toCIDR:
+    - 192.168.8.101/32
+    - 192.168.8.102/32
+    toPorts:
+    - ports:
+      - port: '3300'
+        protocol: TCP
+  - toCIDR:
+    - 192.168.8.102/32
+    toPorts:
+    - ports:
+      - port: '7480'
+        protocol: TCP
