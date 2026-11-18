@@ -16,7 +16,6 @@ spec:
   admission: true
   background: false
   validationFailureAction: Enforce
-  failurePolicy: Fail
   webhookConfiguration:
     failurePolicy: Fail
     matchConditions:
