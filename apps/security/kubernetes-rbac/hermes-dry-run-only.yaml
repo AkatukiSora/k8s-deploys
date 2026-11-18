@@ -1,0 +1,48 @@
+# Allows the Hermes ServiceAccount to send only server-side dry-run requests.
+#
+# RBAC cannot tell a dry-run write from a real one, so any create/update/patch
+# permission granted to Hermes would also allow real writes. This policy denies
+# every non-dry-run mutation from that ServiceAccount. It must be applied before
+# any write permission is granted (see the sync wave).
+#
+# The self-check APIs that `kubectl auth can-i` uses are excluded: they are
+# non-persistent reviews, not resource writes.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: hermes-dry-run-only
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["*"]
+        apiVersions: ["*"]
+        operations: ["CREATE", "UPDATE", "DELETE"]
+        resources: ["*", "*/*"]
+    excludeResourceRules:
+      - apiGroups: ["authentication.k8s.io"]
+        apiVersions: ["*"]
+        operations: ["CREATE"]
+        resources: ["selfsubjectreviews"]
+      - apiGroups: ["authorization.k8s.io"]
+        apiVersions: ["*"]
+        operations: ["CREATE"]
+        resources: ["selfsubjectaccessreviews", "selfsubjectrulesreviews"]
+  matchConditions:
+    - name: hermes-service-account
+      expression: "request.userInfo.username == 'system:serviceaccount:hermes:hermes'"
+  validations:
+    - expression: "has(request.dryRun) && request.dryRun == true"
+      message: "The Hermes ServiceAccount may only send server-side dry-run requests (--dry-run=server)."
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: hermes-dry-run-only
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+spec:
+  policyName: hermes-dry-run-only
+  validationActions: ["Deny"]
