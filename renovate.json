@@ -55,6 +55,26 @@
       "enabled": false
     },
     {
+      "description": "Ceph v20 and later and cephcsi v3.18 and later images require x86-64-v3 (AVX2), but the nodes expose x86-64-v2. Hold them until the node CPU model changes.",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchPackageNames": [
+        "quay.io/ceph/ceph"
+      ],
+      "allowedVersions": "<20"
+    },
+    {
+      "description": "Keep cephcsi images below v3.18 (x86-64-v3 required). Chart updates are unaffected because the image tag is pinned in values.",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchPackageNames": [
+        "quay.io/cephcsi/cephcsi"
+      ],
+      "allowedVersions": "<3.18"
+    },
+    {
       "description": "Keep major-version upgrades distinct because they require a compatibility review and explicit rollback assessment.",
       "matchManagers": [
         "argocd",
