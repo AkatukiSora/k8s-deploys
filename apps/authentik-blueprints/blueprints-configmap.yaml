@@ -1392,10 +1392,10 @@ data:
         model: authentik_stages_prompt.prompt
         attrs:
           field_key: password
-          label: Password
+          label: Password (optional)
           type: password
-          required: true
-          placeholder: Password
+          required: false
+          placeholder: Password (optional)
           placeholder_expression: false
           order: 1
 
@@ -1407,7 +1407,7 @@ data:
           field_key: password_repeat
           label: Password (repeat)
           type: password
-          required: true
+          required: false
           placeholder: Password (repeat)
           placeholder_expression: false
           order: 2
@@ -1445,6 +1445,15 @@ data:
         attrs:
           fields:
             - !KeyOf invite-enrollment-field-username
+
+      # Optional password, offered after the passkey is registered. Leaving both
+      # fields empty skips the password write below.
+      - identifiers:
+          name: invite-enrollment-prompt-password
+        id: invite-enrollment-prompt-password
+        model: authentik_stages_prompt.promptstage
+        attrs:
+          fields:
             - !KeyOf invite-enrollment-field-password
             - !KeyOf invite-enrollment-field-password-repeat
 
@@ -1584,3 +1593,156 @@ data:
           stage: !KeyOf invite-enrollment-user-login
           order: 100
         model: authentik_flows.flowstagebinding
+
+      # --- Passkey registration (shared by invite enrollment and recovery) ---
+      # Managed here so user settings, enrollment and recovery all create
+      # discoverable (resident-key) credentials that password managers store
+      # as passkeys and that usernameless sign-in can find.
+      - identifiers:
+          name: default-authenticator-webauthn-setup
+        id: passkey-webauthn-setup
+        model: authentik_stages_authenticator_webauthn.authenticatorwebauthnstage
+        attrs:
+          resident_key_requirement: required
+          user_verification: required
+
+      # Writes the optional password only when one was entered.
+      - identifiers:
+          name: invite-enrollment-user-write-password
+        id: invite-enrollment-user-write-password
+        model: authentik_stages_user_write.userwritestage
+        attrs:
+          user_creation_mode: never_create
+
+      - identifiers:
+          name: invite-enrollment-password-was-set
+        id: invite-enrollment-password-was-set
+        model: authentik_policies_expression.expressionpolicy
+        attrs:
+          expression: |
+            flow_plan = request.context.get("flow_plan")
+            if not flow_plan:
+                return False
+            return bool(flow_plan.context.get("prompt_data", {}).get("password"))
+
+      - identifiers:
+          target: !KeyOf invite-enrollment-flow
+          stage: !KeyOf passkey-webauthn-setup
+          order: 40
+        model: authentik_flows.flowstagebinding
+
+      - identifiers:
+          target: !KeyOf invite-enrollment-flow
+          stage: !KeyOf invite-enrollment-prompt-password
+          order: 50
+        model: authentik_flows.flowstagebinding
+
+      - identifiers:
+          target: !KeyOf invite-enrollment-flow
+          stage: !KeyOf invite-enrollment-user-write-password
+          order: 60
+        id: invite-enrollment-user-write-password-binding
+        model: authentik_flows.flowstagebinding
+        attrs:
+          evaluate_on_plan: false
+          re_evaluate_policies: true
+
+      - identifiers:
+          target: !KeyOf invite-enrollment-user-write-password-binding
+          policy: !KeyOf invite-enrollment-password-was-set
+          order: 0
+        model: authentik_policies.policybinding
+        attrs:
+          failure_result: false
+
+      # --- Email recovery: verify by email, then add a passkey and/or password ---
+      - identifiers:
+          slug: passkey-recovery
+        model: authentik_flows.flow
+        id: passkey-recovery-flow
+        attrs:
+          name: Passkey recovery
+          title: アカウントの復旧
+          designation: recovery
+          authentication: require_unauthenticated
+
+      - identifiers:
+          name: passkey-recovery-identification
+        id: passkey-recovery-identification
+        model: authentik_stages_identification.identificationstage
+        attrs:
+          user_fields:
+            - email
+            - username
+          case_insensitive_matching: true
+          pretend_user_exists: true
+
+      - identifiers:
+          name: passkey-recovery-email
+        id: passkey-recovery-email
+        model: authentik_stages_email.emailstage
+        attrs:
+          use_global_settings: true
+          template: email/password_reset.html
+          activate_user_on_success: false
+
+      - identifiers:
+          name: passkey-recovery-user-login
+        id: passkey-recovery-user-login
+        model: authentik_stages_user_login.userloginstage
+
+      - identifiers:
+          target: !KeyOf passkey-recovery-flow
+          stage: !KeyOf passkey-recovery-identification
+          order: 10
+        model: authentik_flows.flowstagebinding
+
+      - identifiers:
+          target: !KeyOf passkey-recovery-flow
+          stage: !KeyOf passkey-recovery-email
+          order: 20
+        model: authentik_flows.flowstagebinding
+
+      - identifiers:
+          target: !KeyOf passkey-recovery-flow
+          stage: !KeyOf passkey-webauthn-setup
+          order: 30
+        model: authentik_flows.flowstagebinding
+
+      - identifiers:
+          target: !KeyOf passkey-recovery-flow
+          stage: !KeyOf invite-enrollment-prompt-password
+          order: 40
+        model: authentik_flows.flowstagebinding
+
+      - identifiers:
+          target: !KeyOf passkey-recovery-flow
+          stage: !KeyOf invite-enrollment-user-write-password
+          order: 50
+        id: passkey-recovery-user-write-password-binding
+        model: authentik_flows.flowstagebinding
+        attrs:
+          evaluate_on_plan: false
+          re_evaluate_policies: true
+
+      - identifiers:
+          target: !KeyOf passkey-recovery-user-write-password-binding
+          policy: !KeyOf invite-enrollment-password-was-set
+          order: 0
+        model: authentik_policies.policybinding
+        attrs:
+          failure_result: false
+
+      - identifiers:
+          target: !KeyOf passkey-recovery-flow
+          stage: !KeyOf passkey-recovery-user-login
+          order: 100
+        model: authentik_flows.flowstagebinding
+
+      # Link the recovery flow from the login page. Only this attribute is set
+      # here; the rest of the stage is defined in 50-identification-stage.yaml.
+      - identifiers:
+          name: default-authentication-identification
+        model: authentik_stages_identification.identificationstage
+        attrs:
+          recovery_flow: !KeyOf passkey-recovery-flow
