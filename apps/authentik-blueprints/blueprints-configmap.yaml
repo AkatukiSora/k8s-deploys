@@ -900,6 +900,19 @@ data:
           branding_title: ソララボ
           branding_logo: https://raw.githubusercontent.com/AkatukiSora/k8s-deploys/master/apps/authentik-blueprints/icons/FullLogo-transparent.png
           branding_favicon: https://raw.githubusercontent.com/AkatukiSora/k8s-deploys/master/apps/authentik-blueprints/icons/ShortLogo-transparent.png
+          # Make the passkey sign-in link on the identification stage a large primary button.
+          branding_custom_css: |
+            a[data-ouia-component-id="passwordless"] {
+              min-height: 3.5rem;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 1.25rem;
+              font-weight: 600;
+              color: #fff;
+              background-color: var(--pf-global--primary-color--100, #0066cc);
+              border: 0;
+            }
 
   40-applications.yaml: |
     version: 1
@@ -1294,6 +1307,35 @@ data:
           not_configured_action: deny
           webauthn_user_verification: required
 
+      # Passkey-only sign-in. Usernameless: the browser lists discoverable
+      # credentials, so no identification or password step is needed.
+      - identifiers:
+          slug: passkey-login
+        model: authentik_flows.flow
+        id: passkey-login-flow
+        attrs:
+          name: Passkey login
+          title: パスキーでログイン
+          designation: authentication
+          authentication: require_unauthenticated
+
+      - identifiers:
+          name: passkey-login-user-login
+        id: passkey-login-user-login
+        model: authentik_stages_user_login.userloginstage
+
+      - identifiers:
+          target: !KeyOf passkey-login-flow
+          stage: !KeyOf identification-webauthn-validation
+          order: 10
+        model: authentik_flows.flowstagebinding
+
+      - identifiers:
+          target: !KeyOf passkey-login-flow
+          stage: !KeyOf passkey-login-user-login
+          order: 100
+        model: authentik_flows.flowstagebinding
+
       - identifiers:
           name: default-authentication-identification
         model: authentik_stages_identification.identificationstage
@@ -1307,6 +1349,7 @@ data:
           enable_remember_me: false
           show_source_labels: false
           webauthn_stage: !KeyOf identification-webauthn-validation
+          passwordless_flow: !KeyOf passkey-login-flow
 
   60-invite-enrollment.yaml: |
     version: 1
