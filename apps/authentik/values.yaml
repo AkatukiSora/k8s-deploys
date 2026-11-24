@@ -72,6 +72,12 @@ server:
     runAsNonRoot: true
     seccompProfile:
       type: RuntimeDefault
+  # Tolerate a temporary PostgreSQL or API server outage (CNPG failover) for up
+  # to two minutes before restarting the container. Restarting does not help
+  # while the database is unreachable.
+  livenessProbe:
+    failureThreshold: 12
+    timeoutSeconds: 10
   ingress:
     enabled: true
     ingressClassName: cloudflare-tunnel
