@@ -116,7 +116,7 @@ intentionally not cluster-bound: namespace owners must add a Git-managed
 
 ## Invitation Enrollment
 
-Invitation-based enrollment uses the `invite-enrollment` flow. The flow creates invited users as inactive, sends an account confirmation email with authentik's global SMTP settings, and activates the user only after the email stage succeeds. Invitation fixed data is optional: when neither `invite_groups` nor `invite_kind` is present, the user is created without any preassigned groups. When group assignment is needed, fixed data can assign groups in either of these ways:
+Invitation-based enrollment uses the `invite-enrollment` flow. The flow creates invited users as inactive, sends an account confirmation email with authentik's global SMTP settings, and activates the user only after the email stage succeeds. After activation the user registers a passkey (required, discoverable credential) and may optionally set a password; no password is required. Accounts without a password recover through the `passkey-recovery` flow (email verification, then a new passkey and/or password), linked from the login page. Invitation fixed data is optional: when neither `invite_groups` nor `invite_kind` is present, the user is created without any preassigned groups. When group assignment is needed, fixed data can assign groups in either of these ways:
 
 ### Explicit group list
 
