@@ -8,7 +8,22 @@
     "argocd",
     "kubernetes",
     "kustomize",
-    "helm-values"
+    "helm-values",
+    "custom.regex"
+  ],
+  "customManagers": [
+    {
+      "description": "Immich image tag is set under controllers.main.containers.main.image without a repository, so the helm-values manager cannot detect it. The server and machine-learning images share this tag.",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^apps\\/immich\\/values\\.yaml$/"
+      ],
+      "matchStrings": [
+        "image:\\n\\s+tag: (?<currentValue>v\\d+\\.\\d+\\.\\d+)\\n"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "ghcr.io/immich-app/immich-server"
+    }
   ],
   "argocd": {
     "managerFilePatterns": [
