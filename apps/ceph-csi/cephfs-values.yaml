@@ -296,7 +296,7 @@ provisioner:
   snapshotter:
     image:
       repository: registry.k8s.io/sig-storage/csi-snapshotter
-      tag: v8.5.0
+      tag: v8.7.1
       pullPolicy: IfNotPresent
     resources: {}
     args:
