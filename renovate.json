@@ -89,6 +89,58 @@
         "dependencies",
         "major-update"
       ]
+    },
+    {
+      "description": "Merge minor, patch, digest and pin updates automatically once the required ci-success check passes. Major updates stay manual.",
+      "matchManagers": [
+        "argocd",
+        "kubernetes",
+        "kustomize",
+        "helm-values"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "digest",
+        "pin",
+        "pinDigest"
+      ],
+      "automerge": true,
+      "minimumReleaseAge": "3 days"
+    },
+    {
+      "description": "Keep cluster-critical and stateful components manual: CNI, storage, databases and their operators, certificates, secrets, identity, GitOps controllers and backups.",
+      "matchFileNames": [
+        "installs/cilium.yaml",
+        "apps/cilium/**",
+        "installs/rook-ceph-external.yaml",
+        "apps/rook-ceph-external/**",
+        "installs/ceph-csi.yaml",
+        "apps/ceph-csi/**",
+        "installs/external-snapshotter.yaml",
+        "apps/external-snapshotter/**",
+        "installs/cloudnative-pg-operator.yaml",
+        "apps/cloudnative-pg-operator/**",
+        "installs/plugin-barman-cloud.yaml",
+        "apps/plugin-barman-cloud/**",
+        "installs/mongodb-community-operator.yaml",
+        "installs/*-postgres.yaml",
+        "apps/*-postgres/**",
+        "installs/volsync.yaml",
+        "apps/volsync/**",
+        "installs/cert-manager.yaml",
+        "apps/cert-manager/**",
+        "installs/sealed-secrets.yaml",
+        "apps/sealed-secrets/**",
+        "installs/authentik.yaml",
+        "apps/authentik/**",
+        "installs/argocd.yaml",
+        "apps/argocd/**"
+      ],
+      "automerge": false
     }
-  ]
+  ],
+  "platformAutomerge": true,
+  "automergeType": "pr",
+  "automergeStrategy": "merge-commit"
 }
