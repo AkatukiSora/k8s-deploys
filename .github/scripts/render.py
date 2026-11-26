@@ -96,6 +96,11 @@ def render_application(app: dict, root: Path, work: Path) -> str:
                 run(["git", "clone", "--quiet", "--depth", "1", "--branch", revision, url, str(checkout)])
                 path = checkout / source["path"]
             if (path / "Chart.yaml").exists():
+                chart = yaml.safe_load((path / "Chart.yaml").read_text(encoding="utf-8"))
+                for dependency in chart.get("dependencies", []):
+                    repository = dependency.get("repository", "")
+                    if repository.startswith("http"):
+                        run(["helm", "repo", "add", "--force-update", re.sub(r"\W+", "-", repository), repository])
                 run(["helm", "dependency", "build", str(path)])
                 outputs.append(render_helm(str(path), release, namespace, values, []))
             else:
