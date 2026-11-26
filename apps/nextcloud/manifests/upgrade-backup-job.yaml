@@ -86,7 +86,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: backup
-          image: docker.io/bitnami/kubectl@sha256:8f59408f9e896fc8992a0660a56687545bd06751f26531b4a26fca6d5dc7562d
+          image: docker.io/bitnami/kubectl@sha256:ae71f848f057a71029d092e98548cabf7cd17b11da0adad0a8f4145a9c87c830
           resources:
             requests:
               cpu: 10m
