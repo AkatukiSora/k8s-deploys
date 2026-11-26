@@ -3,6 +3,10 @@ trivy:
   useBuiltinRegoPolicies: "false"
   useEmbeddedRegoPolicies: "true"
   externalRegoPoliciesEnabled: false
+  # azure-storage-common bundles the publicly documented Azure Storage Emulator
+  # account key as a constant. Trivy reports it as a CRITICAL
+  # azure-storage-account-key finding, which is a false positive.
+  skipFiles: /usr/src/nextcloud/3rdparty/microsoft/azure-storage-common/src/Common/Internal/Resources.php
   # The built-in Trivy server keeps the vulnerability database in an emptyDir.
   # The database is re-downloaded when the server Pod restarts, so no PVC is needed.
   storageClassEnabled: false
