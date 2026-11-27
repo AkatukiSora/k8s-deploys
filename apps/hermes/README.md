@@ -52,6 +52,9 @@ must review and synchronize its resources before the workload starts.
   installed. Internal HTTP is a documented interim risk pending encrypted
   east-west traffic in issue #62; NetworkPolicy constrains reachability but
   does not provide transport encryption.
+- `networkpolicy-proxmox-api-egress.yaml` additionally permits the Hermes Pod
+  to reach one Proxmox VE node (`192.168.6.100/32`) on TCP/8006 and nothing else
+  in RFC1918 space. It is inert until a workload in the Pod connects to it.
 - `/opt/data` is the only persistent path. It holds Hermes configuration,
   memory, skills, sessions, ChatGPT/Codex OAuth credentials, and the default
   Kanban board (`kanban.db`) with its logs, attachments, and workspaces. It is

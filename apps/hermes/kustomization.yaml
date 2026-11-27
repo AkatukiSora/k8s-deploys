@@ -26,6 +26,7 @@ resources:
   - networkpolicy-kubernetes-api-egress.yaml
   - networkpolicy-argocd-egress.yaml
   - networkpolicy-grafana-egress.yaml
+  - networkpolicy-proxmox-api-egress.yaml
   - networkpolicy-alertmanager-webhook-ingress.yaml
   - networkpolicy-volsync-mover-egress.yaml
   - volsync.yaml
