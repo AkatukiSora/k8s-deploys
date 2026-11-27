@@ -605,8 +605,8 @@ the token; the last command must list only `*.Audit` privileges. Set an expiry
 (90 days) and rotate it before then. The token value is shown once; enter it
 directly into 1Password and never into chat, Git, or Hermes configuration.
 
-`onepassworditem-proxmox.yaml` projects the 1Password item titled
-`hermes-proxmox` (same vault as the other Hermes items) into the Secret
+`onepassworditem-proxmox.yaml` projects the 1Password item `hermes-proxmox`
+(referenced by item ID, in the same vault as the other Hermes items) into the Secret
 `hermes-proxmox`. The item must contain the fields `user` (`hermes-ro@pve`),
 `tokenName` (`triage`) and `tokenValue`. The Secret is not referenced by any
 workload yet. Create the item before this change is synchronized, otherwise the
