@@ -94,7 +94,7 @@ nextcloud:
       value: "https://auth.akatuki-host.com/application/o/nextcloud/.well-known/openid-configuration"
   extraInitContainers:
     - name: wait-for-postgres
-      image: ghcr.io/cloudnative-pg/postgresql:19.0-system-trixie
+      image: ghcr.io/cloudnative-pg/postgresql:19.0-minimal-trixie
       command:
         - sh
         - -ec
