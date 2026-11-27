@@ -32,6 +32,12 @@ spec:
         app.kubernetes.io/name: hermes
     spec:
       automountServiceAccountToken: false
+      # The node certificate names node1.pve.internal but not 192.168.6.100, and
+      # that name is not in cluster DNS. Pin it here so TLS stays verified.
+      hostAliases:
+        - ip: 192.168.6.100
+          hostnames:
+            - node1.pve.internal
       initContainers:
         - name: bootstrap-config
           command:
@@ -731,7 +737,7 @@ spec:
           imagePullPolicy: IfNotPresent
           env:
             - name: PROXMOX_HOST
-              value: 192.168.6.100
+              value: node1.pve.internal
             - name: PROXMOX_USER
               valueFrom:
                 secretKeyRef:
