@@ -637,10 +637,14 @@ Secret; the Hermes container has no Proxmox credential in its environment, and
 - Hermes' Tool Search defers MCP tools automatically, so the ~150 read tool
   schemas are not sent on every turn; the model discovers them with
   `tool_search`. No Hermes upgrade or `lazy` setting is involved.
-- TLS to the node is verified against `hermes-proxmox-ca`. The single target is
-  `PROXMOX_HOST` (`192.168.6.100`), which must match the
-  `networkpolicy-proxmox-api-egress.yaml` CIDR. If that node is down the tools
-  fail; switch `PROXMOX_HOST` and the CIDR to another node in one PR.
+- TLS to the node is verified against `hermes-proxmox-ca`. The node certificate
+  names `node1.pve.internal` (and `192.168.5.112`) but not `192.168.6.100`, and
+  the name is not in cluster DNS, so the Pod's `hostAliases` map
+  `node1.pve.internal` to `192.168.6.100` and `PROXMOX_HOST` uses the name. The
+  single target must match the `networkpolicy-proxmox-api-egress.yaml` CIDR. If
+  that node is down the tools fail; switch the alias, `PROXMOX_HOST` and the CIDR
+  to another node in one PR. The node certificate is renewed by Proxmox; the CA
+  is valid until 2035.
 - Probes check only that the server process answers `/healthz`. An expired or
   revoked token surfaces as tool errors, not as a NotReady Pod.
 - Updating the image is a normal digest-bump PR. Re-check that the release still
