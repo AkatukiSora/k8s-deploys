@@ -227,3 +227,14 @@ discord:
     roles: false
     users: false
     replied_user: false
+# Read-only Proxmox VE troubleshooting. The server runs as a Pod sidecar that
+# alone holds the API token; Hermes reaches it over the Pod loopback. Its tools
+# are deferred behind tool_search, and `untrusted` makes any tool that is not
+# marked read-only require approval even if the server were reconfigured.
+mcp_servers:
+  proxmox:
+    url: http://127.0.0.1:8811/mcp
+    enabled: true
+    trust: untrusted
+    sampling:
+      enabled: false

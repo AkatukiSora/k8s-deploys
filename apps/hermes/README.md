@@ -52,6 +52,9 @@ must review and synchronize its resources before the workload starts.
   installed. Internal HTTP is a documented interim risk pending encrypted
   east-west traffic in issue #62; NetworkPolicy constrains reachability but
   does not provide transport encryption.
+- `networkpolicy-proxmox-api-egress.yaml` additionally permits the Hermes Pod
+  to reach one Proxmox VE node (`192.168.6.100/32`) on TCP/8006 and nothing else
+  in RFC1918 space. It is inert until a workload in the Pod connects to it.
 - `/opt/data` is the only persistent path. It holds Hermes configuration,
   memory, skills, sessions, ChatGPT/Codex OAuth credentials, and the default
   Kanban board (`kanban.db`) with its logs, attachments, and workspaces. It is
@@ -583,6 +586,65 @@ Alertmanager-to-Hermes webhook delivery remains disabled. Hermes requires HMAC
 validation for webhook payloads, while Alertmanager has no native HMAC-signing
 mechanism. Do not expose TCP/8644 via an Ingress. Revisit this only after the
 planned encrypted east-west service-traffic layer is available.
+
+## Proxmox VE read-only credential
+
+Hermes is given a read-only Proxmox VE identity for troubleshooting. Provision it
+on a cluster node (any node; ACLs are cluster-wide):
+
+```sh
+pveum user add hermes-ro@pve --comment "Hermes read-only troubleshooting"
+pveum user token add hermes-ro@pve triage --privsep 1 --expire <epoch-seconds>
+pveum acl modify / --users hermes-ro@pve --roles PVEAuditor
+pveum acl modify / --tokens 'hermes-ro@pve!triage' --roles PVEAuditor
+pveum user token permissions hermes-ro@pve triage
+```
+
+The token has privilege separation, so the ACL is required on both the user and
+the token; the last command must list only `*.Audit` privileges. Set an expiry
+(90 days) and rotate it before then. The token value is shown once; enter it
+directly into 1Password and never into chat, Git, or Hermes configuration.
+
+`onepassworditem-proxmox.yaml` projects the 1Password item `hermes-proxmox`
+(referenced by item ID, in the same vault as the other Hermes items) into the Secret
+`hermes-proxmox`. The item must contain the fields `user` (`hermes-ro@pve`),
+`tokenName` (`triage`) and `tokenValue`. The Secret is consumed only by the
+`proxmox-mcp` sidecar described below. Create the item before this change is
+synchronized: the sidecar's `secretKeyRef`s otherwise leave the whole Pod in
+`CreateContainerConfigError`, and the `OnePasswordItem` reports an error.
+
+`proxmox/pve-root-ca.pem` is the public cluster CA (`/etc/pve/pve-root-ca.pem`,
+subject `O=PVE Cluster Manager CA`, valid until 2035-11-24, SHA-256
+`7E:04:F9:68:DE:4C:32:F1:09:EA:9A:95:B5:5E:EC:E4:D1:BF:3E:C4:36:2E:C0:BF:5B:A7:02:0F:CB:CA:F2:34`).
+It contains no private key and is published as the `hermes-proxmox-ca`
+ConfigMap, so TLS to the Proxmox API is verified instead of skipped.
+
+## Proxmox VE MCP server
+
+The `proxmox-mcp` sidecar runs the open-source
+[`ry-ops/proxmox-mcp-server`](https://github.com/ry-ops/proxmox-mcp-server)
+(MIT, image pinned by tag and digest) over MCP streamable HTTP on
+`127.0.0.1:8811`. It is the only container that receives the `hermes-proxmox`
+Secret; the Hermes container has no Proxmox credential in its environment, and
+`mcp_servers.proxmox` in `config.yaml` points at the loopback endpoint.
+
+- `PROXMOX_READ_ONLY=true` makes the server advertise only read tools and refuse
+  every non-GET request in its HTTP client. The `PVEAuditor` ACL is the real
+  boundary: Proxmox itself refuses writes, guest-agent commands and console
+  tickets. The server flag is a second lock, not a substitute.
+- `trust: untrusted` in the Hermes MCP entry requires approval for any tool that
+  is not annotated `readOnlyHint`, in case the server is ever reconfigured.
+- Hermes' Tool Search defers MCP tools automatically, so the ~150 read tool
+  schemas are not sent on every turn; the model discovers them with
+  `tool_search`. No Hermes upgrade or `lazy` setting is involved.
+- TLS to the node is verified against `hermes-proxmox-ca`. The single target is
+  `PROXMOX_HOST` (`192.168.6.100`), which must match the
+  `networkpolicy-proxmox-api-egress.yaml` CIDR. If that node is down the tools
+  fail; switch `PROXMOX_HOST` and the CIDR to another node in one PR.
+- Probes check only that the server process answers `/healthz`. An expired or
+  revoked token surfaces as tool errors, not as a NotReady Pod.
+- Updating the image is a normal digest-bump PR. Re-check that the release still
+  honours `PROXMOX_READ_ONLY` before merging.
 
 ## PVC backup
 
