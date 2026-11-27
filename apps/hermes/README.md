@@ -587,6 +587,37 @@ validation for webhook payloads, while Alertmanager has no native HMAC-signing
 mechanism. Do not expose TCP/8644 via an Ingress. Revisit this only after the
 planned encrypted east-west service-traffic layer is available.
 
+## Proxmox VE read-only credential
+
+Hermes is given a read-only Proxmox VE identity for troubleshooting. Provision it
+on a cluster node (any node; ACLs are cluster-wide):
+
+```sh
+pveum user add hermes-ro@pve --comment "Hermes read-only troubleshooting"
+pveum user token add hermes-ro@pve triage --privsep 1 --expire <epoch-seconds>
+pveum acl modify / --users hermes-ro@pve --roles PVEAuditor
+pveum acl modify / --tokens 'hermes-ro@pve!triage' --roles PVEAuditor
+pveum user token permissions hermes-ro@pve triage
+```
+
+The token has privilege separation, so the ACL is required on both the user and
+the token; the last command must list only `*.Audit` privileges. Set an expiry
+(90 days) and rotate it before then. The token value is shown once; enter it
+directly into 1Password and never into chat, Git, or Hermes configuration.
+
+`onepassworditem-proxmox.yaml` projects the 1Password item titled
+`hermes-proxmox` (same vault as the other Hermes items) into the Secret
+`hermes-proxmox`. The item must contain the fields `user` (`hermes-ro@pve`),
+`tokenName` (`triage`) and `tokenValue`. The Secret is not referenced by any
+workload yet. Create the item before this change is synchronized, otherwise the
+`OnePasswordItem` reports an error.
+
+`proxmox/pve-root-ca.pem` is the public cluster CA (`/etc/pve/pve-root-ca.pem`,
+subject `O=PVE Cluster Manager CA`, valid until 2035-11-24, SHA-256
+`7E:04:F9:68:DE:4C:32:F1:09:EA:9A:95:B5:5E:EC:E4:D1:BF:3E:C4:36:2E:C0:BF:5B:A7:02:0F:CB:CA:F2:34`).
+It contains no private key and is published as the `hermes-proxmox-ca`
+ConfigMap, so TLS to the Proxmox API is verified instead of skipped.
+
 ## PVC backup
 
 `hermes-data` (`/opt/data`: configuration, sessions in `state.db`, skills,

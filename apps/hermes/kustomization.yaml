@@ -19,6 +19,7 @@ resources:
   - onepassworditem-vikunja.yaml
   - onepassworditem-google-oauth-client.yaml
   - onepassworditem-volsync-restic.yaml
+  - onepassworditem-proxmox.yaml
   - rbac-k8s-observer.yaml
   - networkpolicy-default-deny.yaml
   - networkpolicy-dns-egress.yaml
@@ -71,6 +72,9 @@ configMapGenerator:
   - name: hermes-observability-tools
     files:
       - observability-tools/grafana-read
+  - name: hermes-proxmox-ca
+    files:
+      - proxmox/pve-root-ca.pem
 generatorOptions:
   disableNameSuffixHash: true
   annotations:
