@@ -593,22 +593,28 @@ Hermes is given a read-only Proxmox VE identity for troubleshooting. Provision i
 on a cluster node (any node; ACLs are cluster-wide):
 
 ```sh
-pveum user add hermes-ro@pve --comment "Hermes read-only troubleshooting"
-pveum user token add hermes-ro@pve triage --privsep 1 --expire <epoch-seconds>
-pveum acl modify / --users hermes-ro@pve --roles PVEAuditor
-pveum acl modify / --tokens 'hermes-ro@pve!triage' --roles PVEAuditor
-pveum user token permissions hermes-ro@pve triage
+pveum user add Hermes@pve --comment "Hermes read-only troubleshooting"
+pveum role add HermesSyslog --privs Sys.Syslog
+pveum acl modify / --users Hermes@pve --roles PVEAuditor
+pveum acl modify /nodes --users Hermes@pve --roles HermesSyslog
+pveum user token add Hermes@pve hermes --privsep 0 --expire <epoch-seconds>
+pveum user permissions Hermes@pve
 ```
 
-The token has privilege separation, so the ACL is required on both the user and
-the token; the last command must list only `*.Audit` privileges. Set an expiry
-(90 days) and rotate it before then. The token value is shown once; enter it
-directly into 1Password and never into chat, Git, or Hermes configuration.
+The token has no privilege separation (`--privsep 0`), so it carries exactly the
+user's permissions and only the user's ACLs are managed; a separated token
+would need every ACL duplicated on the token. The user is therefore the
+permission boundary: the last command must list only `*.Audit` privileges and
+`Sys.Syslog`, and nothing else may be granted to this user. `PVEAuditor` does
+not include `Sys.Syslog`, which is why the `HermesSyslog` role is added on
+`/nodes`. Set an expiry and rotate the token before it lapses. The token value
+is shown once; enter it directly into 1Password and never into chat, Git, or
+Hermes configuration.
 
 `onepassworditem-proxmox.yaml` projects the 1Password item `hermes-proxmox`
 (referenced by item ID, in the same vault as the other Hermes items) into the Secret
-`hermes-proxmox`. The item must contain the fields `user` (`hermes-ro@pve`),
-`tokenName` (`triage`) and `tokenValue`. The Secret is consumed only by the
+`hermes-proxmox`. The item must contain the fields `user` (`Hermes@pve`),
+`tokenName` (`hermes`) and `tokenValue`. The Secret is consumed only by the
 `proxmox-mcp` sidecar described below. Create the item before this change is
 synchronized: the sidecar's `secretKeyRef`s otherwise leave the whole Pod in
 `CreateContainerConfigError`, and the `OnePasswordItem` reports an error.
@@ -645,6 +651,11 @@ Secret; the Hermes container has no Proxmox credential in its environment, and
   that node is down the tools fail; switch the alias, `PROXMOX_HOST` and the CIDR
   to another node in one PR. The node certificate is renewed by Proxmox; the CA
   is valid until 2035.
+- Read node logs with `get_node_journal` and always bound the query: pass
+  `lastentries` or a `since`/`until` range, and a small count first. Do not use
+  `get_node_syslog`: it timed out after 30 s on this cluster even with a small
+  `limit`, while `get_node_journal` answered immediately. Unbounded queries return large, mostly
+  irrelevant output into the model context.
 - Probes check only that the server process answers `/healthz`. An expired or
   revoked token surfaces as tool errors, not as a NotReady Pod.
 - Updating the image is a normal digest-bump PR. Re-check that the release still
