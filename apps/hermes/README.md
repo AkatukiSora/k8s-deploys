@@ -608,15 +608,43 @@ directly into 1Password and never into chat, Git, or Hermes configuration.
 `onepassworditem-proxmox.yaml` projects the 1Password item titled
 `hermes-proxmox` (same vault as the other Hermes items) into the Secret
 `hermes-proxmox`. The item must contain the fields `user` (`hermes-ro@pve`),
-`tokenName` (`triage`) and `tokenValue`. The Secret is not referenced by any
-workload yet. Create the item before this change is synchronized, otherwise the
-`OnePasswordItem` reports an error.
+`tokenName` (`triage`) and `tokenValue`. The Secret is consumed only by the
+`proxmox-mcp` sidecar described below. Create the item before this change is
+synchronized: the sidecar's `secretKeyRef`s otherwise leave the whole Pod in
+`CreateContainerConfigError`, and the `OnePasswordItem` reports an error.
 
 `proxmox/pve-root-ca.pem` is the public cluster CA (`/etc/pve/pve-root-ca.pem`,
 subject `O=PVE Cluster Manager CA`, valid until 2035-11-24, SHA-256
 `7E:04:F9:68:DE:4C:32:F1:09:EA:9A:95:B5:5E:EC:E4:D1:BF:3E:C4:36:2E:C0:BF:5B:A7:02:0F:CB:CA:F2:34`).
 It contains no private key and is published as the `hermes-proxmox-ca`
 ConfigMap, so TLS to the Proxmox API is verified instead of skipped.
+
+## Proxmox VE MCP server
+
+The `proxmox-mcp` sidecar runs the open-source
+[`ry-ops/proxmox-mcp-server`](https://github.com/ry-ops/proxmox-mcp-server)
+(MIT, image pinned by tag and digest) over MCP streamable HTTP on
+`127.0.0.1:8811`. It is the only container that receives the `hermes-proxmox`
+Secret; the Hermes container has no Proxmox credential in its environment, and
+`mcp_servers.proxmox` in `config.yaml` points at the loopback endpoint.
+
+- `PROXMOX_READ_ONLY=true` makes the server advertise only read tools and refuse
+  every non-GET request in its HTTP client. The `PVEAuditor` ACL is the real
+  boundary: Proxmox itself refuses writes, guest-agent commands and console
+  tickets. The server flag is a second lock, not a substitute.
+- `trust: untrusted` in the Hermes MCP entry requires approval for any tool that
+  is not annotated `readOnlyHint`, in case the server is ever reconfigured.
+- Hermes' Tool Search defers MCP tools automatically, so the ~150 read tool
+  schemas are not sent on every turn; the model discovers them with
+  `tool_search`. No Hermes upgrade or `lazy` setting is involved.
+- TLS to the node is verified against `hermes-proxmox-ca`. The single target is
+  `PROXMOX_HOST` (`192.168.6.100`), which must match the
+  `networkpolicy-proxmox-api-egress.yaml` CIDR. If that node is down the tools
+  fail; switch `PROXMOX_HOST` and the CIDR to another node in one PR.
+- Probes check only that the server process answers `/healthz`. An expired or
+  revoked token surfaces as tool errors, not as a NotReady Pod.
+- Updating the image is a normal digest-bump PR. Re-check that the release still
+  honours `PROXMOX_READ_ONLY` before merging.
 
 ## PVC backup
 
