@@ -1,0 +1,138 @@
+---
+name: GitOps CI
+
+# `ci-success` is the only required status check. It aggregates every job so
+# that the ruleset does not need to track individual job names.
+
+on:
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: gitops-ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  HELM_VERSION: v3.19.0
+  KUSTOMIZE_VERSION: v5.7.1
+  KUBECONFORM_VERSION: v0.6.7
+  CRANE_VERSION: v0.20.6
+
+jobs:
+  render:
+    name: Render and validate Applications
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout pull request
+        uses: actions/checkout@v4
+        with:
+          path: pr
+
+      - name: Checkout base branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install tools
+        run: |
+          set -euo pipefail
+          pip install --quiet pyyaml==6.0.2
+          bin="${RUNNER_TEMP}/bin"
+          mkdir -p "${bin}"
+          curl -fsSL "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz" \
+            | tar -xz -C "${bin}" --strip-components=1 linux-amd64/helm
+          curl -fsSL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" \
+            | tar -xz -C "${bin}" kustomize
+          curl -fsSL "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" \
+            | tar -xz -C "${bin}" kubeconform
+          curl -fsSL "https://github.com/google/go-containerregistry/releases/download/${CRANE_VERSION}/go-containerregistry_Linux_x86_64.tar.gz" \
+            | tar -xz -C "${bin}" crane
+          echo "${bin}" >> "${GITHUB_PATH}"
+
+      - name: Render Applications (pull request)
+        run: python pr/.github/scripts/render.py render pr out/pr
+
+      # The base branch may already fail to render. That must not block the
+      # pull request that fixes it, so a failure here only widens the image
+      # check to every image.
+      - name: Render Applications (base branch)
+        continue-on-error: true
+        run: python pr/.github/scripts/render.py render base out/base
+
+      - name: Validate rendered manifests with kubeconform
+        run: |
+          kubeconform -summary -strict -ignore-missing-schemas \
+            -schema-location default \
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+            -skip CustomResourceDefinition \
+            out/pr/*.yaml
+
+      - name: Summarize rendered diff
+        run: |
+          mkdir -p out/base
+          rc=0
+          diff -ru --label base --label pr out/base out/pr > out/diff.txt || rc=$?
+          test "${rc}" -le 1
+          {
+            echo '## Rendered manifest diff'
+            echo '```diff'
+            head -c 60000 out/diff.txt
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Log in to ghcr.io
+        run: echo "${{ github.token }}" | crane auth login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      # `crane digest` issues a manifest request only; no layer is downloaded.
+      - name: Check that new images exist in their registries
+        run: |
+          python pr/.github/scripts/render.py images out/base > base-images.txt
+          python pr/.github/scripts/render.py images out/pr > pr-images.txt
+          comm -13 base-images.txt pr-images.txt > new-images.txt
+          echo "New or changed images: $(wc -l < new-images.txt)"
+          missing=0
+          while read -r image; do
+            if crane digest "${image}" > /dev/null; then
+              echo "ok      ${image}"
+            else
+              echo "::error::image not found or not pullable: ${image}"
+              missing=1
+            fi
+          done < new-images.txt
+          exit "${missing}"
+
+  unit:
+    name: Repository unit tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet pyyaml==6.0.2
+      - run: python -m unittest discover -s tests -v
+
+  ci-success:
+    name: ci-success
+    if: always()
+    needs:
+      - render
+      - unit
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require every job to succeed
+        run: |
+          echo '${{ toJSON(needs) }}'
+          test "${{ needs.render.result }}" = success
+          test "${{ needs.unit.result }}" = success
